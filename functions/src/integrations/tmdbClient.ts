@@ -1,13 +1,14 @@
 import {tmdbApiKey, tmdbBaseUrl} from "../config/env";
 import {HttpError} from "../lib/httpError";
-import {MediaDetail, MediaSummary, PagedResult} from "../models/media";
-import {mapMovieDetail, mapPaged, mapTvDetail} from "./tmdbMapper";
+import {MediaDetail, MediaSummary, PagedResult, TvSeasonDetail} from "../models/media";
+import {mapMovieDetail, mapPaged, mapTvDetail, mapTvSeasonDetail} from "./tmdbMapper";
 import {
   TmdbMovie,
   TmdbMovieDetail,
   TmdbPagedResponse,
   TmdbTv,
   TmdbTvDetail,
+  TmdbTvSeasonDetail,
 } from "./tmdbTypes";
 
 type QueryValue = string | number | boolean | undefined;
@@ -54,6 +55,10 @@ export class TmdbClient {
 
   async tvDetail(id: number): Promise<MediaDetail> {
     return mapTvDetail(await this.get<TmdbTvDetail>(`/tv/${id}`));
+  }
+
+  async tvSeasonDetail(id: number, seasonNumber: number): Promise<TvSeasonDetail> {
+    return mapTvSeasonDetail(id, await this.get<TmdbTvSeasonDetail>(`/tv/${id}/season/${seasonNumber}`));
   }
 
   private async get<T>(path: string, query: Record<string, QueryValue> = {}): Promise<T> {

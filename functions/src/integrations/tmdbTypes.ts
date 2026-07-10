@@ -46,3 +46,25 @@ export interface TmdbTvDetail extends TmdbTv {
   original_language?: string | null;
   homepage?: string | null;
 }
+
+export interface TmdbEpisode {
+  id: number;
+  name?: string;
+  overview?: string;
+  air_date?: string | null;
+  episode_number: number;
+  season_number: number;
+  runtime?: number | null;
+  still_path?: string | null;
+  vote_average?: number;
+}
+
+export interface TmdbTvSeasonDetail {
+  id: number;
+  name?: string;
+  overview?: string;
+  air_date?: string | null;
+  poster_path?: string | null;
+  season_number: number;
+  episodes?: TmdbEpisode[];
+}

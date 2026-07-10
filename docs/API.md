@@ -131,6 +131,43 @@ GET /tv/:id
 
 Uses the same response shape as movie detail. `runtimeMinutes` is derived from the first TMDb `episode_run_time` value when available.
 
+## TV Season Detail
+
+```http
+GET /tv/:id/season/:seasonNumber
+```
+
+Returns normalized TMDb season metadata and episode rows for a TV show.
+
+Response:
+
+```json
+{
+  "id": 3624,
+  "tvId": 95396,
+  "seasonNumber": 1,
+  "title": "Season 1",
+  "overview": "...",
+  "airDate": "2022-02-17",
+  "poster": "https://image.tmdb.org/t/p/w500/example.jpg",
+  "episodeCount": 9,
+  "episodes": [
+    {
+      "id": 3520301,
+      "episodeKey": "s01e01",
+      "seasonNumber": 1,
+      "episodeNumber": 1,
+      "title": "Good News About Hell",
+      "overview": "...",
+      "airDate": "2022-02-17",
+      "runtimeMinutes": 57,
+      "still": "https://image.tmdb.org/t/p/w300/example.jpg",
+      "voteAverage": 8.1
+    }
+  ]
+}
+```
+
 ## Watchlist
 
 Watchlist endpoints require authentication and read/write only the signed-in user's Firestore path:

@@ -1,4 +1,4 @@
-import {DiscoveryResponse, MediaDetail, MediaType} from "../types/media";
+import {DiscoveryResponse, MediaDetail, MediaType, TvSeasonDetail} from "../types/media";
 import {AddWatchlistItemInput, WatchlistItem, WatchlistResponse, WatchlistStatus} from "../types/watchlist";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:5001/episodera/us-central1/api";
@@ -47,6 +47,7 @@ export const api = {
   trendingShows: () => request<DiscoveryResponse["tv"]>("/trending/tv"),
   search: (query: string) => request<DiscoveryResponse>(`/search?q=${encodeURIComponent(query)}`),
   detail: (mediaType: MediaType, id: number) => request<MediaDetail>(`/${mediaType}/${id}`),
+  tvSeason: (id: number, seasonNumber: number) => request<TvSeasonDetail>(`/tv/${id}/season/${seasonNumber}`),
   listWatchlist: () => request<WatchlistResponse>("/watchlist"),
   addWatchlistItem: (input: AddWatchlistItemInput) =>
     request<WatchlistItem>("/watchlist", {method: "POST", body: input}),

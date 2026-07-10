@@ -29,6 +29,31 @@ export interface MediaDetail extends MediaSummary {
   homepage: string | null;
 }
 
+export interface EpisodeSummary {
+  id: number;
+  episodeKey: string;
+  seasonNumber: number;
+  episodeNumber: number;
+  title: string;
+  overview: string;
+  airDate: string | null;
+  runtimeMinutes: number | null;
+  still: string | null;
+  voteAverage: number;
+}
+
+export interface TvSeasonDetail {
+  id: number;
+  tvId: number;
+  seasonNumber: number;
+  title: string;
+  overview: string;
+  airDate: string | null;
+  poster: string | null;
+  episodeCount: number;
+  episodes: EpisodeSummary[];
+}
+
 export interface PagedResult<T> {
   page: number;
   totalPages: number;

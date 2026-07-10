@@ -69,3 +69,11 @@ mediaRouter.get("/tv/:id", async (req, res, next) => {
     next(error);
   }
 });
+
+mediaRouter.get("/tv/:id/season/:seasonNumber", async (req, res, next) => {
+  try {
+    res.json(await tmdbService.tvSeasonDetail(numericId(req.params.id), numericId(req.params.seasonNumber)));
+  } catch (error) {
+    next(error);
+  }
+});

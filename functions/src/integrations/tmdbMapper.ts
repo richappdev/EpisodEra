@@ -1,11 +1,13 @@
 import {tmdbImageBaseUrl} from "../config/env";
-import {MediaDetail, MediaSummary, MediaType, PagedResult} from "../models/media";
+import {EpisodeSummary, MediaDetail, MediaSummary, MediaType, PagedResult, TvSeasonDetail} from "../models/media";
 import {
+  TmdbEpisode,
   TmdbMovie,
   TmdbMovieDetail,
   TmdbPagedResponse,
   TmdbTv,
   TmdbTvDetail,
+  TmdbTvSeasonDetail,
 } from "./tmdbTypes";
 
 const imageUrl = (path: string | null | undefined, size: string) =>
@@ -58,3 +60,35 @@ export const mapTvDetail = (item: TmdbTvDetail): MediaDetail => ({
   originalLanguage: item.original_language ?? null,
   homepage: item.homepage ?? null,
 });
+
+const episodeKeyFor = (seasonNumber: number, episodeNumber: number) =>
+  `s${String(seasonNumber).padStart(2, "0")}e${String(episodeNumber).padStart(2, "0")}`;
+
+export const mapEpisode = (item: TmdbEpisode): EpisodeSummary => ({
+  id: item.id,
+  episodeKey: episodeKeyFor(item.season_number, item.episode_number),
+  seasonNumber: item.season_number,
+  episodeNumber: item.episode_number,
+  title: item.name ?? "",
+  overview: item.overview ?? "",
+  airDate: item.air_date ?? null,
+  runtimeMinutes: item.runtime ?? null,
+  still: imageUrl(item.still_path, "w300"),
+  voteAverage: item.vote_average ?? 0,
+});
+
+export const mapTvSeasonDetail = (tvId: number, item: TmdbTvSeasonDetail): TvSeasonDetail => {
+  const episodes = item.episodes?.map(mapEpisode) ?? [];
+
+  return {
+    id: item.id,
+    tvId,
+    seasonNumber: item.season_number,
+    title: item.name ?? "",
+    overview: item.overview ?? "",
+    airDate: item.air_date ?? null,
+    poster: imageUrl(item.poster_path, "w500"),
+    episodeCount: episodes.length,
+    episodes,
+  };
+};
