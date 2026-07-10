@@ -100,6 +100,26 @@ class ProgressService {
     return getFirestore().collection("users").doc(userId).collection("progress");
   }
 
+  async list(userId: string): Promise<ShowProgress[]> {
+    const snapshot = await this.collection(userId).get();
+    const progressItems = await Promise.all(
+      snapshot.docs.map(async (doc) => {
+        const episodesSnapshot = await doc.ref.collection("episodes").get();
+        const episodes = episodesSnapshot.docs.map((episodeDoc) =>
+          mapEpisodeDocument(episodeDoc.id, episodeDoc.data() as EpisodeProgressDocument),
+        );
+
+        return this.mapProgress(doc.id, doc.data() as ProgressDocument, episodes);
+      }),
+    );
+
+    return progressItems.sort((left, right) => {
+      const leftTime = left.updatedAt ? Date.parse(left.updatedAt) : 0;
+      const rightTime = right.updatedAt ? Date.parse(right.updatedAt) : 0;
+      return rightTime - leftTime;
+    });
+  }
+
   async get(userId: string, showId: string): Promise<ShowProgress | null> {
     const progressRef = this.collection(userId).doc(showId);
     const progressSnapshot = await progressRef.get();
@@ -173,7 +193,8 @@ class ProgressService {
     const episodes = episodesSnapshot.docs.map((doc) =>
       mapEpisodeDocument(doc.id, doc.data() as EpisodeProgressDocument),
     );
-    const current = episodes.length > 0 ? episodes[episodes.length - 1] : null;
+    const sortedEpisodes = [...episodes].sort(compareEpisodes);
+    const current = sortedEpisodes.length > 0 ? sortedEpisodes[sortedEpisodes.length - 1] : null;
 
     await progressRef.set(
       {

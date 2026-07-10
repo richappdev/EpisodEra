@@ -1,4 +1,5 @@
-import {Bookmark, Film, Loader2, Trash2} from "lucide-react";
+import {Bookmark, Film, ListChecks, Loader2, Play, Trash2} from "lucide-react";
+import {ShowProgress} from "../types/progress";
 import {WatchlistItem, WatchlistStatus, watchlistStatuses} from "../types/watchlist";
 
 const statusLabels: Record<WatchlistStatus, string> = {
@@ -12,6 +13,7 @@ interface WatchlistPageProps {
   error: string | null;
   items: WatchlistItem[];
   loading: boolean;
+  progressItems: ShowProgress[];
   signedIn: boolean;
   onRemove: (item: WatchlistItem) => void;
   onSelect: (item: WatchlistItem) => void;
@@ -22,11 +24,18 @@ export const WatchlistPage = ({
   error,
   items,
   loading,
+  progressItems,
   signedIn,
   onRemove,
   onSelect,
   onStatusChange,
 }: WatchlistPageProps) => {
+  const progressByShowId = new Map(progressItems.map((progress) => [progress.showId, progress]));
+  const continueWatchingItems = items
+    .filter((item) => item.mediaType === "tv" && item.status === "watching")
+    .map((item) => ({item, progress: progressByShowId.get(String(item.tmdbId)) ?? null}))
+    .filter(({progress}) => progress && progress.watchedEpisodeCount > 0 && progress.progressPercent < 100);
+
   if (!signedIn) {
     return (
       <main className="page-shell">
@@ -57,6 +66,43 @@ export const WatchlistPage = ({
           <Bookmark size={24} aria-hidden="true" />
           Your watchlist is empty.
         </div>
+      )}
+
+      {continueWatchingItems.length > 0 && (
+        <section className="continue-panel">
+          <div className="section-header">
+            <h2>Continue watching</h2>
+            <span>{continueWatchingItems.length} active</span>
+          </div>
+          <div className="continue-grid">
+            {continueWatchingItems.map(({item, progress}) => (
+              <article className="continue-card" key={item.itemId}>
+                <button className="watchlist-poster" type="button" onClick={() => onSelect(item)}>
+                  {item.poster ? <img src={item.poster} alt="" loading="lazy" /> : <Film size={28} aria-hidden="true" />}
+                </button>
+                <div className="continue-copy">
+                  <strong>{item.title}</strong>
+                  <span>
+                    <ListChecks size={16} aria-hidden="true" />
+                    {progress!.watchedEpisodeCount} of {progress!.totalEpisodes} watched
+                  </span>
+                  {progress!.currentSeason && progress!.currentEpisode && (
+                    <span>
+                      Last watched S{progress!.currentSeason} E{progress!.currentEpisode}
+                    </span>
+                  )}
+                  <div className="progress-bar" aria-label={`${item.title} progress ${progress!.progressPercent}%`}>
+                    <span style={{width: `${Math.min(progress!.progressPercent, 100)}%`}} />
+                  </div>
+                </div>
+                <button className="continue-button" type="button" onClick={() => onSelect(item)}>
+                  <Play size={16} fill="currentColor" aria-hidden="true" />
+                  Continue
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
       )}
 
       <div className="watchlist-grid">

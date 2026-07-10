@@ -467,6 +467,74 @@ button {
   gap: 14px;
 }
 
+.continue-panel {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 26px;
+}
+
+.continue-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.continue-card {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dedbd2;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 64px 1fr auto;
+  padding: 12px;
+}
+
+.continue-copy {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.continue-copy > strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.continue-copy span {
+  align-items: center;
+  color: #68707c;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.progress-bar {
+  background: #ece9df;
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.progress-bar span {
+  background: #0f6f63;
+  display: block;
+  height: 100%;
+}
+
+.continue-button {
+  align-items: center;
+  background: #0f6f63;
+  border: 0;
+  border-radius: 6px;
+  color: #ffffff;
+  display: inline-flex;
+  gap: 8px;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 12px;
+}
+
 .watchlist-item {
   align-items: center;
   background: #ffffff;
@@ -643,6 +711,16 @@ button {
   .watchlist-item {
     align-items: start;
     grid-template-columns: 62px 1fr;
+  }
+
+  .continue-card {
+    align-items: start;
+    grid-template-columns: 62px 1fr;
+  }
+
+  .continue-button {
+    grid-column: 2;
+    justify-self: start;
   }
 
   .icon-button {

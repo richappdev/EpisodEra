@@ -298,6 +298,33 @@ users/{uid}/progress/{showId}/episodes/{episodeKey}
 ### Get Show Progress
 
 ```http
+GET /progress
+```
+
+Lists all show progress documents for the signed-in user, sorted by most recently updated.
+
+Response:
+
+```json
+{
+  "items": [
+    {
+      "showId": "95396",
+      "tmdbId": 95396,
+      "title": "Severance",
+      "totalEpisodes": 19,
+      "watchedEpisodeCount": 2,
+      "progressPercent": 10.53,
+      "currentSeason": 1,
+      "currentEpisode": 2,
+      "updatedAt": "2026-07-10T07:00:00.000Z",
+      "episodes": []
+    }
+  ]
+}
+```
+
+```http
 GET /progress/:showId
 ```
 

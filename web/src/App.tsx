@@ -21,6 +21,7 @@ export const App = () => {
   const [watchlistError, setWatchlistError] = useState<string | null>(null);
   const [watchlistLoading, setWatchlistLoading] = useState(false);
   const [progress, setProgress] = useState<ShowProgress | null>(null);
+  const [progressItems, setProgressItems] = useState<ShowProgress[]>([]);
   const [progressError, setProgressError] = useState<string | null>(null);
   const [progressLoading, setProgressLoading] = useState(false);
   const [seasonDetail, setSeasonDetail] = useState<TvSeasonDetail | null>(null);
@@ -37,13 +38,17 @@ export const App = () => {
       setWatchlistItems([]);
       setWatchlistError(null);
       setWatchlistLoading(false);
+      setProgressItems([]);
       return;
     }
 
     setWatchlistLoading(true);
     setWatchlistError(null);
-    api.listWatchlist()
-      .then(({items}) => setWatchlistItems(items))
+    Promise.all([api.listWatchlist(), api.listProgress()])
+      .then(([{items}, {items: loadedProgressItems}]) => {
+        setWatchlistItems(items);
+        setProgressItems(loadedProgressItems);
+      })
       .catch((err: Error) => setWatchlistError(err.message))
       .finally(() => setWatchlistLoading(false));
   }, [user]);
@@ -56,6 +61,21 @@ export const App = () => {
       }
 
       return current.map((candidate) => (candidate.itemId === item.itemId ? item : candidate));
+    });
+  };
+
+  const upsertProgressItem = (item: ShowProgress | null) => {
+    if (!item) {
+      return;
+    }
+
+    setProgressItems((current) => {
+      const existing = current.findIndex((candidate) => candidate.showId === item.showId);
+      if (existing === -1) {
+        return [item, ...current];
+      }
+
+      return current.map((candidate) => (candidate.showId === item.showId ? item : candidate));
     });
   };
 
@@ -158,7 +178,10 @@ export const App = () => {
       episodeTitle: episode.title || `Episode ${episode.episodeNumber}`,
       totalEpisodes: detail.totalEpisodes ?? seasonDetail?.episodeCount ?? 1,
     })
-      .then(setProgress)
+      .then((updatedProgress) => {
+        setProgress(updatedProgress);
+        upsertProgressItem(updatedProgress);
+      })
       .catch((err: Error) => setProgressError(err.message))
       .finally(() => setProgressLoading(false));
   };
@@ -171,7 +194,14 @@ export const App = () => {
     setProgressLoading(true);
     setProgressError(null);
     api.markEpisodeUnwatched(detail.id, episode.episodeKey)
-      .then(({progress: updatedProgress}) => setProgress(updatedProgress))
+      .then(({progress: updatedProgress}) => {
+        setProgress(updatedProgress);
+        if (updatedProgress) {
+          upsertProgressItem(updatedProgress);
+        } else {
+          setProgressItems((current) => current.filter((candidate) => candidate.tmdbId !== detail.id));
+        }
+      })
       .catch((err: Error) => setProgressError(err.message))
       .finally(() => setProgressLoading(false));
   };
@@ -248,6 +278,7 @@ export const App = () => {
           error={watchlistError}
           items={watchlistItems}
           loading={watchlistLoading}
+          progressItems={progressItems}
           signedIn={Boolean(user)}
           onRemove={removeWatchlistItem}
           onSelect={selectWatchlistItem}

@@ -25,6 +25,10 @@ export interface ProgressResponse {
   progress: ShowProgress | null;
 }
 
+export interface ProgressListResponse {
+  items: ShowProgress[];
+}
+
 export interface MarkEpisodeWatchedInput {
   title: string;
   seasonNumber: number;

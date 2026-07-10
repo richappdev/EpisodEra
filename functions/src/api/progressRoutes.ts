@@ -10,6 +10,14 @@ export const progressRouter = Router();
 
 progressRouter.use(requireAuth);
 
+progressRouter.get("/progress", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    res.json({items: await progressService.list(req.user!.uid)});
+  } catch (error) {
+    next(error);
+  }
+});
+
 progressRouter.get("/progress/:showId", async (req: AuthenticatedRequest, res, next) => {
   try {
     const {showId} = parseShowId(req.params.showId);
