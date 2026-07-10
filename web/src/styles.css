@@ -535,6 +535,71 @@ button {
   padding: 0 12px;
 }
 
+.profile-header {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.profile-header h2 {
+  font-size: 28px;
+  margin: 4px 0 0;
+}
+
+.profile-header > svg {
+  color: #0f6f63;
+}
+
+.stats-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  margin-bottom: 18px;
+}
+
+.stat-card {
+  background: #ffffff;
+  border: 1px solid #dedbd2;
+  border-radius: 8px;
+  color: #434a55;
+  display: grid;
+  gap: 10px;
+  min-height: 150px;
+  padding: 18px;
+}
+
+.stat-card > svg {
+  color: #0f6f63;
+}
+
+.stat-card strong,
+.profile-summary strong {
+  color: #19202a;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.profile-summary {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.profile-summary > div {
+  background: #ffffff;
+  border: 1px solid #dedbd2;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+}
+
+.profile-summary span:last-child {
+  color: #68707c;
+}
+
 .watchlist-item {
   align-items: center;
   background: #ffffff;

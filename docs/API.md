@@ -393,6 +393,27 @@ DELETE /progress/:showId/episode/:episodeKey
 
 Response: updated show progress, or `{ "progress": null }` if the show has no progress document.
 
+## Profile Stats
+
+Stats endpoints require authentication and derive counts from the signed-in user's watchlist and progress documents.
+
+```http
+GET /me/stats
+```
+
+Response:
+
+```json
+{
+  "totalWatchedMovies": 4,
+  "totalWatchedEpisodes": 23,
+  "currentlyWatchingCount": 3,
+  "completedShowsCount": 2,
+  "watchlistCount": 12,
+  "progressShowCount": 5
+}
+```
+
 ## Errors
 
 Errors use a consistent envelope:

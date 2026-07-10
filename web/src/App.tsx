@@ -5,12 +5,14 @@ import {TopBar} from "./components/TopBar";
 import {AuthPage} from "./pages/AuthPage";
 import {DetailPage} from "./pages/DetailPage";
 import {DiscoveryPage} from "./pages/DiscoveryPage";
+import {ProfilePage} from "./pages/ProfilePage";
 import {WatchlistPage} from "./pages/WatchlistPage";
 import {EpisodeSummary, MediaDetail, MediaSummary, TvSeasonDetail} from "./types/media";
 import {ShowProgress} from "./types/progress";
+import {UserStats} from "./types/stats";
 import {WatchlistItem, WatchlistStatus} from "./types/watchlist";
 
-type View = "trending" | "search" | "watchlist" | "auth";
+type View = "trending" | "search" | "watchlist" | "profile" | "auth";
 
 export const App = () => {
   const {getIdToken, loading, signOutUser, user} = useAuth();
@@ -20,6 +22,9 @@ export const App = () => {
   const [watchlistItems, setWatchlistItems] = useState<WatchlistItem[]>([]);
   const [watchlistError, setWatchlistError] = useState<string | null>(null);
   const [watchlistLoading, setWatchlistLoading] = useState(false);
+  const [stats, setStats] = useState<UserStats | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
   const [progress, setProgress] = useState<ShowProgress | null>(null);
   const [progressItems, setProgressItems] = useState<ShowProgress[]>([]);
   const [progressError, setProgressError] = useState<string | null>(null);
@@ -38,20 +43,45 @@ export const App = () => {
       setWatchlistItems([]);
       setWatchlistError(null);
       setWatchlistLoading(false);
+      setStats(null);
+      setStatsError(null);
+      setStatsLoading(false);
       setProgressItems([]);
       return;
     }
 
     setWatchlistLoading(true);
+    setStatsLoading(true);
     setWatchlistError(null);
-    Promise.all([api.listWatchlist(), api.listProgress()])
-      .then(([{items}, {items: loadedProgressItems}]) => {
+    setStatsError(null);
+    Promise.all([api.listWatchlist(), api.listProgress(), api.meStats()])
+      .then(([{items}, {items: loadedProgressItems}, loadedStats]) => {
         setWatchlistItems(items);
         setProgressItems(loadedProgressItems);
+        setStats(loadedStats);
       })
-      .catch((err: Error) => setWatchlistError(err.message))
-      .finally(() => setWatchlistLoading(false));
+      .catch((err: Error) => {
+        setWatchlistError(err.message);
+        setStatsError(err.message);
+      })
+      .finally(() => {
+        setWatchlistLoading(false);
+        setStatsLoading(false);
+      });
   }, [user]);
+
+  const refreshStats = () => {
+    if (!user) {
+      return;
+    }
+
+    setStatsLoading(true);
+    setStatsError(null);
+    api.meStats()
+      .then(setStats)
+      .catch((err: Error) => setStatsError(err.message))
+      .finally(() => setStatsLoading(false));
+  };
 
   const upsertWatchlistItem = (item: WatchlistItem) => {
     setWatchlistItems((current) => {
@@ -140,7 +170,10 @@ export const App = () => {
       poster: selectedDetail.images.poster,
       backdrop: selectedDetail.images.backdrop,
     })
-      .then(upsertWatchlistItem)
+      .then((item) => {
+        upsertWatchlistItem(item);
+        refreshStats();
+      })
       .catch((err: Error) => setWatchlistError(err.message));
   };
 
@@ -151,7 +184,10 @@ export const App = () => {
 
     setWatchlistError(null);
     api.updateWatchlistStatus(item.itemId, status)
-      .then(upsertWatchlistItem)
+      .then((updatedItem) => {
+        upsertWatchlistItem(updatedItem);
+        refreshStats();
+      })
       .catch((err: Error) => setWatchlistError(err.message));
   };
 
@@ -160,6 +196,7 @@ export const App = () => {
     api.removeWatchlistItem(item.itemId)
       .then(() => {
         setWatchlistItems((current) => current.filter((candidate) => candidate.itemId !== item.itemId));
+        refreshStats();
       })
       .catch((err: Error) => setWatchlistError(err.message));
   };
@@ -181,6 +218,7 @@ export const App = () => {
       .then((updatedProgress) => {
         setProgress(updatedProgress);
         upsertProgressItem(updatedProgress);
+        refreshStats();
       })
       .catch((err: Error) => setProgressError(err.message))
       .finally(() => setProgressLoading(false));
@@ -201,6 +239,7 @@ export const App = () => {
         } else {
           setProgressItems((current) => current.filter((candidate) => candidate.tmdbId !== detail.id));
         }
+        refreshStats();
       })
       .catch((err: Error) => setProgressError(err.message))
       .finally(() => setProgressLoading(false));
@@ -273,6 +312,14 @@ export const App = () => {
       {detailError && <div className="floating-error">{detailError}</div>}
       {view === "auth" ? (
         <AuthPage onDone={() => setView("trending")} />
+      ) : view === "profile" ? (
+        <ProfilePage
+          error={statsError}
+          loading={statsLoading}
+          signedIn={Boolean(user)}
+          stats={stats}
+          userEmail={user?.email ?? null}
+        />
       ) : view === "watchlist" ? (
         <WatchlistPage
           error={watchlistError}
