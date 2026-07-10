@@ -43,6 +43,8 @@ const request = async <T>(path: string, options: RequestOptions = {}): Promise<T
 
 export const api = {
   trending: () => request<DiscoveryResponse>("/trending"),
+  trendingMovies: () => request<DiscoveryResponse["movies"]>("/trending/movie"),
+  trendingShows: () => request<DiscoveryResponse["tv"]>("/trending/tv"),
   search: (query: string) => request<DiscoveryResponse>(`/search?q=${encodeURIComponent(query)}`),
   detail: (mediaType: MediaType, id: number) => request<MediaDetail>(`/${mediaType}/${id}`),
   listWatchlist: () => request<WatchlistResponse>("/watchlist"),

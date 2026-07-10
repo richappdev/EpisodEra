@@ -32,15 +32,20 @@ export class TmdbClient {
     movies: PagedResult<MediaSummary>;
     tv: PagedResult<MediaSummary>;
   }> {
-    const [movies, tv] = await Promise.all([
-      this.get<TmdbPagedResponse<TmdbMovie>>("/trending/movie/week", {page}),
-      this.get<TmdbPagedResponse<TmdbTv>>("/trending/tv/week", {page}),
-    ]);
+    const [movies, tv] = await Promise.all([this.trendingMovies(page), this.trendingTv(page)]);
 
     return {
-      movies: mapPaged(movies, "movie"),
-      tv: mapPaged(tv, "tv"),
+      movies,
+      tv,
     };
+  }
+
+  async trendingMovies(page = 1): Promise<PagedResult<MediaSummary>> {
+    return mapPaged(await this.get<TmdbPagedResponse<TmdbMovie>>("/trending/movie/week", {page}), "movie");
+  }
+
+  async trendingTv(page = 1): Promise<PagedResult<MediaSummary>> {
+    return mapPaged(await this.get<TmdbPagedResponse<TmdbTv>>("/trending/tv/week", {page}), "tv");
   }
 
   async movieDetail(id: number): Promise<MediaDetail> {

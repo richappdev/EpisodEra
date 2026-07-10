@@ -84,6 +84,16 @@ GET /trending?page=1
 
 Returns weekly trending movies and TV shows using the same paged shape as `/search`.
 
+For a single media type, use:
+
+```http
+GET /trending/movie?page=1
+GET /trending/tv?page=1
+GET /trending/shows?page=1
+```
+
+`/trending/tv` and `/trending/shows` both return weekly trending TV shows from TMDb's `/trending/tv/week` endpoint.
+
 ## Movie Detail
 
 ```http

@@ -38,6 +38,22 @@ mediaRouter.get("/trending", async (req, res, next) => {
   }
 });
 
+mediaRouter.get("/trending/movie", async (req, res, next) => {
+  try {
+    res.json(await tmdbService.trendingMovies(pageParam(req.query.page)));
+  } catch (error) {
+    next(error);
+  }
+});
+
+mediaRouter.get(["/trending/tv", "/trending/shows"], async (req, res, next) => {
+  try {
+    res.json(await tmdbService.trendingTv(pageParam(req.query.page)));
+  } catch (error) {
+    next(error);
+  }
+});
+
 mediaRouter.get("/movie/:id", async (req, res, next) => {
   try {
     res.json(await tmdbService.movieDetail(numericId(req.params.id)));
