@@ -8,8 +8,8 @@ interface TopBarProps {
 export const TopBar = ({activeView, onViewChange}: TopBarProps) => (
   <header className="top-bar">
     <div>
-      <h1>TV Show Time</h1>
-      <p>Movies and shows from TMDb</p>
+      <h1>Episodera</h1>
+      <p>Track movies, shows, and next episodes</p>
     </div>
     <nav aria-label="Primary">
       <button

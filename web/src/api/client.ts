@@ -1,6 +1,6 @@
 import {DiscoveryResponse, MediaDetail, MediaType} from "../types/media";
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:5001/tv-show-time-dev/us-central1/api";
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:5001/episodera-dev/us-central1/api";
 
 const request = async <T>(path: string): Promise<T> => {
   const response = await fetch(`${apiBaseUrl}${path}`);
