@@ -132,6 +132,5 @@ Baseline CI runs the functions and web build checks on pull requests and pushes 
 
 ## Known Gaps
 
-- `functions` has an ESLint script, but ESLint 9 requires a flat config before lint can run in CI.
 - Full signed-in Firestore emulator validation is pending until Java or another emulator-capable environment is available locally.
 - Dependency audit review is still required before production deployment.

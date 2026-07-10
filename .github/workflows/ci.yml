@@ -34,6 +34,10 @@ jobs:
         working-directory: functions
         run: npm test
 
+      - name: Lint functions
+        working-directory: functions
+        run: npm run lint
+
       - name: Install web dependencies
         working-directory: web
         run: npm ci

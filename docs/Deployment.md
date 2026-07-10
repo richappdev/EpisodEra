@@ -61,11 +61,11 @@ npm run build
 GitHub Actions runs the baseline MVP regression on pushes to `main` and on pull requests:
 
 ```text
-functions: npm ci && npm test
+functions: npm ci && npm test && npm run lint
 web: npm ci && npm run build
 ```
 
-The `functions` test script currently compiles TypeScript through `npm run build`. Add linting and runtime integration tests to the workflow once the ESLint 9 config and Firestore emulator environment are ready.
+The `functions` test script currently compiles TypeScript through `npm run build`. Add runtime integration tests to the workflow once the Firestore emulator environment is ready.
 
 ## Pre-deploy checklist
 
