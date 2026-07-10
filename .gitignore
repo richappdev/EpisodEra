@@ -8,5 +8,6 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 firepit-log.txt
+.firebase/
 *.local
 .codex/

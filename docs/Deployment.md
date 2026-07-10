@@ -56,6 +56,18 @@ cd web
 npm run build
 ```
 
+## Web hosting deployment
+
+Firebase Hosting serves the built Vite app from `web/dist`.
+
+Deploy the web app with:
+
+```plain text
+firebase deploy --only hosting
+```
+
+The app is an SPA, so all routes rewrite to `index.html`.
+
 ## Continuous Integration
 
 GitHub Actions runs the baseline MVP regression on pushes to `main` and on pull requests:
@@ -77,3 +89,4 @@ The `functions` test script currently compiles TypeScript through `npm run build
 - `TMDB_API_KEY` secret configured
 - Firestore rules deployed
 - Production `VITE_API_BASE_URL` points to the deployed function
+- Firebase Hosting deployed from `web/dist`

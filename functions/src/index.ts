@@ -8,6 +8,7 @@ export const api = onRequest(
   {
     region: "us-central1",
     secrets: ["TMDB_API_KEY"],
+    timeoutSeconds: 60,
   },
   app,
 );
