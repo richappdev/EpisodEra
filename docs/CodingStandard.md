@@ -111,6 +111,7 @@ Update docs in the same change when behavior changes:
 - `docs/Firestore.md` for schema, rules, and indexes.
 - `docs/Navigation.md` for screen or route changes.
 - `docs/Deployment.md` for build, CI, emulator, or deploy changes.
+- `docs/DependencyAudit.md` for npm audit findings and production-readiness decisions.
 - `docs/Architecture.md` for meaningful system-level decisions.
 
 ## Verification
@@ -133,4 +134,4 @@ Baseline CI runs the functions and web build checks on pull requests and pushes 
 ## Known Gaps
 
 - Full signed-in Firestore emulator validation is pending until Java or another emulator-capable environment is available locally.
-- Dependency audit review is still required before production deployment.
+- Dependency audit findings currently require semver-major framework/tooling upgrades before production risk can be fully closed.

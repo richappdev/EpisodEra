@@ -70,6 +70,7 @@ The `functions` test script currently compiles TypeScript through `npm run build
 ## Pre-deploy checklist
 
 - `docs/CodingStandard.md` reviewed for current conventions
+- `docs/DependencyAudit.md` reviewed and release risk accepted or resolved
 - `functions`: `npm run build`
 - `web`: `npm run build`
 - Firebase Authentication email/password provider enabled
