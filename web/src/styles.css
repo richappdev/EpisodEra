@@ -57,9 +57,19 @@ button {
   padding: 4px;
 }
 
+.top-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 .top-bar button,
 .search-form button,
-.back-button {
+.back-button,
+.auth-form button,
+.account-button {
   align-items: center;
   border: 0;
   border-radius: 6px;
@@ -68,7 +78,8 @@ button {
   justify-content: center;
 }
 
-.top-bar button {
+.top-bar button,
+.account-button {
   background: transparent;
   color: #434a55;
   min-height: 38px;
@@ -76,9 +87,24 @@ button {
 }
 
 .top-bar button.active,
-.search-form button {
+.search-form button,
+.auth-form button {
   background: #0f6f63;
   color: #ffffff;
+}
+
+.account-button {
+  background: #ffffff;
+  border: 1px solid #dedbd2;
+}
+
+.user-chip {
+  color: #68707c;
+  font-size: 13px;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .page-shell,
@@ -86,6 +112,71 @@ button {
   margin: 0 auto;
   max-width: 1180px;
   padding: 28px clamp(16px, 4vw, 48px) 56px;
+}
+
+.auth-page {
+  display: grid;
+  min-height: calc(100vh - 82px);
+  padding: 36px clamp(16px, 4vw, 48px);
+  place-items: start center;
+}
+
+.auth-panel {
+  background: #ffffff;
+  border: 1px solid #dedbd2;
+  border-radius: 8px;
+  display: grid;
+  gap: 22px;
+  max-width: 480px;
+  padding: clamp(22px, 4vw, 34px);
+  width: min(100%, 480px);
+}
+
+.auth-panel h2 {
+  font-size: 28px;
+  line-height: 1.1;
+  margin: 6px 0 8px;
+}
+
+.auth-panel p {
+  color: #68707c;
+  margin: 0;
+}
+
+.auth-form {
+  display: grid;
+  gap: 16px;
+}
+
+.auth-form label {
+  color: #434a55;
+  display: grid;
+  font-weight: 700;
+  gap: 8px;
+}
+
+.auth-form input {
+  border: 1px solid #cfcbbf;
+  border-radius: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+}
+
+.auth-form button {
+  min-height: 44px;
+}
+
+.auth-form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.text-button {
+  background: transparent;
+  border: 0;
+  color: #0f6f63;
+  justify-self: start;
+  padding: 0;
 }
 
 .search-form {
@@ -305,8 +396,17 @@ button {
     width: 100%;
   }
 
+  .top-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .top-bar nav button {
     flex: 1;
+  }
+
+  .account-button {
+    width: 100%;
   }
 
   .search-form {
