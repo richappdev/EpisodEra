@@ -138,7 +138,7 @@ export const DetailPage = ({
               <span className="media-kind">Episodes</span>
               <h3>{seasonDetail?.title ?? `Season ${selectedSeason}`}</h3>
             </div>
-            {seasons.length > 0 && (
+            {seasons.length > 1 && (
               <select
                 aria-label={`Season for ${detail.title}`}
                 value={selectedSeason}

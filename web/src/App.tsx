@@ -208,27 +208,62 @@ export const App = () => {
       .catch((err: Error) => setWatchlistError(err.message));
   };
 
-  const markEpisodeWatched = (episode: EpisodeSummary) => {
+  const markEpisodeWatched = async (episode: EpisodeSummary) => {
     if (!detail || detail.mediaType !== "tv") {
       return;
     }
 
     setProgressLoading(true);
     setProgressError(null);
-    api.markEpisodeWatched(detail.id, {
-      title: detail.title,
-      seasonNumber: episode.seasonNumber,
-      episodeNumber: episode.episodeNumber,
-      episodeTitle: episode.title || `Episode ${episode.episodeNumber}`,
-      totalEpisodes: detail.totalEpisodes ?? seasonDetail?.episodeCount ?? 1,
-    })
-      .then((updatedProgress) => {
-        setProgress(updatedProgress);
-        upsertProgressItem(updatedProgress);
-        refreshStats();
-      })
-      .catch((err: Error) => setProgressError(err.message))
-      .finally(() => setProgressLoading(false));
+
+    try {
+      const watchedKeys = new Set(progress?.episodes.map((watchedEpisode) => watchedEpisode.episodeKey) ?? []);
+      const earlierSeasonNumbers = (detail.seasons ?? [])
+        .map((season) => season.seasonNumber)
+        .filter((seasonNumber) => seasonNumber < episode.seasonNumber);
+      const earlierSeasonDetails = await Promise.all(
+        earlierSeasonNumbers.map((seasonNumber) => api.tvSeason(detail.id, seasonNumber)),
+      );
+      const currentSeasonEpisodes =
+        seasonDetail?.seasonNumber === episode.seasonNumber ? seasonDetail.episodes : [episode];
+      const previousEpisodes = [...earlierSeasonDetails.flatMap((season) => season.episodes), ...currentSeasonEpisodes]
+        .filter(
+          (candidate) =>
+            (candidate.seasonNumber < episode.seasonNumber ||
+              (candidate.seasonNumber === episode.seasonNumber && candidate.episodeNumber < episode.episodeNumber)) &&
+            !watchedKeys.has(candidate.episodeKey),
+        )
+        .sort((left, right) => left.seasonNumber - right.seasonNumber || left.episodeNumber - right.episodeNumber);
+      const shouldMarkPrevious =
+        previousEpisodes.length > 0 &&
+        window.confirm(
+          `Mark ${previousEpisodes.length} earlier episode${previousEpisodes.length === 1 ? "" : "s"} as watched too?`,
+        );
+      const episodesToMark = shouldMarkPrevious ? [...previousEpisodes, episode] : [episode];
+
+      let latestProgress: ShowProgress | null = null;
+      for (const episodeToMark of episodesToMark) {
+        latestProgress = await api.markEpisodeWatched(detail.id, {
+          title: detail.title,
+          seasonNumber: episodeToMark.seasonNumber,
+          episodeNumber: episodeToMark.episodeNumber,
+          episodeTitle: episodeToMark.title || `Episode ${episodeToMark.episodeNumber}`,
+          totalEpisodes: detail.totalEpisodes ?? seasonDetail?.episodeCount ?? 1,
+        });
+      }
+
+      if (!latestProgress) {
+        return;
+      }
+
+      setProgress(latestProgress);
+      upsertProgressItem(latestProgress);
+      refreshStats();
+    } catch (err) {
+      setProgressError(err instanceof Error ? err.message : "Could not update episode progress.");
+    } finally {
+      setProgressLoading(false);
+    }
   };
 
   const markEpisodeUnwatched = (episode: EpisodeSummary) => {
