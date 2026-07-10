@@ -3,6 +3,7 @@ import express, {ErrorRequestHandler} from "express";
 import {HttpError} from "../lib/httpError";
 import {optionalAuth} from "../middleware/auth";
 import {mediaRouter} from "./mediaRoutes";
+import {progressRouter} from "./progressRoutes";
 import {watchlistRouter} from "./watchlistRoutes";
 
 export const app = express();
@@ -17,6 +18,7 @@ app.get("/health", (_req, res) => {
 
 app.use("/", mediaRouter);
 app.use("/", watchlistRouter);
+app.use("/", progressRouter);
 
 const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   if (error instanceof HttpError) {

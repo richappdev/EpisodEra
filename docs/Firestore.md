@@ -7,6 +7,8 @@ Firestore stores user-owned application state. TMDb remains the source of truth 
 ```text
 users/{userId}
 users/{userId}/watchlist/{mediaType_id}
+users/{userId}/progress/{showId}
+users/{userId}/progress/{showId}/episodes/{episodeKey}
 users/{userId}/ratings/{mediaType_id}
 public/{document}
 ```
@@ -59,6 +61,51 @@ completed
 dropped
 ```
 
+## users/{userId}/progress/{showId}
+
+Tracks per-show episode progress. The document ID is the TMDb TV show ID as a string, such as `95396`.
+
+Shape:
+
+```json
+{
+  "tmdbId": 95396,
+  "title": "Severance",
+  "totalEpisodes": 19,
+  "watchedEpisodeCount": 2,
+  "progressPercent": 10.53,
+  "currentSeason": 1,
+  "currentEpisode": 2,
+  "updatedAt": "<server timestamp>"
+}
+```
+
+`progressPercent` is rounded to two decimal places by the backend.
+
+## users/{userId}/progress/{showId}/episodes/{episodeKey}
+
+Stores each watched episode for a show.
+
+Recommended document ID format:
+
+```text
+s01e01
+s02e10
+```
+
+Shape:
+
+```json
+{
+  "seasonNumber": 1,
+  "episodeNumber": 1,
+  "episodeTitle": "Good News About Hell",
+  "watched": true,
+  "watchedAt": "<server timestamp>",
+  "updatedAt": "<server timestamp>"
+}
+```
+
 ## users/{userId}/ratings/{mediaType_id}
 
 Stores private user ratings.
@@ -80,6 +127,7 @@ The current `firestore.rules` policy is intentionally narrow:
 
 - Users can create/read/update/delete only their own `users/{uid}` document.
 - Users can read/write only their own `watchlist` and `ratings` subcollections.
+- Users can read/write only their own `progress` documents and nested `episodes`.
 - `public/**` is read-only for all clients.
 - Everything else is denied by default.
 

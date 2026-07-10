@@ -266,6 +266,88 @@ DELETE /watchlist/:itemId
 
 Response: `204 No Content`.
 
+## Episode Progress
+
+Progress endpoints require authentication and read/write only the signed-in user's Firestore path:
+
+```text
+users/{uid}/progress/{showId}
+users/{uid}/progress/{showId}/episodes/{episodeKey}
+```
+
+`showId` is the positive TMDb TV show ID. `episodeKey` is generated from season and episode numbers, such as `s01e01`.
+
+### Get Show Progress
+
+```http
+GET /progress/:showId
+```
+
+Response when no progress exists yet:
+
+```json
+{
+  "progress": null
+}
+```
+
+Response after watched episodes exist:
+
+```json
+{
+  "progress": {
+    "showId": "95396",
+    "tmdbId": 95396,
+    "title": "Severance",
+    "totalEpisodes": 19,
+    "watchedEpisodeCount": 2,
+    "progressPercent": 10.53,
+    "currentSeason": 1,
+    "currentEpisode": 2,
+    "updatedAt": "2026-07-10T07:00:00.000Z",
+    "episodes": [
+      {
+        "episodeKey": "s01e01",
+        "seasonNumber": 1,
+        "episodeNumber": 1,
+        "episodeTitle": "Good News About Hell",
+        "watched": true,
+        "watchedAt": "2026-07-10T07:00:00.000Z",
+        "updatedAt": "2026-07-10T07:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+### Mark Episode Watched
+
+```http
+POST /progress/:showId/episode
+```
+
+Request:
+
+```json
+{
+  "title": "Severance",
+  "seasonNumber": 1,
+  "episodeNumber": 1,
+  "episodeTitle": "Good News About Hell",
+  "totalEpisodes": 19
+}
+```
+
+Response: `201 Created` with the updated show progress. Re-marking the same episode overwrites that episode row and keeps the watched count deduplicated.
+
+### Mark Episode Unwatched
+
+```http
+DELETE /progress/:showId/episode/:episodeKey
+```
+
+Response: updated show progress, or `{ "progress": null }` if the show has no progress document.
+
 ## Errors
 
 Errors use a consistent envelope:
@@ -285,6 +367,9 @@ Common status codes:
 | --- | --- | --- |
 | `400` | `missing_query` | `/search` was called without `q`. |
 | `400` | `invalid_id` | A detail endpoint received a non-positive numeric ID. |
+| `400` | `invalid_show_id` | A progress endpoint received a non-positive TV show ID. |
+| `400` | `invalid_episode_key` | An episode progress key was not formatted like `s01e01`. |
+| `400` | `invalid_progress_payload` | A progress request body failed validation. |
 | `400` | `invalid_item_id` | A watchlist item ID was not formatted as `movie_550` or `tv_95396`. |
 | `400` | `invalid_status` | A watchlist status was not one of the allowed values. |
 | `400` | `invalid_watchlist_payload` | A watchlist request body failed validation. |
