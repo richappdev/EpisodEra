@@ -1,4 +1,5 @@
 import {DiscoveryResponse, MediaDetail, MediaType, TvSeasonDetail} from "../types/media";
+import {MarkEpisodeWatchedInput, ProgressResponse, ShowProgress} from "../types/progress";
 import {AddWatchlistItemInput, WatchlistItem, WatchlistResponse, WatchlistStatus} from "../types/watchlist";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:5001/episodera/us-central1/api";
@@ -48,6 +49,11 @@ export const api = {
   search: (query: string) => request<DiscoveryResponse>(`/search?q=${encodeURIComponent(query)}`),
   detail: (mediaType: MediaType, id: number) => request<MediaDetail>(`/${mediaType}/${id}`),
   tvSeason: (id: number, seasonNumber: number) => request<TvSeasonDetail>(`/tv/${id}/season/${seasonNumber}`),
+  getProgress: (showId: number) => request<ProgressResponse>(`/progress/${showId}`),
+  markEpisodeWatched: (showId: number, input: MarkEpisodeWatchedInput) =>
+    request<ShowProgress>(`/progress/${showId}/episode`, {method: "POST", body: input}),
+  markEpisodeUnwatched: (showId: number, episodeKey: string) =>
+    request<ProgressResponse>(`/progress/${showId}/episode/${episodeKey}`, {method: "DELETE"}),
   listWatchlist: () => request<WatchlistResponse>("/watchlist"),
   addWatchlistItem: (input: AddWatchlistItemInput) =>
     request<WatchlistItem>("/watchlist", {method: "POST", body: input}),

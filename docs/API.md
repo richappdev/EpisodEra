@@ -129,7 +129,25 @@ Response:
 GET /tv/:id
 ```
 
-Uses the same response shape as movie detail. `runtimeMinutes` is derived from the first TMDb `episode_run_time` value when available.
+Uses the same base response shape as movie detail. `runtimeMinutes` is derived from the first TMDb `episode_run_time` value when available.
+
+TV responses also include season metadata for episode-progress UI:
+
+```json
+{
+  "totalEpisodes": 19,
+  "seasons": [
+    {
+      "id": 3624,
+      "seasonNumber": 1,
+      "title": "Season 1",
+      "episodeCount": 9,
+      "airDate": "2022-02-17",
+      "poster": "https://image.tmdb.org/t/p/w500/example.jpg"
+    }
+  ]
+}
+```
 
 ## TV Season Detail
 

@@ -6,7 +6,8 @@ import {AuthPage} from "./pages/AuthPage";
 import {DetailPage} from "./pages/DetailPage";
 import {DiscoveryPage} from "./pages/DiscoveryPage";
 import {WatchlistPage} from "./pages/WatchlistPage";
-import {MediaDetail, MediaSummary} from "./types/media";
+import {EpisodeSummary, MediaDetail, MediaSummary, TvSeasonDetail} from "./types/media";
+import {ShowProgress} from "./types/progress";
 import {WatchlistItem, WatchlistStatus} from "./types/watchlist";
 
 type View = "trending" | "search" | "watchlist" | "auth";
@@ -19,6 +20,13 @@ export const App = () => {
   const [watchlistItems, setWatchlistItems] = useState<WatchlistItem[]>([]);
   const [watchlistError, setWatchlistError] = useState<string | null>(null);
   const [watchlistLoading, setWatchlistLoading] = useState(false);
+  const [progress, setProgress] = useState<ShowProgress | null>(null);
+  const [progressError, setProgressError] = useState<string | null>(null);
+  const [progressLoading, setProgressLoading] = useState(false);
+  const [seasonDetail, setSeasonDetail] = useState<TvSeasonDetail | null>(null);
+  const [seasonError, setSeasonError] = useState<string | null>(null);
+  const [seasonLoading, setSeasonLoading] = useState(false);
+  const [selectedSeason, setSelectedSeason] = useState(1);
 
   useEffect(() => {
     setApiTokenProvider(getIdToken);
@@ -50,6 +58,51 @@ export const App = () => {
       return current.map((candidate) => (candidate.itemId === item.itemId ? item : candidate));
     });
   };
+
+  useEffect(() => {
+    if (!detail || detail.mediaType !== "tv") {
+      setProgress(null);
+      setProgressError(null);
+      setProgressLoading(false);
+      setSeasonDetail(null);
+      setSeasonError(null);
+      setSeasonLoading(false);
+      setSelectedSeason(1);
+      return;
+    }
+
+    const firstSeason = detail.seasons?.[0]?.seasonNumber ?? 1;
+    setSelectedSeason(firstSeason);
+  }, [detail]);
+
+  useEffect(() => {
+    if (!detail || detail.mediaType !== "tv") {
+      return;
+    }
+
+    setSeasonLoading(true);
+    setSeasonError(null);
+    api.tvSeason(detail.id, selectedSeason)
+      .then(setSeasonDetail)
+      .catch((err: Error) => setSeasonError(err.message))
+      .finally(() => setSeasonLoading(false));
+  }, [detail, selectedSeason]);
+
+  useEffect(() => {
+    if (!detail || detail.mediaType !== "tv" || !user) {
+      setProgress(null);
+      setProgressError(null);
+      setProgressLoading(false);
+      return;
+    }
+
+    setProgressLoading(true);
+    setProgressError(null);
+    api.getProgress(detail.id)
+      .then(({progress: loadedProgress}) => setProgress(loadedProgress))
+      .catch((err: Error) => setProgressError(err.message))
+      .finally(() => setProgressLoading(false));
+  }, [detail, user]);
 
   const selectItem = (item: MediaSummary) => {
     setDetailError(null);
@@ -91,6 +144,38 @@ export const App = () => {
       .catch((err: Error) => setWatchlistError(err.message));
   };
 
+  const markEpisodeWatched = (episode: EpisodeSummary) => {
+    if (!detail || detail.mediaType !== "tv") {
+      return;
+    }
+
+    setProgressLoading(true);
+    setProgressError(null);
+    api.markEpisodeWatched(detail.id, {
+      title: detail.title,
+      seasonNumber: episode.seasonNumber,
+      episodeNumber: episode.episodeNumber,
+      episodeTitle: episode.title || `Episode ${episode.episodeNumber}`,
+      totalEpisodes: detail.totalEpisodes ?? seasonDetail?.episodeCount ?? 1,
+    })
+      .then(setProgress)
+      .catch((err: Error) => setProgressError(err.message))
+      .finally(() => setProgressLoading(false));
+  };
+
+  const markEpisodeUnwatched = (episode: EpisodeSummary) => {
+    if (!detail || detail.mediaType !== "tv") {
+      return;
+    }
+
+    setProgressLoading(true);
+    setProgressError(null);
+    api.markEpisodeUnwatched(detail.id, episode.episodeKey)
+      .then(({progress: updatedProgress}) => setProgress(updatedProgress))
+      .catch((err: Error) => setProgressError(err.message))
+      .finally(() => setProgressLoading(false));
+  };
+
   const selectWatchlistItem = (item: WatchlistItem) => {
     selectItem({
       id: item.tmdbId,
@@ -114,10 +199,20 @@ export const App = () => {
         {watchlistError && <div className="floating-error">{watchlistError}</div>}
         <DetailPage
           detail={detail}
+          onEpisodeWatched={markEpisodeWatched}
+          onEpisodeUnwatched={markEpisodeUnwatched}
           onAddToWatchlist={addToWatchlist}
           onBack={() => setDetail(null)}
           onRemoveFromWatchlist={removeWatchlistItem}
+          onSeasonChange={setSelectedSeason}
           onWatchlistStatusChange={updateWatchlistStatus}
+          progress={progress}
+          progressError={progressError}
+          progressLoading={progressLoading}
+          seasonDetail={seasonDetail}
+          seasonError={seasonError}
+          seasonLoading={seasonLoading}
+          selectedSeason={selectedSeason}
           signedIn={Boolean(user)}
           watchlistItem={currentWatchlistItem}
         />

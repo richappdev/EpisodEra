@@ -42,6 +42,15 @@ export interface TmdbMovieDetail extends TmdbMovie {
 export interface TmdbTvDetail extends TmdbTv {
   genres?: TmdbGenre[];
   episode_run_time?: number[];
+  number_of_episodes?: number;
+  seasons?: Array<{
+    id: number;
+    name?: string;
+    season_number: number;
+    episode_count?: number;
+    air_date?: string | null;
+    poster_path?: string | null;
+  }>;
   status?: string | null;
   original_language?: string | null;
   homepage?: string | null;

@@ -1,5 +1,13 @@
 import {tmdbImageBaseUrl} from "../config/env";
-import {EpisodeSummary, MediaDetail, MediaSummary, MediaType, PagedResult, TvSeasonDetail} from "../models/media";
+import {
+  EpisodeSummary,
+  MediaDetail,
+  MediaSummary,
+  MediaType,
+  PagedResult,
+  TvSeasonDetail,
+  TvSeasonSummary,
+} from "../models/media";
 import {
   TmdbEpisode,
   TmdbMovie,
@@ -50,6 +58,17 @@ export const mapMovieDetail = (item: TmdbMovieDetail): MediaDetail => ({
   status: item.status ?? null,
   originalLanguage: item.original_language ?? null,
   homepage: item.homepage ?? null,
+  totalEpisodes: null,
+  seasons: [],
+});
+
+const mapSeasonSummary = (item: NonNullable<TmdbTvDetail["seasons"]>[number]): TvSeasonSummary => ({
+  id: item.id,
+  seasonNumber: item.season_number,
+  title: item.name ?? `Season ${item.season_number}`,
+  episodeCount: item.episode_count ?? 0,
+  airDate: item.air_date ?? null,
+  poster: imageUrl(item.poster_path, "w500"),
 });
 
 export const mapTvDetail = (item: TmdbTvDetail): MediaDetail => ({
@@ -59,6 +78,8 @@ export const mapTvDetail = (item: TmdbTvDetail): MediaDetail => ({
   status: item.status ?? null,
   originalLanguage: item.original_language ?? null,
   homepage: item.homepage ?? null,
+  totalEpisodes: item.number_of_episodes ?? null,
+  seasons: item.seasons?.filter((season) => season.season_number > 0).map(mapSeasonSummary) ?? [],
 });
 
 const episodeKeyFor = (seasonNumber: number, episodeNumber: number) =>
