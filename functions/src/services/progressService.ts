@@ -1,6 +1,7 @@
 import {FieldValue, Timestamp, getFirestore} from "firebase-admin/firestore";
 import {HttpError} from "../lib/httpError";
 import {EpisodeProgress, MarkEpisodeWatchedInput, ShowProgress} from "../models/progress";
+import {historyService} from "./historyService";
 
 interface ProgressDocument {
   tmdbId: number;
@@ -152,6 +153,14 @@ class ProgressService {
       },
       {merge: true},
     );
+    await historyService.recordEpisode(userId, {
+      tmdbId,
+      title: input.title,
+      episodeKey,
+      seasonNumber: input.seasonNumber,
+      episodeNumber: input.episodeNumber,
+      episodeTitle: input.episodeTitle,
+    });
 
     await this.refreshProgress(progressRef, tmdbId, input.title, input.totalEpisodes);
 
@@ -176,6 +185,7 @@ class ProgressService {
     }
 
     await progressRef.collection("episodes").doc(episodeKey).delete();
+    await historyService.removeEpisode(userId, tmdbId, episodeKey);
 
     const data = progressSnapshot.data() as ProgressDocument;
     await this.refreshProgress(progressRef, tmdbId, data.title, data.totalEpisodes);

@@ -2,6 +2,7 @@ import {useEffect, useState} from "react";
 import {api, setApiTokenProvider} from "./api/client";
 import {useAuth} from "./auth/AuthContext";
 import {TopBar} from "./components/TopBar";
+import {HistoryEntry} from "./types/history";
 import {AuthPage} from "./pages/AuthPage";
 import {DetailPage} from "./pages/DetailPage";
 import {DiscoveryPage} from "./pages/DiscoveryPage";
@@ -23,6 +24,7 @@ export const App = () => {
   const [watchlistError, setWatchlistError] = useState<string | null>(null);
   const [watchlistLoading, setWatchlistLoading] = useState(false);
   const [stats, setStats] = useState<UserStats | null>(null);
+  const [historyItems, setHistoryItems] = useState<HistoryEntry[]>([]);
   const [statsError, setStatsError] = useState<string | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [progress, setProgress] = useState<ShowProgress | null>(null);
@@ -44,6 +46,7 @@ export const App = () => {
       setWatchlistError(null);
       setWatchlistLoading(false);
       setStats(null);
+      setHistoryItems([]);
       setStatsError(null);
       setStatsLoading(false);
       setProgressItems([]);
@@ -54,11 +57,12 @@ export const App = () => {
     setStatsLoading(true);
     setWatchlistError(null);
     setStatsError(null);
-    Promise.all([api.listWatchlist(), api.listProgress(), api.meStats()])
-      .then(([{items}, {items: loadedProgressItems}, loadedStats]) => {
+    Promise.all([api.listWatchlist(), api.listProgress(), api.meStats(), api.meHistory()])
+      .then(([{items}, {items: loadedProgressItems}, loadedStats, {items: loadedHistoryItems}]) => {
         setWatchlistItems(items);
         setProgressItems(loadedProgressItems);
         setStats(loadedStats);
+        setHistoryItems(loadedHistoryItems);
       })
       .catch((err: Error) => {
         setWatchlistError(err.message);
@@ -77,8 +81,11 @@ export const App = () => {
 
     setStatsLoading(true);
     setStatsError(null);
-    api.meStats()
-      .then(setStats)
+    Promise.all([api.meStats(), api.meHistory()])
+      .then(([loadedStats, {items}]) => {
+        setStats(loadedStats);
+        setHistoryItems(items);
+      })
       .catch((err: Error) => setStatsError(err.message))
       .finally(() => setStatsLoading(false));
   };
@@ -315,6 +322,7 @@ export const App = () => {
       ) : view === "profile" ? (
         <ProfilePage
           error={statsError}
+          history={historyItems}
           loading={statsLoading}
           signedIn={Boolean(user)}
           stats={stats}

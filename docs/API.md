@@ -414,6 +414,36 @@ Response:
 }
 ```
 
+## Profile History
+
+History endpoints require authentication and return watched movie and episode events for the signed-in user.
+
+```http
+GET /me/history
+```
+
+Response:
+
+```json
+{
+  "items": [
+    {
+      "historyId": "tv_95396_s01e01",
+      "tmdbId": 95396,
+      "mediaType": "tv",
+      "title": "Severance",
+      "seasonNumber": 1,
+      "episodeNumber": 1,
+      "episodeTitle": "Good News About Hell",
+      "watchedAt": "2026-07-10T07:00:00.000Z",
+      "updatedAt": "2026-07-10T07:00:00.000Z"
+    }
+  ]
+}
+```
+
+Movie history entries use `mediaType: "movie"` and return `null` for episode fields.
+
 ## Errors
 
 Errors use a consistent envelope:

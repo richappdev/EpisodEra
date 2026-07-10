@@ -9,6 +9,7 @@ users/{userId}
 users/{userId}/watchlist/{mediaType_id}
 users/{userId}/progress/{showId}
 users/{userId}/progress/{showId}/episodes/{episodeKey}
+users/{userId}/history/{historyId}
 users/{userId}/ratings/{mediaType_id}
 public/{document}
 ```
@@ -106,6 +107,34 @@ Shape:
 }
 ```
 
+## users/{userId}/history/{historyId}
+
+Stores watched movie and watched episode events for the user's recent history timeline.
+
+Recommended document ID formats:
+
+```text
+movie_550
+tv_95396_s01e01
+```
+
+Shape:
+
+```json
+{
+  "tmdbId": 95396,
+  "mediaType": "tv",
+  "title": "Severance",
+  "seasonNumber": 1,
+  "episodeNumber": 1,
+  "episodeTitle": "Good News About Hell",
+  "watchedAt": "<server timestamp>",
+  "updatedAt": "<server timestamp>"
+}
+```
+
+For movie entries, `seasonNumber`, `episodeNumber`, and `episodeTitle` are `null`.
+
 ## users/{userId}/ratings/{mediaType_id}
 
 Stores private user ratings.
@@ -128,6 +157,7 @@ The current `firestore.rules` policy is intentionally narrow:
 - Users can create/read/update/delete only their own `users/{uid}` document.
 - Users can read/write only their own `watchlist` and `ratings` subcollections.
 - Users can read/write only their own `progress` documents and nested `episodes`.
+- Users can read/write only their own `history` documents.
 - `public/**` is read-only for all clients.
 - Everything else is denied by default.
 
@@ -138,5 +168,6 @@ When backend write endpoints are introduced, prefer validating document shape in
 No composite indexes are required yet. Add indexes when screens need cross-field sorting or filtering such as:
 
 - Watchlist by `status` and `updatedAt`.
+- History by `watchedAt`.
 - Ratings by `rating` and `updatedAt`.
 - Public curated lists by `publishedAt` and `slug`.

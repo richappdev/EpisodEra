@@ -1,4 +1,5 @@
 import {DiscoveryResponse, MediaDetail, MediaType, TvSeasonDetail} from "../types/media";
+import {HistoryResponse} from "../types/history";
 import {MarkEpisodeWatchedInput, ProgressListResponse, ProgressResponse, ShowProgress} from "../types/progress";
 import {UserStats} from "../types/stats";
 import {AddWatchlistItemInput, WatchlistItem, WatchlistResponse, WatchlistStatus} from "../types/watchlist";
@@ -56,6 +57,7 @@ export const api = {
     request<ShowProgress>(`/progress/${showId}/episode`, {method: "POST", body: input}),
   markEpisodeUnwatched: (showId: number, episodeKey: string) =>
     request<ProgressResponse>(`/progress/${showId}/episode/${episodeKey}`, {method: "DELETE"}),
+  meHistory: () => request<HistoryResponse>("/me/history"),
   meStats: () => request<UserStats>("/me/stats"),
   listWatchlist: () => request<WatchlistResponse>("/watchlist"),
   addWatchlistItem: (input: AddWatchlistItemInput) =>

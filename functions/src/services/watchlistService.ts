@@ -7,6 +7,7 @@ import {
   WatchlistStatus,
   watchlistStatuses,
 } from "../models/watchlist";
+import {historyService} from "./historyService";
 
 interface WatchlistDocument {
   tmdbId: number;
@@ -158,12 +159,31 @@ class WatchlistService {
       updatedAt: FieldValue.serverTimestamp(),
     });
 
+    const data = snapshot.data() as WatchlistDocument;
+    if (data.mediaType === "movie") {
+      if (status === "completed") {
+        await historyService.recordMovie(userId, {
+          tmdbId: data.tmdbId,
+          title: data.title,
+        });
+      } else if (data.status === "completed") {
+        await historyService.removeMovie(userId, data.tmdbId);
+      }
+    }
+
     return this.get(userId, itemId);
   }
 
   async remove(userId: string, itemId: string): Promise<void> {
-    parseItemId(itemId);
-    await this.collection(userId).doc(itemId).delete();
+    const parsed = parseItemId(itemId);
+    const ref = this.collection(userId).doc(itemId);
+    const snapshot = await ref.get();
+
+    await ref.delete();
+
+    if (parsed.mediaType === "movie" && snapshot.exists) {
+      await historyService.removeMovie(userId, parsed.tmdbId);
+    }
   }
 
   private async get(userId: string, itemId: string): Promise<WatchlistItem> {
