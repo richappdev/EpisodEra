@@ -6,7 +6,7 @@ The backend exposes a single Firebase HTTPS Function named `api`. In local emula
 http://127.0.0.1:5001/<firebase-project-id>/us-central1/api
 ```
 
-All responses are JSON. Read-only discovery endpoints can be called without authentication. Endpoints that later modify user state should require a Firebase ID token in the `Authorization` header:
+All responses are JSON. Read-only discovery endpoints can be called without authentication. User-owned endpoints require a Firebase ID token in the `Authorization` header:
 
 ```http
 Authorization: Bearer <firebase-id-token>
@@ -121,6 +121,104 @@ GET /tv/:id
 
 Uses the same response shape as movie detail. `runtimeMinutes` is derived from the first TMDb `episode_run_time` value when available.
 
+## Watchlist
+
+Watchlist endpoints require authentication and read/write only the signed-in user's Firestore path:
+
+```text
+users/{uid}/watchlist/{itemId}
+```
+
+`itemId` is derived by the backend using:
+
+```text
+{mediaType}_{tmdbId}
+```
+
+Examples: `movie_550`, `tv_95396`.
+
+Allowed `status` values:
+
+```text
+planned
+watching
+completed
+dropped
+```
+
+### List Watchlist
+
+```http
+GET /watchlist
+```
+
+Response:
+
+```json
+{
+  "items": [
+    {
+      "itemId": "tv_95396",
+      "tmdbId": 95396,
+      "mediaType": "tv",
+      "title": "Severance",
+      "poster": "https://image.tmdb.org/t/p/w500/example.jpg",
+      "backdrop": "https://image.tmdb.org/t/p/w780/example.jpg",
+      "status": "planned",
+      "addedAt": "2026-07-10T04:00:00.000Z",
+      "updatedAt": "2026-07-10T04:00:00.000Z"
+    }
+  ]
+}
+```
+
+### Add To Watchlist
+
+```http
+POST /watchlist
+```
+
+Request:
+
+```json
+{
+  "tmdbId": 95396,
+  "mediaType": "tv",
+  "title": "Severance",
+  "poster": "https://image.tmdb.org/t/p/w500/example.jpg",
+  "backdrop": "https://image.tmdb.org/t/p/w780/example.jpg",
+  "status": "planned"
+}
+```
+
+`status`, `poster`, and `backdrop` are optional. `status` defaults to `planned`.
+
+Response: `201 Created` with the saved watchlist item.
+
+### Update Watchlist Status
+
+```http
+PATCH /watchlist/:itemId/status
+```
+
+Request:
+
+```json
+{
+  "status": "watching"
+}
+```
+
+Response: updated watchlist item.
+
+### Remove From Watchlist
+
+```http
+DELETE /watchlist/:itemId
+```
+
+Response: `204 No Content`.
+
 ## Errors
 
 Errors use a consistent envelope:
@@ -140,6 +238,10 @@ Common status codes:
 | --- | --- | --- |
 | `400` | `missing_query` | `/search` was called without `q`. |
 | `400` | `invalid_id` | A detail endpoint received a non-positive numeric ID. |
+| `400` | `invalid_item_id` | A watchlist item ID was not formatted as `movie_550` or `tv_95396`. |
+| `400` | `invalid_status` | A watchlist status was not one of the allowed values. |
+| `400` | `invalid_watchlist_payload` | A watchlist request body failed validation. |
 | `401` | `unauthenticated` | A protected endpoint was called without a valid user. |
+| `404` | `watchlist_item_not_found` | A watchlist item was not found for the signed-in user. |
 | `502` | `tmdb_request_failed` | TMDb returned an unsuccessful response. |
 | `500` | `internal` | Unhandled backend error. |

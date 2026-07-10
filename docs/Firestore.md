@@ -43,13 +43,14 @@ Shape:
   "mediaType": "tv",
   "title": "Severance",
   "poster": "https://image.tmdb.org/t/p/w500/example.jpg",
+  "backdrop": "https://image.tmdb.org/t/p/w780/example.jpg",
   "status": "watching",
   "addedAt": "<server timestamp>",
   "updatedAt": "<server timestamp>"
 }
 ```
 
-Allowed `status` values should be enforced by backend code when write endpoints are added:
+Allowed `status` values are enforced by backend code:
 
 ```text
 planned
