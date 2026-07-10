@@ -1,4 +1,5 @@
 import {DiscoveryResponse, MediaDetail, MediaType} from "../types/media";
+import {AddWatchlistItemInput, WatchlistItem, WatchlistResponse, WatchlistStatus} from "../types/watchlist";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:5001/episodera/us-central1/api";
 
@@ -8,12 +9,29 @@ export const setApiTokenProvider = (provider: () => Promise<string | null>) => {
   tokenProvider = provider;
 };
 
-const request = async <T>(path: string): Promise<T> => {
+interface RequestOptions {
+  body?: unknown;
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
+}
+
+const request = async <T>(path: string, options: RequestOptions = {}): Promise<T> => {
   const token = tokenProvider ? await tokenProvider() : null;
+  const headers = new Headers();
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  if (options.body !== undefined) {
+    headers.set("Content-Type", "application/json");
+  }
+
   const response = await fetch(`${apiBaseUrl}${path}`, {
-    headers: token ? {Authorization: `Bearer ${token}`} : undefined,
+    method: options.method ?? "GET",
+    headers,
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
   });
-  const payload = await response.json();
+  const payload = response.status === 204 ? null : await response.json();
 
   if (!response.ok) {
     const message = payload?.error?.message ?? "Request failed.";
@@ -27,4 +45,10 @@ export const api = {
   trending: () => request<DiscoveryResponse>("/trending"),
   search: (query: string) => request<DiscoveryResponse>(`/search?q=${encodeURIComponent(query)}`),
   detail: (mediaType: MediaType, id: number) => request<MediaDetail>(`/${mediaType}/${id}`),
+  listWatchlist: () => request<WatchlistResponse>("/watchlist"),
+  addWatchlistItem: (input: AddWatchlistItemInput) =>
+    request<WatchlistItem>("/watchlist", {method: "POST", body: input}),
+  updateWatchlistStatus: (itemId: string, status: WatchlistStatus) =>
+    request<WatchlistItem>(`/watchlist/${itemId}/status`, {method: "PATCH", body: {status}}),
+  removeWatchlistItem: (itemId: string) => request<null>(`/watchlist/${itemId}`, {method: "DELETE"}),
 };

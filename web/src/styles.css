@@ -17,7 +17,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -69,7 +70,9 @@ button {
 .search-form button,
 .back-button,
 .auth-form button,
-.account-button {
+.account-button,
+.detail-actions button,
+.icon-button {
   align-items: center;
   border: 0;
   border-radius: 6px;
@@ -386,6 +389,138 @@ button {
   text-decoration: none;
 }
 
+.detail-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.detail-actions button {
+  background: #ffffff;
+  color: #19202a;
+  min-height: 40px;
+  padding: 0 14px;
+}
+
+.detail-actions select,
+.watchlist-copy select {
+  background: #ffffff;
+  border: 1px solid #cfcbbf;
+  border-radius: 6px;
+  color: #19202a;
+  min-height: 40px;
+  padding: 0 10px;
+}
+
+.auth-note,
+.saved-chip {
+  align-items: center;
+  border-radius: 6px;
+  display: inline-flex;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+}
+
+.auth-note {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
+.saved-chip {
+  background: #dff3ec;
+  color: #0f6f63;
+}
+
+.watchlist-header {
+  align-items: end;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.watchlist-header h2 {
+  font-size: 28px;
+  margin: 4px 0 0;
+}
+
+.watchlist-header > span {
+  color: #68707c;
+}
+
+.inline-state {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.empty-watchlist {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.watchlist-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.watchlist-item {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dedbd2;
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 72px 1fr auto;
+  padding: 12px;
+}
+
+.watchlist-poster {
+  align-items: center;
+  aspect-ratio: 2 / 3;
+  background: #d8e4df;
+  border: 0;
+  border-radius: 6px;
+  color: #56615d;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0;
+}
+
+.watchlist-poster img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.watchlist-copy {
+  display: grid;
+  gap: 7px;
+  justify-items: start;
+  min-width: 0;
+}
+
+.watchlist-copy > button {
+  background: transparent;
+  border: 0;
+  color: #19202a;
+  font-weight: 700;
+  max-width: 100%;
+  padding: 0;
+  text-align: left;
+}
+
+.icon-button {
+  background: transparent;
+  color: #68707c;
+  min-height: 38px;
+  padding: 0 10px;
+}
+
 @media (max-width: 760px) {
   .top-bar {
     align-items: stretch;
@@ -407,6 +542,16 @@ button {
 
   .account-button {
     width: 100%;
+  }
+
+  .watchlist-item {
+    align-items: start;
+    grid-template-columns: 62px 1fr;
+  }
+
+  .icon-button {
+    grid-column: 2;
+    justify-self: start;
   }
 
   .search-form {

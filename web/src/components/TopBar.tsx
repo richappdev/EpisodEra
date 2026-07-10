@@ -1,12 +1,12 @@
 import {User} from "firebase/auth";
-import {LogIn, LogOut, Search, TrendingUp} from "lucide-react";
+import {Bookmark, LogIn, LogOut, Search, TrendingUp} from "lucide-react";
 
 interface TopBarProps {
-  activeView: "trending" | "search";
+  activeView: "trending" | "search" | "watchlist";
   user: User | null;
   onAuthOpen: () => void;
   onSignOut: () => void;
-  onViewChange: (view: "trending" | "search") => void;
+  onViewChange: (view: "trending" | "search" | "watchlist") => void;
 }
 
 export const TopBar = ({activeView, user, onAuthOpen, onSignOut, onViewChange}: TopBarProps) => (
@@ -35,6 +35,15 @@ export const TopBar = ({activeView, user, onAuthOpen, onSignOut, onViewChange}: 
         >
           <Search size={18} aria-hidden="true" />
           Search
+        </button>
+        <button
+          className={activeView === "watchlist" ? "active" : ""}
+          type="button"
+          onClick={() => onViewChange("watchlist")}
+          title="Watchlist"
+        >
+          <Bookmark size={18} aria-hidden="true" />
+          Watchlist
         </button>
       </nav>
       <button className="account-button" type="button" onClick={user ? onSignOut : onAuthOpen}>

@@ -1,12 +1,33 @@
-import {ArrowLeft, Clock, ExternalLink, Star} from "lucide-react";
+import {ArrowLeft, Bookmark, Check, Clock, ExternalLink, Star, Trash2} from "lucide-react";
 import {MediaDetail} from "../types/media";
+import {WatchlistItem, WatchlistStatus, watchlistStatuses} from "../types/watchlist";
+
+const statusLabels: Record<WatchlistStatus, string> = {
+  planned: "Planned",
+  watching: "Watching",
+  completed: "Completed",
+  dropped: "Dropped",
+};
 
 interface DetailPageProps {
   detail: MediaDetail;
+  onAddToWatchlist: (detail: MediaDetail) => void;
   onBack: () => void;
+  onRemoveFromWatchlist: (item: WatchlistItem) => void;
+  onWatchlistStatusChange: (item: WatchlistItem, status: WatchlistStatus) => void;
+  signedIn: boolean;
+  watchlistItem: WatchlistItem | null;
 }
 
-export const DetailPage = ({detail, onBack}: DetailPageProps) => (
+export const DetailPage = ({
+  detail,
+  onAddToWatchlist,
+  onBack,
+  onRemoveFromWatchlist,
+  onWatchlistStatusChange,
+  signedIn,
+  watchlistItem,
+}: DetailPageProps) => (
   <main className="detail-page">
     <button className="back-button" type="button" onClick={onBack}>
       <ArrowLeft size={18} aria-hidden="true" />
@@ -48,6 +69,38 @@ export const DetailPage = ({detail, onBack}: DetailPageProps) => (
               Official site
             </a>
           )}
+          <div className="detail-actions">
+            {!signedIn ? (
+              <span className="auth-note">Sign in to save this title.</span>
+            ) : watchlistItem ? (
+              <>
+                <span className="saved-chip">
+                  <Check size={16} aria-hidden="true" />
+                  In watchlist
+                </span>
+                <select
+                  aria-label={`Watchlist status for ${detail.title}`}
+                  value={watchlistItem.status}
+                  onChange={(event) => onWatchlistStatusChange(watchlistItem, event.target.value as WatchlistStatus)}
+                >
+                  {watchlistStatuses.map((status) => (
+                    <option key={status} value={status}>
+                      {statusLabels[status]}
+                    </option>
+                  ))}
+                </select>
+                <button type="button" onClick={() => onRemoveFromWatchlist(watchlistItem)}>
+                  <Trash2 size={16} aria-hidden="true" />
+                  Remove
+                </button>
+              </>
+            ) : (
+              <button type="button" onClick={() => onAddToWatchlist(detail)}>
+                <Bookmark size={16} aria-hidden="true" />
+                Add to watchlist
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </section>
