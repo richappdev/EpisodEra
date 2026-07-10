@@ -9,3 +9,4 @@ firestore-debug.log
 ui-debug.log
 firepit-log.txt
 *.local
+.codex/
