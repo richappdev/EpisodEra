@@ -56,6 +56,17 @@ cd web
 npm run build
 ```
 
+## Continuous Integration
+
+GitHub Actions runs the baseline MVP regression on pushes to `main` and on pull requests:
+
+```text
+functions: npm ci && npm test
+web: npm ci && npm run build
+```
+
+The `functions` test script currently compiles TypeScript through `npm run build`. Add linting and runtime integration tests to the workflow once the ESLint 9 config and Firestore emulator environment are ready.
+
 ## Pre-deploy checklist
 
 - `functions`: `npm run build`
