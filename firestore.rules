@@ -34,6 +34,10 @@ service cloud.firestore {
       match /history/{historyId} {
         allow read, write: if isOwner(userId);
       }
+
+      match /settings/{settingsId} {
+        allow read, write: if isOwner(userId);
+      }
     }
 
     match /public/{document=**} {

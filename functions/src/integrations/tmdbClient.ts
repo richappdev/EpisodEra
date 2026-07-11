@@ -1,6 +1,7 @@
 import {tmdbApiKey, tmdbBaseUrl} from "../config/env";
 import {HttpError} from "../lib/httpError";
 import {MediaDetail, MediaSummary, PagedResult, TvSeasonDetail} from "../models/media";
+import {SupportedLanguage} from "../models/settings";
 import {mapMovieDetail, mapPaged, mapTvDetail, mapTvSeasonDetail} from "./tmdbMapper";
 import {
   TmdbMovie,
@@ -14,13 +15,13 @@ import {
 type QueryValue = string | number | boolean | undefined;
 
 export class TmdbClient {
-  async search(query: string, page = 1): Promise<{
+  async search(query: string, page = 1, language: SupportedLanguage = "en-US"): Promise<{
     movies: PagedResult<MediaSummary>;
     tv: PagedResult<MediaSummary>;
   }> {
     const [movies, tv] = await Promise.all([
-      this.get<TmdbPagedResponse<TmdbMovie>>("/search/movie", {query, page}),
-      this.get<TmdbPagedResponse<TmdbTv>>("/search/tv", {query, page}),
+      this.get<TmdbPagedResponse<TmdbMovie>>("/search/movie", {query, page, language}),
+      this.get<TmdbPagedResponse<TmdbTv>>("/search/tv", {query, page, language}),
     ]);
 
     return {
@@ -29,11 +30,11 @@ export class TmdbClient {
     };
   }
 
-  async trending(page = 1): Promise<{
+  async trending(page = 1, language: SupportedLanguage = "en-US"): Promise<{
     movies: PagedResult<MediaSummary>;
     tv: PagedResult<MediaSummary>;
   }> {
-    const [movies, tv] = await Promise.all([this.trendingMovies(page), this.trendingTv(page)]);
+    const [movies, tv] = await Promise.all([this.trendingMovies(page, language), this.trendingTv(page, language)]);
 
     return {
       movies,
@@ -41,30 +42,33 @@ export class TmdbClient {
     };
   }
 
-  async trendingMovies(page = 1): Promise<PagedResult<MediaSummary>> {
-    return mapPaged(await this.get<TmdbPagedResponse<TmdbMovie>>("/trending/movie/week", {page}), "movie");
+  async trendingMovies(page = 1, language: SupportedLanguage = "en-US"): Promise<PagedResult<MediaSummary>> {
+    return mapPaged(await this.get<TmdbPagedResponse<TmdbMovie>>("/trending/movie/week", {page, language}), "movie");
   }
 
-  async trendingTv(page = 1): Promise<PagedResult<MediaSummary>> {
-    return mapPaged(await this.get<TmdbPagedResponse<TmdbTv>>("/trending/tv/week", {page}), "tv");
+  async trendingTv(page = 1, language: SupportedLanguage = "en-US"): Promise<PagedResult<MediaSummary>> {
+    return mapPaged(await this.get<TmdbPagedResponse<TmdbTv>>("/trending/tv/week", {page, language}), "tv");
   }
 
-  async movieDetail(id: number): Promise<MediaDetail> {
-    return mapMovieDetail(await this.get<TmdbMovieDetail>(`/movie/${id}`));
+  async movieDetail(id: number, language: SupportedLanguage = "en-US"): Promise<MediaDetail> {
+    return mapMovieDetail(await this.get<TmdbMovieDetail>(`/movie/${id}`, {language}));
   }
 
-  async tvDetail(id: number): Promise<MediaDetail> {
-    return mapTvDetail(await this.get<TmdbTvDetail>(`/tv/${id}`));
+  async tvDetail(id: number, language: SupportedLanguage = "en-US"): Promise<MediaDetail> {
+    return mapTvDetail(await this.get<TmdbTvDetail>(`/tv/${id}`, {language}));
   }
 
-  async tvSeasonDetail(id: number, seasonNumber: number): Promise<TvSeasonDetail> {
-    return mapTvSeasonDetail(id, await this.get<TmdbTvSeasonDetail>(`/tv/${id}/season/${seasonNumber}`));
+  async tvSeasonDetail(
+    id: number,
+    seasonNumber: number,
+    language: SupportedLanguage = "en-US",
+  ): Promise<TvSeasonDetail> {
+    return mapTvSeasonDetail(id, await this.get<TmdbTvSeasonDetail>(`/tv/${id}/season/${seasonNumber}`, {language}));
   }
 
   private async get<T>(path: string, query: Record<string, QueryValue> = {}): Promise<T> {
     const url = new URL(`${tmdbBaseUrl}${path}`);
     url.searchParams.set("api_key", tmdbApiKey.value());
-    url.searchParams.set("language", "en-US");
 
     for (const [key, value] of Object.entries(query)) {
       if (value !== undefined) {

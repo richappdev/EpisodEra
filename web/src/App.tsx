@@ -7,17 +7,27 @@ import {AuthPage} from "./pages/AuthPage";
 import {DetailPage} from "./pages/DetailPage";
 import {DiscoveryPage} from "./pages/DiscoveryPage";
 import {ProfilePage} from "./pages/ProfilePage";
+import {SettingsPage} from "./pages/SettingsPage";
 import {WatchlistPage} from "./pages/WatchlistPage";
 import {EpisodeSummary, MediaDetail, MediaSummary, TvSeasonDetail} from "./types/media";
 import {ShowProgress} from "./types/progress";
+import {SupportedLanguage, isSupportedLanguage} from "./types/settings";
 import {UserStats} from "./types/stats";
 import {WatchlistItem, WatchlistStatus} from "./types/watchlist";
 
-type View = "trending" | "search" | "watchlist" | "profile" | "auth";
+type View = "trending" | "search" | "watchlist" | "profile" | "settings" | "auth";
+
+const languageStorageKey = "episodera.language";
+
+const initialLanguage = (): SupportedLanguage => {
+  const stored = window.localStorage.getItem(languageStorageKey);
+  return isSupportedLanguage(stored) ? stored : "en-US";
+};
 
 export const App = () => {
   const {getIdToken, loading, signOutUser, user} = useAuth();
   const [view, setView] = useState<View>("trending");
+  const [language, setLanguage] = useState<SupportedLanguage>(initialLanguage);
   const [detail, setDetail] = useState<MediaDetail | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [watchlistItems, setWatchlistItems] = useState<WatchlistItem[]>([]);
@@ -34,11 +44,17 @@ export const App = () => {
   const [seasonDetail, setSeasonDetail] = useState<TvSeasonDetail | null>(null);
   const [seasonError, setSeasonError] = useState<string | null>(null);
   const [seasonLoading, setSeasonLoading] = useState(false);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [settingsLoading, setSettingsLoading] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState(1);
 
   useEffect(() => {
     setApiTokenProvider(getIdToken);
   }, [getIdToken]);
+
+  useEffect(() => {
+    window.localStorage.setItem(languageStorageKey, language);
+  }, [language]);
 
   useEffect(() => {
     if (!user) {
@@ -50,27 +66,34 @@ export const App = () => {
       setStatsError(null);
       setStatsLoading(false);
       setProgressItems([]);
+      setSettingsError(null);
+      setSettingsLoading(false);
       return;
     }
 
     setWatchlistLoading(true);
     setStatsLoading(true);
+    setSettingsLoading(true);
     setWatchlistError(null);
     setStatsError(null);
-    Promise.all([api.listWatchlist(), api.listProgress(), api.meStats(), api.meHistory()])
-      .then(([{items}, {items: loadedProgressItems}, loadedStats, {items: loadedHistoryItems}]) => {
+    setSettingsError(null);
+    Promise.all([api.listWatchlist(), api.listProgress(), api.meStats(), api.meHistory(), api.meSettings()])
+      .then(([{items}, {items: loadedProgressItems}, loadedStats, {items: loadedHistoryItems}, loadedSettings]) => {
         setWatchlistItems(items);
         setProgressItems(loadedProgressItems);
         setStats(loadedStats);
         setHistoryItems(loadedHistoryItems);
+        setLanguage(loadedSettings.language);
       })
       .catch((err: Error) => {
         setWatchlistError(err.message);
         setStatsError(err.message);
+        setSettingsError(err.message);
       })
       .finally(() => {
         setWatchlistLoading(false);
         setStatsLoading(false);
+        setSettingsLoading(false);
       });
   }, [user]);
 
@@ -139,11 +162,11 @@ export const App = () => {
 
     setSeasonLoading(true);
     setSeasonError(null);
-    api.tvSeason(detail.id, selectedSeason)
+    api.tvSeason(detail.id, selectedSeason, language)
       .then(setSeasonDetail)
       .catch((err: Error) => setSeasonError(err.message))
       .finally(() => setSeasonLoading(false));
-  }, [detail, selectedSeason]);
+  }, [detail, language, selectedSeason]);
 
   useEffect(() => {
     if (!detail || detail.mediaType !== "tv" || !user) {
@@ -161,11 +184,37 @@ export const App = () => {
       .finally(() => setProgressLoading(false));
   }, [detail, user]);
 
-  const selectItem = (item: MediaSummary) => {
+  useEffect(() => {
+    if (!detail) {
+      return;
+    }
+
     setDetailError(null);
-    api.detail(item.mediaType, item.id)
+    api.detail(detail.mediaType, detail.id, language)
       .then(setDetail)
       .catch((err: Error) => setDetailError(err.message));
+  }, [detail?.id, detail?.mediaType, language]);
+
+  const selectItem = (item: MediaSummary) => {
+    setDetailError(null);
+    api.detail(item.mediaType, item.id, language)
+      .then(setDetail)
+      .catch((err: Error) => setDetailError(err.message));
+  };
+
+  const changeLanguage = (nextLanguage: SupportedLanguage) => {
+    setLanguage(nextLanguage);
+    setSettingsError(null);
+
+    if (!user) {
+      return;
+    }
+
+    setSettingsLoading(true);
+    api.updateMeSettings({language: nextLanguage})
+      .then((settings) => setLanguage(settings.language))
+      .catch((err: Error) => setSettingsError(err.message))
+      .finally(() => setSettingsLoading(false));
   };
 
   const addToWatchlist = (selectedDetail: MediaDetail) => {
@@ -222,7 +271,7 @@ export const App = () => {
         .map((season) => season.seasonNumber)
         .filter((seasonNumber) => seasonNumber < episode.seasonNumber);
       const earlierSeasonDetails = await Promise.all(
-        earlierSeasonNumbers.map((seasonNumber) => api.tvSeason(detail.id, seasonNumber)),
+        earlierSeasonNumbers.map((seasonNumber) => api.tvSeason(detail.id, seasonNumber, language)),
       );
       const currentSeasonEpisodes =
         seasonDetail?.seasonNumber === episode.seasonNumber ? seasonDetail.episodes : [episode];
@@ -363,6 +412,14 @@ export const App = () => {
           stats={stats}
           userEmail={user?.email ?? null}
         />
+      ) : view === "settings" ? (
+        <SettingsPage
+          error={settingsError}
+          language={language}
+          loading={settingsLoading}
+          signedIn={Boolean(user)}
+          onLanguageChange={changeLanguage}
+        />
       ) : view === "watchlist" ? (
         <WatchlistPage
           error={watchlistError}
@@ -375,7 +432,7 @@ export const App = () => {
           onStatusChange={updateWatchlistStatus}
         />
       ) : (
-        <DiscoveryPage view={view} onSelect={selectItem} />
+        <DiscoveryPage view={view} language={language} onSelect={selectItem} />
       )}
     </>
   );

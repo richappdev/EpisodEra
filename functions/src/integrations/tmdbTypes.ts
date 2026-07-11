@@ -18,11 +18,13 @@ export interface TmdbMediaBase {
 
 export interface TmdbMovie extends TmdbMediaBase {
   title?: string;
+  original_title?: string;
   release_date?: string;
 }
 
 export interface TmdbTv extends TmdbMediaBase {
   name?: string;
+  original_name?: string;
   first_air_date?: string;
 }
 

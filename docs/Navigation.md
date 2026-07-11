@@ -9,10 +9,11 @@ The MVP currently uses client state instead of a router. This is acceptable unti
 | Screen | Entry | Data source | Auth |
 | --- | --- | --- | --- |
 | Auth | Signed-out action from top bar | Firebase Auth | Optional for browsing |
-| Trending | Default view | `GET /trending` | Public |
+| Trending | Default view; TV Shows tab selected first | `GET /trending/tv` or `GET /trending/movie` | Public |
 | Search | Top-bar tab | `GET /search?q=` | Public |
 | Movie Detail | Media card | `GET /movie/:id` | Public |
 | TV Detail | Media card | `GET /tv/:id` | Public |
+| Settings | Top bar | `localStorage` + `GET/PATCH /me/settings` when signed in | Optional |
 
 ## Next screens
 
@@ -26,6 +27,8 @@ The MVP currently uses client state instead of a router. This is acceptable unti
 ## State rules
 
 - Trending remains the default first screen.
+- Trending uses TV Shows and Movies tabs. TV Shows is always the first-load default.
+- Language support is limited to English (`en-US`) and Traditional Chinese (`zh-TW`) for MVP.
 - Search keeps the last query while switching between top-level discovery tabs.
 - Detail view should preserve the previous discovery state when navigating back.
 - Auth modal/page should return the user to the previous app view after success.

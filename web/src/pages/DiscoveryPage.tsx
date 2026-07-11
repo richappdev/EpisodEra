@@ -2,32 +2,39 @@ import {FormEvent, useEffect, useState} from "react";
 import {Search} from "lucide-react";
 import {api} from "../api/client";
 import {MediaSection} from "../components/MediaSection";
-import {DiscoveryResponse, MediaSummary} from "../types/media";
+import {DiscoveryResponse, MediaSummary, MediaType, PagedResult} from "../types/media";
+import {SupportedLanguage} from "../types/settings";
 
 interface DiscoveryPageProps {
   view: "trending" | "search";
+  language: SupportedLanguage;
   onSelect: (item: MediaSummary) => void;
 }
 
-export const DiscoveryPage = ({view, onSelect}: DiscoveryPageProps) => {
+type TrendingTab = Extract<MediaType, "movie" | "tv">;
+
+export const DiscoveryPage = ({view, language, onSelect}: DiscoveryPageProps) => {
   const [query, setQuery] = useState("");
-  const [data, setData] = useState<DiscoveryResponse | null>(null);
+  const [searchData, setSearchData] = useState<DiscoveryResponse | null>(null);
+  const [trendingData, setTrendingData] = useState<PagedResult<MediaSummary> | null>(null);
+  const [trendingTab, setTrendingTab] = useState<TrendingTab>("tv");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (view !== "trending") {
-      setData(null);
+      setTrendingData(null);
       return;
     }
 
     setLoading(true);
     setError(null);
-    api.trending()
-      .then(setData)
+    const request = trendingTab === "tv" ? api.trendingShows(language) : api.trendingMovies(language);
+    request
+      .then(setTrendingData)
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [view]);
+  }, [language, trendingTab, view]);
 
   const submitSearch = (event: FormEvent) => {
     event.preventDefault();
@@ -38,8 +45,8 @@ export const DiscoveryPage = ({view, onSelect}: DiscoveryPageProps) => {
 
     setLoading(true);
     setError(null);
-    api.search(nextQuery)
-      .then(setData)
+    api.search(nextQuery, language)
+      .then(setSearchData)
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
   };
@@ -59,17 +66,48 @@ export const DiscoveryPage = ({view, onSelect}: DiscoveryPageProps) => {
         </form>
       )}
 
+      {view === "trending" && (
+        <div className="tab-bar" role="tablist" aria-label="Trending media type">
+          <button
+            className={trendingTab === "tv" ? "active" : ""}
+            type="button"
+            role="tab"
+            aria-selected={trendingTab === "tv"}
+            onClick={() => setTrendingTab("tv")}
+          >
+            TV Shows
+          </button>
+          <button
+            className={trendingTab === "movie" ? "active" : ""}
+            type="button"
+            role="tab"
+            aria-selected={trendingTab === "movie"}
+            onClick={() => setTrendingTab("movie")}
+          >
+            Movies
+          </button>
+        </div>
+      )}
+
       {loading && <div className="state-panel">Loading...</div>}
       {error && <div className="state-panel error">{error}</div>}
 
-      {data && !loading && (
+      {view === "trending" && trendingData && !loading && (
+        <MediaSection
+          title={trendingTab === "tv" ? "Trending TV Shows" : "Trending Movies"}
+          items={trendingData.results}
+          onSelect={onSelect}
+        />
+      )}
+
+      {view === "search" && searchData && !loading && (
         <>
-          <MediaSection title="Movies" items={data.movies.results} onSelect={onSelect} />
-          <MediaSection title="TV Shows" items={data.tv.results} onSelect={onSelect} />
+          <MediaSection title="Movies" items={searchData.movies.results} onSelect={onSelect} />
+          <MediaSection title="TV Shows" items={searchData.tv.results} onSelect={onSelect} />
         </>
       )}
 
-      {!data && !loading && !error && view === "search" && (
+      {!searchData && !loading && !error && view === "search" && (
         <div className="state-panel">Enter a title to search.</div>
       )}
     </main>

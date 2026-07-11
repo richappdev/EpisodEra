@@ -1,6 +1,7 @@
 import {DiscoveryResponse, MediaDetail, MediaType, TvSeasonDetail} from "../types/media";
 import {HistoryResponse} from "../types/history";
 import {MarkEpisodeWatchedInput, ProgressListResponse, ProgressResponse, ShowProgress} from "../types/progress";
+import {SupportedLanguage, UserSettings} from "../types/settings";
 import {UserStats} from "../types/stats";
 import {AddWatchlistItemInput, WatchlistItem, WatchlistResponse, WatchlistStatus} from "../types/watchlist";
 
@@ -16,6 +17,11 @@ interface RequestOptions {
   body?: unknown;
   method?: "GET" | "POST" | "PATCH" | "DELETE";
 }
+
+const withLanguage = (path: string, language: SupportedLanguage) => {
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}language=${encodeURIComponent(language)}`;
+};
 
 const request = async <T>(path: string, options: RequestOptions = {}): Promise<T> => {
   const token = tokenProvider ? await tokenProvider() : null;
@@ -45,12 +51,17 @@ const request = async <T>(path: string, options: RequestOptions = {}): Promise<T
 };
 
 export const api = {
-  trending: () => request<DiscoveryResponse>("/trending"),
-  trendingMovies: () => request<DiscoveryResponse["movies"]>("/trending/movie"),
-  trendingShows: () => request<DiscoveryResponse["tv"]>("/trending/tv"),
-  search: (query: string) => request<DiscoveryResponse>(`/search?q=${encodeURIComponent(query)}`),
-  detail: (mediaType: MediaType, id: number) => request<MediaDetail>(`/${mediaType}/${id}`),
-  tvSeason: (id: number, seasonNumber: number) => request<TvSeasonDetail>(`/tv/${id}/season/${seasonNumber}`),
+  trending: (language: SupportedLanguage) => request<DiscoveryResponse>(withLanguage("/trending", language)),
+  trendingMovies: (language: SupportedLanguage) =>
+    request<DiscoveryResponse["movies"]>(withLanguage("/trending/movie", language)),
+  trendingShows: (language: SupportedLanguage) =>
+    request<DiscoveryResponse["tv"]>(withLanguage("/trending/tv", language)),
+  search: (query: string, language: SupportedLanguage) =>
+    request<DiscoveryResponse>(withLanguage(`/search?q=${encodeURIComponent(query)}`, language)),
+  detail: (mediaType: MediaType, id: number, language: SupportedLanguage) =>
+    request<MediaDetail>(withLanguage(`/${mediaType}/${id}`, language)),
+  tvSeason: (id: number, seasonNumber: number, language: SupportedLanguage) =>
+    request<TvSeasonDetail>(withLanguage(`/tv/${id}/season/${seasonNumber}`, language)),
   listProgress: () => request<ProgressListResponse>("/progress"),
   getProgress: (showId: number) => request<ProgressResponse>(`/progress/${showId}`),
   markEpisodeWatched: (showId: number, input: MarkEpisodeWatchedInput) =>
@@ -58,6 +69,9 @@ export const api = {
   markEpisodeUnwatched: (showId: number, episodeKey: string) =>
     request<ProgressResponse>(`/progress/${showId}/episode/${episodeKey}`, {method: "DELETE"}),
   meHistory: () => request<HistoryResponse>("/me/history"),
+  meSettings: () => request<UserSettings>("/me/settings"),
+  updateMeSettings: (settings: Pick<UserSettings, "language">) =>
+    request<UserSettings>("/me/settings", {method: "PATCH", body: settings}),
   meStats: () => request<UserStats>("/me/stats"),
   listWatchlist: () => request<WatchlistResponse>("/watchlist"),
   addWatchlistItem: (input: AddWatchlistItemInput) =>

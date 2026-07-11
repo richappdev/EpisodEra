@@ -10,6 +10,7 @@ users/{userId}/watchlist/{mediaType_id}
 users/{userId}/progress/{showId}
 users/{userId}/progress/{showId}/episodes/{episodeKey}
 users/{userId}/history/{historyId}
+users/{userId}/settings/profile
 users/{userId}/ratings/{mediaType_id}
 public/{document}
 ```
@@ -135,6 +136,26 @@ Shape:
 
 For movie entries, `seasonNumber`, `episodeNumber`, and `episodeTitle` are `null`.
 
+## users/{userId}/settings/profile
+
+Stores user preferences. The MVP settings document is intentionally limited to language.
+
+Shape:
+
+```json
+{
+  "language": "en-US",
+  "updatedAt": "<server timestamp>"
+}
+```
+
+Allowed `language` values:
+
+```text
+en-US
+zh-TW
+```
+
 ## users/{userId}/ratings/{mediaType_id}
 
 Stores private user ratings.
@@ -158,6 +179,7 @@ The current `firestore.rules` policy is intentionally narrow:
 - Users can read/write only their own `watchlist` and `ratings` subcollections.
 - Users can read/write only their own `progress` documents and nested `episodes`.
 - Users can read/write only their own `history` documents.
+- Users can read/write only their own `settings` documents.
 - `public/**` is read-only for all clients.
 - Everything else is denied by default.
 

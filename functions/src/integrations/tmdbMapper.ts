@@ -22,7 +22,9 @@ const imageUrl = (path: string | null | undefined, size: string) =>
   path ? `${tmdbImageBaseUrl}/${size}${path}` : null;
 
 const titleFor = (item: TmdbMovie | TmdbTv, mediaType: MediaType) =>
-  mediaType === "movie" ? (item as TmdbMovie).title ?? "" : (item as TmdbTv).name ?? "";
+  mediaType === "movie" ?
+    (item as TmdbMovie).title || (item as TmdbMovie).original_title || "" :
+    (item as TmdbTv).name || (item as TmdbTv).original_name || "";
 
 const dateFor = (item: TmdbMovie | TmdbTv, mediaType: MediaType) =>
   mediaType === "movie" ? (item as TmdbMovie).release_date ?? null : (item as TmdbTv).first_air_date ?? null;

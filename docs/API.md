@@ -12,6 +12,17 @@ All responses are JSON. Read-only discovery endpoints can be called without auth
 Authorization: Bearer <firebase-id-token>
 ```
 
+## Language
+
+TMDb-backed read endpoints accept an optional `language` query parameter. MVP supported values are:
+
+```text
+en-US
+zh-TW
+```
+
+Unsupported or missing values fall back to `en-US`. Stable app identity still uses TMDb IDs and media type, not localized titles.
+
 ## Health
 
 ```http
@@ -29,7 +40,7 @@ Response:
 ## Search
 
 ```http
-GET /search?q=severance&page=1
+GET /search?q=severance&page=1&language=en-US
 ```
 
 Parameters:
@@ -38,6 +49,7 @@ Parameters:
 | --- | --- | --- |
 | `q` | Yes | Search query text. |
 | `page` | No | Positive integer page number. Defaults to `1`. |
+| `language` | No | `en-US` or `zh-TW`. Defaults to `en-US`. |
 
 Response:
 
@@ -79,7 +91,7 @@ Each result is normalized:
 ## Trending
 
 ```http
-GET /trending?page=1
+GET /trending?page=1&language=en-US
 ```
 
 Returns weekly trending movies and TV shows using the same paged shape as `/search`.
@@ -87,9 +99,9 @@ Returns weekly trending movies and TV shows using the same paged shape as `/sear
 For a single media type, use:
 
 ```http
-GET /trending/movie?page=1
-GET /trending/tv?page=1
-GET /trending/shows?page=1
+GET /trending/movie?page=1&language=en-US
+GET /trending/tv?page=1&language=en-US
+GET /trending/shows?page=1&language=en-US
 ```
 
 `/trending/tv` and `/trending/shows` both return weekly trending TV shows from TMDb's `/trending/tv/week` endpoint.
@@ -97,7 +109,7 @@ GET /trending/shows?page=1
 ## Movie Detail
 
 ```http
-GET /movie/:id
+GET /movie/:id?language=en-US
 ```
 
 Response:
@@ -126,7 +138,7 @@ Response:
 ## TV Detail
 
 ```http
-GET /tv/:id
+GET /tv/:id?language=en-US
 ```
 
 Uses the same base response shape as movie detail. `runtimeMinutes` is derived from the first TMDb `episode_run_time` value when available.
@@ -152,7 +164,7 @@ TV responses also include season metadata for episode-progress UI:
 ## TV Season Detail
 
 ```http
-GET /tv/:id/season/:seasonNumber
+GET /tv/:id/season/:seasonNumber?language=en-US
 ```
 
 Returns normalized TMDb season metadata and episode rows for a TV show.
@@ -444,6 +456,37 @@ Response:
 
 Movie history entries use `mediaType: "movie"` and return `null` for episode fields.
 
+## User Settings
+
+Settings endpoints require authentication and store user preferences under `users/{uid}/settings/profile`.
+
+```http
+GET /me/settings
+```
+
+Response:
+
+```json
+{
+  "language": "en-US",
+  "updatedAt": "2026-07-11T07:00:00.000Z"
+}
+```
+
+```http
+PATCH /me/settings
+```
+
+Request:
+
+```json
+{
+  "language": "zh-TW"
+}
+```
+
+Response: updated settings. Supported language values are `en-US` and `zh-TW`.
+
 ## Errors
 
 Errors use a consistent envelope:
@@ -468,7 +511,9 @@ Common status codes:
 | `400` | `invalid_progress_payload` | A progress request body failed validation. |
 | `400` | `invalid_item_id` | A watchlist item ID was not formatted as `movie_550` or `tv_95396`. |
 | `400` | `invalid_status` | A watchlist status was not one of the allowed values. |
+| `400` | `invalid_settings_payload` | A settings request body failed validation. |
 | `400` | `invalid_watchlist_payload` | A watchlist request body failed validation. |
+| `400` | `unsupported_language` | A settings update used a language other than `en-US` or `zh-TW`. |
 | `401` | `unauthenticated` | A protected endpoint was called without a valid user. |
 | `404` | `watchlist_item_not_found` | A watchlist item was not found for the signed-in user. |
 | `502` | `tmdb_request_failed` | TMDb returned an unsuccessful response. |
