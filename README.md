@@ -197,9 +197,9 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 ## Known Gaps
 
 - Signed-in Firestore emulator execution is pending in the current local environment because Java is not installed.
-- Firestore emulator progress integration tests have been added, but still need to be run in an environment with Java and the Firebase Emulator Suite.
-- Firestore rules tests, frontend component tests, and a signed-in Playwright critical flow are still pending.
-- TMDb metadata caching is not implemented yet; progress validation currently resolves canonical metadata directly from TMDb.
+- Firestore emulator progress integration tests and Firestore rules tests have been added, but still need to be run in an environment with Java and the Firebase Emulator Suite.
+- TMDb detail, season, and trending responses use an in-memory TTL cache inside the Functions runtime. A persistent shared cache is still a possible future optimization.
+- Frontend component tests and a signed-in Playwright critical flow are still pending.
 - Production deployment must configure `CORS_ORIGINS` for the Firebase Hosting, staging, and production domains.
 - Dependency audit findings are documented in `docs/DependencyAudit.md`; fixes require semver-major upgrades for Firebase Functions packages and Vite tooling.
 - Production beta readiness still needs runtime validation and an explicit dependency-risk decision.

@@ -10,33 +10,174 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
+    function isNullableString(value) {
+      return value == null || value is string;
+    }
+
+    function isNullablePositiveInt(value) {
+      return value == null || (value is int && value > 0);
+    }
+
+    function validMediaType(value) {
+      return value in ['movie', 'tv'];
+    }
+
+    function validWatchlistStatus(value) {
+      return value in ['planned', 'watching', 'completed', 'dropped', 'unwatched', 'watched'];
+    }
+
+    function validLanguage(value) {
+      return value in ['en-US', 'zh-TW'];
+    }
+
+    function validUserProfile() {
+      return request.resource.data.keys().hasOnly(['displayName', 'photoURL', 'createdAt', 'updatedAt'])
+        && (!('displayName' in request.resource.data) || isNullableString(request.resource.data.displayName))
+        && (!('photoURL' in request.resource.data) || isNullableString(request.resource.data.photoURL));
+    }
+
+    function validWatchlistItem(itemId) {
+      return itemId.matches('^(movie|tv)_[1-9][0-9]*$')
+        && request.resource.data.keys().hasOnly([
+          'tmdbId', 'mediaType', 'title', 'poster', 'backdrop', 'status', 'addedAt', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasAll(['tmdbId', 'mediaType', 'title', 'status'])
+        && request.resource.data.tmdbId is int
+        && request.resource.data.tmdbId > 0
+        && validMediaType(request.resource.data.mediaType)
+        && request.resource.data.title is string
+        && validWatchlistStatus(request.resource.data.status)
+        && (!('poster' in request.resource.data) || isNullableString(request.resource.data.poster))
+        && (!('backdrop' in request.resource.data) || isNullableString(request.resource.data.backdrop));
+    }
+
+    function validNextEpisode(value) {
+      return value == null || (
+        value is map
+        && value.keys().hasOnly(['episodeKey', 'seasonNumber', 'episodeNumber', 'episodeTitle'])
+        && value.keys().hasAll(['episodeKey', 'seasonNumber', 'episodeNumber', 'episodeTitle'])
+        && value.episodeKey is string
+        && value.episodeKey.matches('^s[0-9]{2,}e[0-9]{2,}$')
+        && value.seasonNumber is int
+        && value.seasonNumber > 0
+        && value.episodeNumber is int
+        && value.episodeNumber > 0
+        && value.episodeTitle is string
+      );
+    }
+
+    function validProgress(showId) {
+      return showId.matches('^[1-9][0-9]*$')
+        && request.resource.data.keys().hasOnly([
+          'tmdbId', 'title', 'totalEpisodes', 'watchedEpisodeCount', 'progressPercent',
+          'currentSeason', 'currentEpisode', 'nextEpisode', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'tmdbId', 'title', 'totalEpisodes', 'watchedEpisodeCount', 'progressPercent',
+          'currentSeason', 'currentEpisode'
+        ])
+        && request.resource.data.tmdbId is int
+        && request.resource.data.tmdbId > 0
+        && request.resource.data.title is string
+        && request.resource.data.totalEpisodes is int
+        && request.resource.data.totalEpisodes >= 0
+        && request.resource.data.watchedEpisodeCount is int
+        && request.resource.data.watchedEpisodeCount >= 0
+        && request.resource.data.watchedEpisodeCount <= request.resource.data.totalEpisodes
+        && request.resource.data.progressPercent is number
+        && request.resource.data.progressPercent >= 0
+        && request.resource.data.progressPercent <= 100
+        && isNullablePositiveInt(request.resource.data.currentSeason)
+        && isNullablePositiveInt(request.resource.data.currentEpisode)
+        && (!('nextEpisode' in request.resource.data) || validNextEpisode(request.resource.data.nextEpisode));
+    }
+
+    function validEpisode(episodeKey) {
+      return episodeKey.matches('^s[0-9]{2,}e[0-9]{2,}$')
+        && request.resource.data.keys().hasOnly([
+          'seasonNumber', 'episodeNumber', 'episodeTitle', 'watched', 'watchedAt', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasAll(['seasonNumber', 'episodeNumber', 'episodeTitle', 'watched'])
+        && request.resource.data.seasonNumber is int
+        && request.resource.data.seasonNumber > 0
+        && request.resource.data.episodeNumber is int
+        && request.resource.data.episodeNumber > 0
+        && request.resource.data.episodeTitle is string
+        && request.resource.data.watched == true;
+    }
+
+    function validHistory(historyId) {
+      return historyId.matches('^(movie_[1-9][0-9]*|tv_[1-9][0-9]*_s[0-9]{2,}e[0-9]{2,})$')
+        && request.resource.data.keys().hasOnly([
+          'tmdbId', 'mediaType', 'title', 'seasonNumber', 'episodeNumber', 'episodeTitle', 'watchedAt', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'tmdbId', 'mediaType', 'title', 'seasonNumber', 'episodeNumber', 'episodeTitle'
+        ])
+        && request.resource.data.tmdbId is int
+        && request.resource.data.tmdbId > 0
+        && validMediaType(request.resource.data.mediaType)
+        && request.resource.data.title is string
+        && isNullablePositiveInt(request.resource.data.seasonNumber)
+        && isNullablePositiveInt(request.resource.data.episodeNumber)
+        && isNullableString(request.resource.data.episodeTitle);
+    }
+
+    function validSettings(settingsId) {
+      return settingsId == 'profile'
+        && request.resource.data.keys().hasOnly(['autoMarkPreviousEpisodesWatched', 'language', 'updatedAt'])
+        && request.resource.data.keys().hasAll(['autoMarkPreviousEpisodesWatched', 'language'])
+        && request.resource.data.autoMarkPreviousEpisodesWatched is bool
+        && validLanguage(request.resource.data.language);
+    }
+
+    function validRating(itemId) {
+      return itemId.matches('^(movie|tv)_[1-9][0-9]*$')
+        && request.resource.data.keys().hasOnly([
+          'tmdbId', 'mediaType', 'rating', 'review', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasAll(['tmdbId', 'mediaType', 'rating'])
+        && request.resource.data.tmdbId is int
+        && request.resource.data.tmdbId > 0
+        && validMediaType(request.resource.data.mediaType)
+        && request.resource.data.rating is number
+        && request.resource.data.rating >= 0
+        && request.resource.data.rating <= 5
+        && (!('review' in request.resource.data) || isNullableString(request.resource.data.review));
+    }
+
     match /users/{userId} {
-      allow create: if isOwner(userId)
-        && request.resource.data.keys().hasOnly(['displayName', 'photoURL', 'createdAt', 'updatedAt']);
-      allow read, update, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId) && validUserProfile();
+      allow read, delete: if isOwner(userId);
 
       match /watchlist/{itemId} {
-        allow read, write: if isOwner(userId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && validWatchlistItem(itemId);
       }
 
       match /ratings/{itemId} {
-        allow read, write: if isOwner(userId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && validRating(itemId);
       }
 
       match /progress/{showId} {
-        allow read, write: if isOwner(userId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && validProgress(showId);
 
         match /episodes/{episodeKey} {
-          allow read, write: if isOwner(userId);
+          allow read, delete: if isOwner(userId);
+          allow create, update: if isOwner(userId) && validEpisode(episodeKey);
         }
       }
 
       match /history/{historyId} {
-        allow read, write: if isOwner(userId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && validHistory(historyId);
       }
 
       match /settings/{settingsId} {
-        allow read, write: if isOwner(userId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && validSettings(settingsId);
       }
     }
 

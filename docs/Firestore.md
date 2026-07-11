@@ -85,6 +85,12 @@ Shape:
   "progressPercent": 10.53,
   "currentSeason": 1,
   "currentEpisode": 2,
+  "nextEpisode": {
+    "episodeKey": "s01e03",
+    "seasonNumber": 1,
+    "episodeNumber": 3,
+    "episodeTitle": "In Perpetuity"
+  },
   "updatedAt": "<server timestamp>"
 }
 ```
@@ -191,7 +197,16 @@ The current `firestore.rules` policy is intentionally narrow:
 - `public/**` is read-only for all clients.
 - Everything else is denied by default.
 
-When backend write endpoints are introduced, prefer validating document shape in Cloud Functions and keeping direct client writes limited to simple user-owned data.
+Rules also validate expected document IDs, allowed field names, and basic field types for user-owned write paths. Cloud Functions remain responsible for canonical TMDb validation and cross-document consistency, because Admin SDK writes bypass security rules.
+
+Rules tests live in `functions/src/firestoreRules.emulator.test.ts` and run with:
+
+```bash
+cd functions
+npm run test:emulator
+```
+
+Java is required by the Firebase Emulator Suite.
 
 ## Indexes
 

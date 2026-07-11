@@ -14,6 +14,8 @@ Authorization: Bearer <firebase-id-token>
 
 Set `CORS_ORIGINS` to a comma-separated allowlist for deployed environments. When omitted, the API allows all origins for local development.
 
+TMDb detail, TV season, and trending reads use a per-Functions-instance in-memory TTL cache. Stable detail and season metadata are cached longer than trending responses. Search requests are not cached.
+
 ## Language
 
 TMDb-backed read endpoints accept an optional `language` query parameter. MVP supported values are:
