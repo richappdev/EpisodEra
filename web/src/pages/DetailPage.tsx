@@ -12,13 +12,15 @@ import {
 } from "lucide-react";
 import {EpisodeSummary, MediaDetail, TvSeasonDetail} from "../types/media";
 import {ShowProgress} from "../types/progress";
-import {WatchlistItem, WatchlistStatus, watchlistStatuses} from "../types/watchlist";
+import {WatchlistItem, WatchlistStatus, movieWatchlistStatuses, tvWatchlistStatuses} from "../types/watchlist";
 
 const statusLabels: Record<WatchlistStatus, string> = {
   planned: "Planned",
   watching: "Watching",
   completed: "Completed",
   dropped: "Dropped",
+  unwatched: "Not watched",
+  watched: "Watched",
 };
 
 interface DetailPageProps {
@@ -62,6 +64,7 @@ export const DetailPage = ({
   signedIn,
   watchlistItem,
 }: DetailPageProps) => {
+  const statusOptions = detail.mediaType === "movie" ? movieWatchlistStatuses : tvWatchlistStatuses;
   const watchedKeys = new Set(progress?.episodes.map((episode) => episode.episodeKey) ?? []);
   const seasons = detail.seasons ?? [];
   const availableSeasonEpisodes =
@@ -133,7 +136,7 @@ export const DetailPage = ({
                     value={watchlistItem.status}
                     onChange={(event) => onWatchlistStatusChange(watchlistItem, event.target.value as WatchlistStatus)}
                   >
-                    {watchlistStatuses.map((status) => (
+                    {statusOptions.map((status) => (
                       <option key={status} value={status}>
                         {statusLabels[status]}
                       </option>

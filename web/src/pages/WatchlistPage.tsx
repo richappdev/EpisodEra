@@ -1,12 +1,14 @@
 import {Bookmark, CheckCircle2, Film, ListChecks, Loader2, Trash2} from "lucide-react";
 import {EpisodeProgress, ShowProgress} from "../types/progress";
-import {WatchlistItem, WatchlistStatus, watchlistStatuses} from "../types/watchlist";
+import {WatchlistItem, WatchlistStatus, movieWatchlistStatuses, tvWatchlistStatuses} from "../types/watchlist";
 
 const statusLabels: Record<WatchlistStatus, string> = {
   planned: "Planned",
   watching: "Watching",
   completed: "Completed",
   dropped: "Dropped",
+  unwatched: "Not watched",
+  watched: "Watched",
 };
 
 interface WatchlistPageProps {
@@ -131,39 +133,43 @@ export const WatchlistPage = ({
       )}
 
       <div className="watchlist-grid">
-        {items.map((item) => (
-          <article className="watchlist-item" key={item.itemId}>
-            <button className="watchlist-poster" type="button" onClick={() => onSelect(item)}>
-              {item.poster ? <img src={item.poster} alt="" loading="lazy" /> : <Film size={28} aria-hidden="true" />}
-            </button>
-            <div className="watchlist-copy">
-              <button type="button" onClick={() => onSelect(item)}>
-                {item.title}
+        {items.map((item) => {
+          const statusOptions = item.mediaType === "movie" ? movieWatchlistStatuses : tvWatchlistStatuses;
+
+          return (
+            <article className="watchlist-item" key={item.itemId}>
+              <button className="watchlist-poster" type="button" onClick={() => onSelect(item)}>
+                {item.poster ? <img src={item.poster} alt="" loading="lazy" /> : <Film size={28} aria-hidden="true" />}
               </button>
-              <span className="media-kind">{item.mediaType === "movie" ? "Movie" : "TV"}</span>
-              <select
-                aria-label={`Watchlist status for ${item.title}`}
-                value={item.status}
-                onChange={(event) => onStatusChange(item, event.target.value as WatchlistStatus)}
+              <div className="watchlist-copy">
+                <button type="button" onClick={() => onSelect(item)}>
+                  {item.title}
+                </button>
+                <span className="media-kind">{item.mediaType === "movie" ? "Movie" : "TV"}</span>
+                <select
+                  aria-label={`Watchlist status for ${item.title}`}
+                  value={item.status}
+                  onChange={(event) => onStatusChange(item, event.target.value as WatchlistStatus)}
+                >
+                  {statusOptions.map((status) => (
+                    <option key={status} value={status}>
+                      {statusLabels[status]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                className="icon-button"
+                type="button"
+                onClick={() => onRemove(item)}
+                title={`Remove ${item.title}`}
+                aria-label={`Remove ${item.title}`}
               >
-                {watchlistStatuses.map((status) => (
-                  <option key={status} value={status}>
-                    {statusLabels[status]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button
-              className="icon-button"
-              type="button"
-              onClick={() => onRemove(item)}
-              title={`Remove ${item.title}`}
-              aria-label={`Remove ${item.title}`}
-            >
-              <Trash2 size={18} aria-hidden="true" />
-            </button>
-          </article>
-        ))}
+                <Trash2 size={18} aria-hidden="true" />
+              </button>
+            </article>
+          );
+        })}
       </div>
     </main>
   );

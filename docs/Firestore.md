@@ -54,13 +54,20 @@ Shape:
 }
 ```
 
-Allowed `status` values are enforced by backend code:
+Allowed TV `status` values are enforced by backend code:
 
 ```text
 planned
 watching
 completed
 dropped
+```
+
+Allowed movie `status` values are enforced by backend code:
+
+```text
+unwatched
+watched
 ```
 
 ## users/{userId}/progress/{showId}

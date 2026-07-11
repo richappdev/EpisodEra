@@ -64,13 +64,20 @@ TMDb integration:
 - Add composite indexes only when a screen or API requires a query Firestore cannot serve.
 - Backend services should enforce document shape and canonical enum values.
 
-Current canonical watchlist statuses:
+Current canonical TV watchlist statuses:
 
 ```text
 planned
 watching
 completed
 dropped
+```
+
+Current canonical movie watchlist statuses:
+
+```text
+unwatched
+watched
 ```
 
 ## Frontend

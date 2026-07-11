@@ -214,13 +214,20 @@ users/{uid}/watchlist/{itemId}
 
 Examples: `movie_550`, `tv_95396`.
 
-Allowed `status` values:
+Allowed TV `status` values:
 
 ```text
 planned
 watching
 completed
 dropped
+```
+
+Allowed movie `status` values:
+
+```text
+unwatched
+watched
 ```
 
 ### List Watchlist
@@ -268,7 +275,7 @@ Request:
 }
 ```
 
-`status`, `poster`, and `backdrop` are optional. `status` defaults to `planned`.
+`status`, `poster`, and `backdrop` are optional. TV status defaults to `planned`; movie status defaults to `unwatched`.
 
 Response: `201 Created` with the saved watchlist item.
 

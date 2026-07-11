@@ -1,6 +1,8 @@
 import {MediaType} from "./media";
 
-export const watchlistStatuses = ["planned", "watching", "completed", "dropped"] as const;
+export const tvWatchlistStatuses = ["planned", "watching", "completed", "dropped"] as const;
+export const movieWatchlistStatuses = ["unwatched", "watched"] as const;
+export const watchlistStatuses = [...tvWatchlistStatuses, ...movieWatchlistStatuses] as const;
 
 export type WatchlistStatus = (typeof watchlistStatuses)[number];
 

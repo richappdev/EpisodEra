@@ -23,7 +23,8 @@ cf5049b Document dependency audit review
 - Watchlist management:
   - add titles
   - remove titles
-  - change status to `planned`, `watching`, `completed`, or `dropped`
+  - change TV status to `planned`, `watching`, `completed`, or `dropped`
+  - change movie status to `unwatched` or `watched`
 - User-owned Firestore watchlist storage.
 - TV episode progress tracking:
   - season selector

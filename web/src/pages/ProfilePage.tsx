@@ -98,8 +98,8 @@ export const ProfilePage = ({error, history, loading, signedIn, stats, userEmail
                     <div>
                       <strong>{entry.title}</strong>
                       <span>
-                        {entry.mediaType === "movie"
-                          ? "Movie completed"
+                      {entry.mediaType === "movie"
+                          ? "Movie watched"
                           : `S${entry.seasonNumber} E${entry.episodeNumber} · ${entry.episodeTitle ?? "Episode watched"}`}
                       </span>
                     </div>

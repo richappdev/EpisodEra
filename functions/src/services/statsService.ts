@@ -20,9 +20,9 @@ class StatsService {
     );
 
     return {
-      totalWatchedMovies: watchlistItems.filter((item) => item.mediaType === "movie" && item.status === "completed").length,
+      totalWatchedMovies: watchlistItems.filter((item) => item.mediaType === "movie" && item.status === "watched").length,
       totalWatchedEpisodes: progressItems.reduce((total, progress) => total + progress.watchedEpisodeCount, 0),
-      currentlyWatchingCount: watchlistItems.filter((item) => item.status === "watching").length,
+      currentlyWatchingCount: watchlistItems.filter((item) => item.mediaType === "tv" && item.status === "watching").length,
       completedShowsCount: new Set([...completedWatchlistShowIds, ...fullyWatchedShowIds]).size,
       watchlistCount: watchlistItems.length,
       progressShowCount: progressItems.length,
