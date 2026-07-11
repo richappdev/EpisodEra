@@ -11,7 +11,7 @@ import {ProfilePage} from "./pages/ProfilePage";
 import {SettingsPage} from "./pages/SettingsPage";
 import {WatchlistPage} from "./pages/WatchlistPage";
 import {EpisodeSummary, MediaDetail, MediaSummary, TvSeasonDetail} from "./types/media";
-import {ShowProgress} from "./types/progress";
+import {MarkEpisodeWatchedInput, ShowProgress, ShowProgressSummary} from "./types/progress";
 import {SupportedLanguage, isSupportedLanguage} from "./types/settings";
 import {UserStats} from "./types/stats";
 import {WatchlistItem, WatchlistStatus} from "./types/watchlist";
@@ -51,7 +51,7 @@ export const App = () => {
   const [statsError, setStatsError] = useState<string | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [progress, setProgress] = useState<ShowProgress | null>(null);
-  const [progressItems, setProgressItems] = useState<ShowProgress[]>([]);
+  const [progressItems, setProgressItems] = useState<ShowProgressSummary[]>([]);
   const [progressError, setProgressError] = useState<string | null>(null);
   const [progressLoading, setProgressLoading] = useState(false);
   const [seasonDetail, setSeasonDetail] = useState<TvSeasonDetail | null>(null);
@@ -118,19 +118,38 @@ export const App = () => {
     setWatchlistError(null);
     setStatsError(null);
     setSettingsError(null);
-    Promise.all([api.listWatchlist(), api.listProgress(), api.meStats(), api.meHistory(), api.meSettings()])
-      .then(([{items}, {items: loadedProgressItems}, loadedStats, {items: loadedHistoryItems}, loadedSettings]) => {
-        setWatchlistItems(items);
-        setProgressItems(loadedProgressItems);
-        setStats(loadedStats);
-        setHistoryItems(loadedHistoryItems);
-        setLanguage(loadedSettings.language);
-        setAutoMarkPreviousEpisodesWatched(loadedSettings.autoMarkPreviousEpisodesWatched);
-      })
-      .catch((err: Error) => {
-        setWatchlistError(err.message);
-        setStatsError(err.message);
-        setSettingsError(err.message);
+    Promise.allSettled([api.listWatchlist(), api.listProgress(), api.meStats(), api.meHistory(), api.meSettings()])
+      .then(([watchlistResult, progressResult, statsResult, historyResult, settingsResult]) => {
+        if (watchlistResult.status === "fulfilled") {
+          setWatchlistItems(watchlistResult.value.items);
+        } else {
+          setWatchlistError(watchlistResult.reason instanceof Error ? watchlistResult.reason.message : "Could not load watchlist.");
+        }
+
+        if (progressResult.status === "fulfilled") {
+          setProgressItems(progressResult.value.items);
+        } else {
+          setProgressError(progressResult.reason instanceof Error ? progressResult.reason.message : "Could not load progress.");
+        }
+
+        if (statsResult.status === "fulfilled") {
+          setStats(statsResult.value);
+        } else {
+          setStatsError(statsResult.reason instanceof Error ? statsResult.reason.message : "Could not load profile stats.");
+        }
+
+        if (historyResult.status === "fulfilled") {
+          setHistoryItems(historyResult.value.items);
+        } else {
+          setStatsError(historyResult.reason instanceof Error ? historyResult.reason.message : "Could not load history.");
+        }
+
+        if (settingsResult.status === "fulfilled") {
+          setLanguage(settingsResult.value.language);
+          setAutoMarkPreviousEpisodesWatched(settingsResult.value.autoMarkPreviousEpisodesWatched);
+        } else {
+          setSettingsError(settingsResult.reason instanceof Error ? settingsResult.reason.message : "Could not load settings.");
+        }
       })
       .finally(() => {
         setWatchlistLoading(false);
@@ -166,7 +185,7 @@ export const App = () => {
     });
   };
 
-  const upsertProgressItem = (item: ShowProgress | null) => {
+  const upsertProgressItem = (item: ShowProgressSummary | null) => {
     if (!item) {
       return;
     }
@@ -375,16 +394,10 @@ export const App = () => {
       const shouldMarkPrevious = previousEpisodes.length > 0 && autoMarkPreviousEpisodesWatched;
       const episodesToMark = shouldMarkPrevious ? [...previousEpisodes, episode] : [episode];
 
-      let latestProgress: ShowProgress | null = null;
-      for (const episodeToMark of episodesToMark) {
-        latestProgress = await api.markEpisodeWatched(detail.id, {
-          title: detail.title,
-          seasonNumber: episodeToMark.seasonNumber,
-          episodeNumber: episodeToMark.episodeNumber,
-          episodeTitle: episodeToMark.title || `Episode ${episodeToMark.episodeNumber}`,
-          totalEpisodes: detail.totalEpisodes ?? seasonDetail?.episodeCount ?? 1,
-        });
-      }
+      const latestProgress = await api.updateEpisodes(detail.id, {
+        watched: true,
+        episodes: episodesToMark.map(({seasonNumber, episodeNumber}) => ({seasonNumber, episodeNumber})),
+      });
 
       if (!latestProgress) {
         return;
@@ -432,16 +445,10 @@ export const App = () => {
     setProgressError(null);
 
     try {
-      let latestProgress: ShowProgress | null = null;
-      for (const episode of episodesToMark) {
-        latestProgress = await api.markEpisodeWatched(detail.id, {
-          title: detail.title,
-          seasonNumber: episode.seasonNumber,
-          episodeNumber: episode.episodeNumber,
-          episodeTitle: episode.title || `Episode ${episode.episodeNumber}`,
-          totalEpisodes: detail.totalEpisodes ?? seasonDetail.episodeCount,
-        });
-      }
+      const latestProgress = await api.updateEpisodes(detail.id, {
+        watched: true,
+        episodes: episodesToMark.map(({seasonNumber, episodeNumber}) => ({seasonNumber, episodeNumber})),
+      });
 
       if (!latestProgress) {
         return;
@@ -486,7 +493,7 @@ export const App = () => {
       .finally(() => setProgressLoading(false));
   };
 
-  const markNextWatchlistEpisodeWatched = async (item: WatchlistItem, itemProgress: ShowProgress) => {
+  const markNextWatchlistEpisodeWatched = async (item: WatchlistItem, itemProgress: ShowProgressSummary) => {
     if (item.mediaType !== "tv") {
       return;
     }
@@ -494,56 +501,23 @@ export const App = () => {
     setWatchlistError(null);
 
     try {
-      const watchedKeys = new Set(itemProgress.episodes.map((episode) => episode.episodeKey));
-      const sortedWatchedEpisodes = [...itemProgress.episodes].sort((left, right) => {
-        if (left.seasonNumber !== right.seasonNumber) {
-          return left.seasonNumber - right.seasonNumber;
-        }
-
-        return left.episodeNumber - right.episodeNumber;
-      });
-      const latestEpisode = sortedWatchedEpisodes[sortedWatchedEpisodes.length - 1];
-      const currentSeason = itemProgress.currentSeason ?? latestEpisode?.seasonNumber ?? 1;
-      const currentEpisode = itemProgress.currentEpisode ?? latestEpisode?.episodeNumber ?? 0;
-      const tvDetail = await api.detail("tv", item.tmdbId, language);
-      const candidateSeasons = (tvDetail.seasons ?? [])
-        .filter((season) => season.seasonNumber >= currentSeason)
-        .sort((left, right) => left.seasonNumber - right.seasonNumber);
-
-      let nextEpisode: EpisodeSummary | null = null;
-      for (const season of candidateSeasons) {
-        const candidateSeason = await api.tvSeason(item.tmdbId, season.seasonNumber, language);
-        nextEpisode =
-          candidateSeason.episodes
-            .filter(
-              (episode) =>
-                isAvailableEpisode(episode) &&
-                !watchedKeys.has(episode.episodeKey) &&
-                (episode.seasonNumber > currentSeason || episode.episodeNumber > currentEpisode),
-            )
-            .sort((left, right) => left.episodeNumber - right.episodeNumber)[0] ?? null;
-
-        if (nextEpisode) {
-          break;
-        }
-      }
-
-      if (!nextEpisode) {
+      if (!itemProgress.nextEpisode) {
         setWatchlistError(`No available next episode found for ${item.title}.`);
         return;
       }
 
-      const updatedProgress = await api.markEpisodeWatched(item.tmdbId, {
-        title: tvDetail.title,
-        seasonNumber: nextEpisode.seasonNumber,
-        episodeNumber: nextEpisode.episodeNumber,
-        episodeTitle: nextEpisode.title || `Episode ${nextEpisode.episodeNumber}`,
-        totalEpisodes: tvDetail.totalEpisodes ?? itemProgress.totalEpisodes,
+      const nextEpisode: MarkEpisodeWatchedInput = {
+        seasonNumber: itemProgress.nextEpisode.seasonNumber,
+        episodeNumber: itemProgress.nextEpisode.episodeNumber,
+      };
+      const updatedProgress = await api.updateEpisodes(item.tmdbId, {
+        watched: true,
+        episodes: [nextEpisode],
       });
 
       trackEvent("select_content", {
         content_type: "episode_watched",
-        item_id: nextEpisode.episodeKey,
+        item_id: itemProgress.nextEpisode.episodeKey,
       });
       upsertProgressItem(updatedProgress);
       if (detail?.mediaType === "tv" && detail.id === item.tmdbId) {

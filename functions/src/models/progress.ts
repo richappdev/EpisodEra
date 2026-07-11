@@ -8,7 +8,14 @@ export interface EpisodeProgress {
   updatedAt: string | null;
 }
 
-export interface ShowProgress {
+export interface ProgressEpisodePointer {
+  episodeKey: string;
+  seasonNumber: number;
+  episodeNumber: number;
+  episodeTitle: string;
+}
+
+export interface ShowProgressSummary {
   showId: string;
   tmdbId: number;
   title: string;
@@ -17,14 +24,20 @@ export interface ShowProgress {
   progressPercent: number;
   currentSeason: number | null;
   currentEpisode: number | null;
+  nextEpisode: ProgressEpisodePointer | null;
   updatedAt: string | null;
+}
+
+export interface ShowProgress extends ShowProgressSummary {
   episodes: EpisodeProgress[];
 }
 
 export interface MarkEpisodeWatchedInput {
   seasonNumber: number;
   episodeNumber: number;
-  episodeTitle: string;
-  totalEpisodes: number;
-  title: string;
+}
+
+export interface BatchEpisodeProgressInput {
+  watched: boolean;
+  episodes: MarkEpisodeWatchedInput[];
 }

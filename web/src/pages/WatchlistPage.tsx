@@ -1,5 +1,5 @@
 import {Bookmark, CheckCircle2, Film, ListChecks, Loader2, Trash2} from "lucide-react";
-import {EpisodeProgress, ShowProgress} from "../types/progress";
+import {ShowProgressSummary} from "../types/progress";
 import {WatchlistItem, WatchlistStatus, movieWatchlistStatuses, tvWatchlistStatuses} from "../types/watchlist";
 
 const statusLabels: Record<WatchlistStatus, string> = {
@@ -15,33 +15,20 @@ interface WatchlistPageProps {
   error: string | null;
   items: WatchlistItem[];
   loading: boolean;
-  progressItems: ShowProgress[];
+  progressItems: ShowProgressSummary[];
   signedIn: boolean;
   onRemove: (item: WatchlistItem) => void;
   onSelect: (item: WatchlistItem) => void;
-  onNextEpisodeWatched: (item: WatchlistItem, progress: ShowProgress) => void;
+  onNextEpisodeWatched: (item: WatchlistItem, progress: ShowProgressSummary) => void;
   onStatusChange: (item: WatchlistItem, status: WatchlistStatus) => void;
 }
 
-const compareEpisodes = (left: EpisodeProgress, right: EpisodeProgress) => {
-  if (left.seasonNumber !== right.seasonNumber) {
-    return left.seasonNumber - right.seasonNumber;
-  }
-
-  return left.episodeNumber - right.episodeNumber;
-};
-
-const nextEpisodeLabelFor = (progress: ShowProgress) => {
-  const sortedEpisodes = [...progress.episodes].sort(compareEpisodes);
-  const latestEpisode = sortedEpisodes[sortedEpisodes.length - 1];
-  const seasonNumber = progress.currentSeason ?? latestEpisode?.seasonNumber;
-  const episodeNumber = progress.currentEpisode ?? latestEpisode?.episodeNumber;
-
-  if (!seasonNumber || !episodeNumber) {
+const nextEpisodeLabelFor = (progress: ShowProgressSummary) => {
+  if (!progress.nextEpisode) {
     return "Next episode";
   }
 
-  return `Next up S${seasonNumber} E${episodeNumber + 1}`;
+  return `Next up S${progress.nextEpisode.seasonNumber} E${progress.nextEpisode.episodeNumber}`;
 };
 
 export const WatchlistPage = ({
@@ -59,7 +46,7 @@ export const WatchlistPage = ({
   const continueWatchingItems = items
     .filter((item) => item.mediaType === "tv" && item.status === "watching")
     .map((item) => ({item, progress: progressByShowId.get(String(item.tmdbId)) ?? null}))
-    .filter(({progress}) => progress && progress.watchedEpisodeCount > 0 && progress.progressPercent < 100);
+    .filter(({progress}) => progress && progress.watchedEpisodeCount > 0 && progress.nextEpisode);
 
   if (!signedIn) {
     return (
@@ -111,7 +98,7 @@ export const WatchlistPage = ({
                     <ListChecks size={16} aria-hidden="true" />
                     {progress!.watchedEpisodeCount} of {progress!.totalEpisodes} watched
                   </span>
-                  {progress!.currentSeason && progress!.currentEpisode && (
+                  {progress!.nextEpisode && (
                     <span className="next-episode">{nextEpisodeLabelFor(progress!)}</span>
                   )}
                   <div className="progress-bar" aria-label={`${item.title} progress ${progress!.progressPercent}%`}>

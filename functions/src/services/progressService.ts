@@ -1,7 +1,22 @@
 import {FieldValue, Timestamp, getFirestore} from "firebase-admin/firestore";
 import {HttpError} from "../lib/httpError";
-import {EpisodeProgress, MarkEpisodeWatchedInput, ShowProgress} from "../models/progress";
-import {historyService} from "./historyService";
+import {
+  BatchEpisodeProgressInput,
+  EpisodeProgress,
+  MarkEpisodeWatchedInput,
+  ProgressEpisodePointer,
+  ShowProgress,
+  ShowProgressSummary,
+} from "../models/progress";
+import {MediaDetail, TvSeasonDetail} from "../models/media";
+import {
+  compareEpisodeCoordinates,
+  episodeKeyFor,
+  findNextUnwatchedEpisode,
+  progressPercentFor,
+  toEpisodePointer,
+} from "./progressLogic";
+import {tmdbService} from "./tmdbService";
 
 interface ProgressDocument {
   tmdbId: number;
@@ -11,6 +26,7 @@ interface ProgressDocument {
   progressPercent: number;
   currentSeason: number | null;
   currentEpisode: number | null;
+  nextEpisode?: ProgressEpisodePointer | null;
   updatedAt?: Timestamp;
 }
 
@@ -22,6 +38,15 @@ interface EpisodeProgressDocument {
   watchedAt?: Timestamp;
   updatedAt?: Timestamp;
 }
+
+interface CanonicalProgressMetadata {
+  tvDetail: MediaDetail;
+  seasons: TvSeasonDetail[];
+  episodesByKey: Map<string, ProgressEpisodePointer>;
+  totalEpisodes: number;
+}
+
+const maxBatchEpisodeCount = 100;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -35,30 +60,8 @@ const positiveInteger = (value: unknown, field: string) => {
   return numberValue;
 };
 
-const requiredString = (value: unknown, field: string) => {
-  if (typeof value !== "string" || !value.trim()) {
-    throw new HttpError(400, `${field} is required.`, "invalid_progress_payload");
-  }
-
-  return value.trim();
-};
-
 const timestampToJson = (value: Timestamp | undefined) =>
   value ? value.toDate().toISOString() : null;
-
-const episodeKeyFor = (seasonNumber: number, episodeNumber: number) =>
-  `s${String(seasonNumber).padStart(2, "0")}e${String(episodeNumber).padStart(2, "0")}`;
-
-const progressPercentFor = (watchedEpisodeCount: number, totalEpisodes: number) =>
-  totalEpisodes > 0 ? Math.round((watchedEpisodeCount / totalEpisodes) * 10000) / 100 : 0;
-
-const compareEpisodes = (left: EpisodeProgress, right: EpisodeProgress) => {
-  if (left.seasonNumber !== right.seasonNumber) {
-    return left.seasonNumber - right.seasonNumber;
-  }
-
-  return left.episodeNumber - right.episodeNumber;
-};
 
 const mapEpisodeDocument = (episodeKey: string, data: EpisodeProgressDocument): EpisodeProgress => ({
   episodeKey,
@@ -82,7 +85,7 @@ export const parseShowId = (value: string) => {
   };
 };
 
-export const parseMarkEpisodeWatchedInput = (body: unknown): MarkEpisodeWatchedInput => {
+export const parseEpisodeProgressInput = (body: unknown): MarkEpisodeWatchedInput => {
   if (!isRecord(body)) {
     throw new HttpError(400, "Request body must be an object.", "invalid_progress_payload");
   }
@@ -90,9 +93,35 @@ export const parseMarkEpisodeWatchedInput = (body: unknown): MarkEpisodeWatchedI
   return {
     seasonNumber: positiveInteger(body.seasonNumber, "seasonNumber"),
     episodeNumber: positiveInteger(body.episodeNumber, "episodeNumber"),
-    episodeTitle: requiredString(body.episodeTitle, "episodeTitle"),
-    totalEpisodes: positiveInteger(body.totalEpisodes, "totalEpisodes"),
-    title: requiredString(body.title, "title"),
+  };
+};
+
+export const parseBatchEpisodeProgressInput = (body: unknown): BatchEpisodeProgressInput => {
+  if (!isRecord(body)) {
+    throw new HttpError(400, "Request body must be an object.", "invalid_progress_payload");
+  }
+
+  if (typeof body.watched !== "boolean") {
+    throw new HttpError(400, "watched must be a boolean.", "invalid_progress_payload");
+  }
+
+  if (!Array.isArray(body.episodes) || body.episodes.length === 0) {
+    throw new HttpError(400, "episodes must be a non-empty array.", "invalid_progress_payload");
+  }
+
+  if (body.episodes.length > maxBatchEpisodeCount) {
+    throw new HttpError(400, `episodes cannot contain more than ${maxBatchEpisodeCount} items.`, "batch_too_large");
+  }
+
+  const uniqueEpisodes = new Map<string, MarkEpisodeWatchedInput>();
+  for (const episode of body.episodes) {
+    const parsed = parseEpisodeProgressInput(episode);
+    uniqueEpisodes.set(episodeKeyFor(parsed.seasonNumber, parsed.episodeNumber), parsed);
+  }
+
+  return {
+    watched: body.watched,
+    episodes: [...uniqueEpisodes.values()],
   };
 };
 
@@ -101,24 +130,13 @@ class ProgressService {
     return getFirestore().collection("users").doc(userId).collection("progress");
   }
 
-  async list(userId: string): Promise<ShowProgress[]> {
-    const snapshot = await this.collection(userId).get();
-    const progressItems = await Promise.all(
-      snapshot.docs.map(async (doc) => {
-        const episodesSnapshot = await doc.ref.collection("episodes").get();
-        const episodes = episodesSnapshot.docs.map((episodeDoc) =>
-          mapEpisodeDocument(episodeDoc.id, episodeDoc.data() as EpisodeProgressDocument),
-        );
+  private historyCollection(userId: string) {
+    return getFirestore().collection("users").doc(userId).collection("history");
+  }
 
-        return this.mapProgress(doc.id, doc.data() as ProgressDocument, episodes);
-      }),
-    );
-
-    return progressItems.sort((left, right) => {
-      const leftTime = left.updatedAt ? Date.parse(left.updatedAt) : 0;
-      const rightTime = right.updatedAt ? Date.parse(right.updatedAt) : 0;
-      return rightTime - leftTime;
-    });
+  async list(userId: string): Promise<ShowProgressSummary[]> {
+    const snapshot = await this.collection(userId).orderBy("updatedAt", "desc").get();
+    return snapshot.docs.map((doc) => this.mapProgressSummary(doc.id, doc.data() as ProgressDocument));
   }
 
   async get(userId: string, showId: string): Promise<ShowProgress | null> {
@@ -138,31 +156,113 @@ class ProgressService {
   }
 
   async markWatched(userId: string, showId: string, tmdbId: number, input: MarkEpisodeWatchedInput): Promise<ShowProgress> {
-    const progressRef = this.collection(userId).doc(showId);
-    const episodeKey = episodeKeyFor(input.seasonNumber, input.episodeNumber);
-    const episodeRef = progressRef.collection("episodes").doc(episodeKey);
+    return this.updateEpisodes(userId, showId, tmdbId, {
+      watched: true,
+      episodes: [input],
+    });
+  }
 
-    await episodeRef.set(
-      {
-        seasonNumber: input.seasonNumber,
-        episodeNumber: input.episodeNumber,
-        episodeTitle: input.episodeTitle,
-        watched: true,
-        watchedAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      {merge: true},
-    );
-    await historyService.recordEpisode(userId, {
-      tmdbId,
-      title: input.title,
-      episodeKey,
-      seasonNumber: input.seasonNumber,
-      episodeNumber: input.episodeNumber,
-      episodeTitle: input.episodeTitle,
+  async markUnwatched(
+    userId: string,
+    showId: string,
+    tmdbId: number,
+    input: MarkEpisodeWatchedInput,
+  ): Promise<ShowProgress> {
+    return this.updateEpisodes(userId, showId, tmdbId, {
+      watched: false,
+      episodes: [input],
+    });
+  }
+
+  async updateEpisodes(
+    userId: string,
+    showId: string,
+    tmdbId: number,
+    input: BatchEpisodeProgressInput,
+  ): Promise<ShowProgress> {
+    const canonical = await this.loadCanonicalMetadata(tmdbId);
+    const requested = input.episodes.map((episode) => {
+      const episodeKey = episodeKeyFor(episode.seasonNumber, episode.episodeNumber);
+      const metadata = canonical.episodesByKey.get(episodeKey);
+
+      if (!metadata) {
+        throw new HttpError(404, "Episode was not found for this show.", "episode_not_found");
+      }
+
+      return metadata;
     });
 
-    await this.refreshProgress(progressRef, tmdbId, input.title, input.totalEpisodes);
+    const progressRef = this.collection(userId).doc(showId);
+    const historyCollection = this.historyCollection(userId);
+
+    await getFirestore().runTransaction(async (transaction) => {
+      const existingEpisodesSnapshot = await transaction.get(progressRef.collection("episodes"));
+      const finalEpisodeKeys = new Set(existingEpisodesSnapshot.docs.map((doc) => doc.id));
+      const existingEpisodesByKey = new Map(existingEpisodesSnapshot.docs.map((doc) => [doc.id, doc]));
+
+      for (const episode of requested) {
+        const episodeRef = progressRef.collection("episodes").doc(episode.episodeKey);
+        const historyRef = historyCollection.doc(`tv_${tmdbId}_${episode.episodeKey}`);
+
+        if (input.watched) {
+          const existing = existingEpisodesByKey.get(episode.episodeKey);
+          finalEpisodeKeys.add(episode.episodeKey);
+          transaction.set(
+            episodeRef,
+            {
+              seasonNumber: episode.seasonNumber,
+              episodeNumber: episode.episodeNumber,
+              episodeTitle: episode.episodeTitle,
+              watched: true,
+              watchedAt: existing?.get("watchedAt") ?? FieldValue.serverTimestamp(),
+              updatedAt: FieldValue.serverTimestamp(),
+            },
+            {merge: true},
+          );
+          transaction.set(
+            historyRef,
+            {
+              tmdbId,
+              mediaType: "tv",
+              title: canonical.tvDetail.title,
+              seasonNumber: episode.seasonNumber,
+              episodeNumber: episode.episodeNumber,
+              episodeTitle: episode.episodeTitle,
+              watchedAt: existing?.get("watchedAt") ?? FieldValue.serverTimestamp(),
+              updatedAt: FieldValue.serverTimestamp(),
+            },
+            {merge: true},
+          );
+        } else {
+          finalEpisodeKeys.delete(episode.episodeKey);
+          transaction.delete(episodeRef);
+          transaction.delete(historyRef);
+        }
+      }
+
+      const finalEpisodes = [...finalEpisodeKeys]
+        .map((episodeKey) => canonical.episodesByKey.get(episodeKey))
+        .filter((episode): episode is ProgressEpisodePointer => episode !== undefined)
+        .sort(compareEpisodeCoordinates);
+      const highestWatchedEpisode = finalEpisodes[finalEpisodes.length - 1] ?? null;
+      const nextEpisode = findNextUnwatchedEpisode(canonical.seasons, finalEpisodeKeys);
+
+      transaction.set(
+        progressRef,
+        {
+          tmdbId,
+          title: canonical.tvDetail.title,
+          totalEpisodes: canonical.totalEpisodes,
+          watchedEpisodeCount: finalEpisodes.length,
+          progressPercent: progressPercentFor(finalEpisodes.length, canonical.totalEpisodes),
+          currentSeason: highestWatchedEpisode?.seasonNumber ?? null,
+          currentEpisode: highestWatchedEpisode?.episodeNumber ?? null,
+          nextEpisode,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
+    });
 
     const progress = await this.get(userId, showId);
     if (!progress) {
@@ -172,58 +272,34 @@ class ProgressService {
     return progress;
   }
 
-  async markUnwatched(userId: string, showId: string, tmdbId: number, episodeKey: string): Promise<ShowProgress | null> {
-    if (!/^s\d{2,}e\d{2,}$/.test(episodeKey)) {
-      throw new HttpError(400, "Episode key must look like s01e01.", "invalid_episode_key");
+  private async loadCanonicalMetadata(tmdbId: number): Promise<CanonicalProgressMetadata> {
+    const tvDetail = await tmdbService.tvDetail(tmdbId);
+
+    if (tvDetail.mediaType !== "tv") {
+      throw new HttpError(400, "Progress can only be tracked for TV shows.", "invalid_media_type");
     }
 
-    const progressRef = this.collection(userId).doc(showId);
-    const progressSnapshot = await progressRef.get();
+    const seasonSummaries = (tvDetail.seasons ?? []).filter((season) => season.seasonNumber > 0);
+    const seasons = await Promise.all(
+      seasonSummaries.map((season) => tmdbService.tvSeasonDetail(tmdbId, season.seasonNumber)),
+    );
+    const episodesByKey = new Map<string, ProgressEpisodePointer>();
 
-    if (!progressSnapshot.exists) {
-      return null;
+    for (const season of seasons) {
+      for (const episode of season.episodes) {
+        episodesByKey.set(episode.episodeKey, toEpisodePointer(episode));
+      }
     }
 
-    await progressRef.collection("episodes").doc(episodeKey).delete();
-    await historyService.removeEpisode(userId, tmdbId, episodeKey);
-
-    const data = progressSnapshot.data() as ProgressDocument;
-    await this.refreshProgress(progressRef, tmdbId, data.title, data.totalEpisodes);
-
-    return this.get(userId, showId);
+    return {
+      tvDetail,
+      seasons,
+      episodesByKey,
+      totalEpisodes: tvDetail.totalEpisodes ?? episodesByKey.size,
+    };
   }
 
-  private async refreshProgress(
-    progressRef: FirebaseFirestore.DocumentReference,
-    tmdbId: number,
-    title: string,
-    totalEpisodes: number,
-  ) {
-    const episodesSnapshot = await progressRef.collection("episodes").get();
-    const episodes = episodesSnapshot.docs.map((doc) =>
-      mapEpisodeDocument(doc.id, doc.data() as EpisodeProgressDocument),
-    );
-    const sortedEpisodes = [...episodes].sort(compareEpisodes);
-    const current = sortedEpisodes.length > 0 ? sortedEpisodes[sortedEpisodes.length - 1] : null;
-
-    await progressRef.set(
-      {
-        tmdbId,
-        title,
-        totalEpisodes,
-        watchedEpisodeCount: episodes.length,
-        progressPercent: progressPercentFor(episodes.length, totalEpisodes),
-        currentSeason: current?.seasonNumber ?? null,
-        currentEpisode: current?.episodeNumber ?? null,
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      {merge: true},
-    );
-  }
-
-  private mapProgress(showId: string, data: ProgressDocument, episodes: EpisodeProgress[]): ShowProgress {
-    const sortedEpisodes = [...episodes].sort(compareEpisodes);
-
+  private mapProgressSummary(showId: string, data: ProgressDocument): ShowProgressSummary {
     return {
       showId,
       tmdbId: data.tmdbId,
@@ -233,7 +309,16 @@ class ProgressService {
       progressPercent: data.progressPercent,
       currentSeason: data.currentSeason,
       currentEpisode: data.currentEpisode,
+      nextEpisode: data.nextEpisode ?? null,
       updatedAt: timestampToJson(data.updatedAt),
+    };
+  }
+
+  private mapProgress(showId: string, data: ProgressDocument, episodes: EpisodeProgress[]): ShowProgress {
+    const sortedEpisodes = [...episodes].sort(compareEpisodeCoordinates);
+
+    return {
+      ...this.mapProgressSummary(showId, data),
       episodes: sortedEpisodes,
     };
   }

@@ -1,5 +1,7 @@
 import cors from "cors";
 import express, {ErrorRequestHandler} from "express";
+import crypto from "node:crypto";
+import {corsOrigins} from "../config/env";
 import {HttpError} from "../lib/httpError";
 import {optionalAuth} from "../middleware/auth";
 import {mediaRouter} from "./mediaRoutes";
@@ -9,8 +11,33 @@ import {watchlistRouter} from "./watchlistRoutes";
 
 export const app = express();
 
-app.use(cors({origin: true}));
-app.use(express.json());
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || corsOrigins.length === 0 || corsOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new HttpError(403, "Origin is not allowed.", "origin_not_allowed"));
+  },
+}));
+app.use(express.json({limit: "64kb"}));
+app.use((req, res, next) => {
+  const requestId = req.header("x-request-id") ?? crypto.randomUUID();
+  const startedAt = Date.now();
+
+  res.setHeader("x-request-id", requestId);
+  res.on("finish", () => {
+    console.info(JSON.stringify({
+      requestId,
+      method: req.method,
+      route: req.originalUrl,
+      status: res.statusCode,
+      durationMs: Date.now() - startedAt,
+    }));
+  });
+  next();
+});
 app.use(optionalAuth);
 
 app.get("/health", (_req, res) => {

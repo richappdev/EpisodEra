@@ -12,6 +12,8 @@ All responses are JSON. Read-only discovery endpoints can be called without auth
 Authorization: Bearer <firebase-id-token>
 ```
 
+Set `CORS_ORIGINS` to a comma-separated allowlist for deployed environments. When omitted, the API allows all origins for local development.
+
 ## Language
 
 TMDb-backed read endpoints accept an optional `language` query parameter. MVP supported values are:
@@ -314,13 +316,13 @@ users/{uid}/progress/{showId}/episodes/{episodeKey}
 
 `showId` is the positive TMDb TV show ID. `episodeKey` is generated from season and episode numbers, such as `s01e01`.
 
-### Get Show Progress
+### List Show Progress
 
 ```http
 GET /progress
 ```
 
-Lists all show progress documents for the signed-in user, sorted by most recently updated.
+Lists summary-only show progress documents for the signed-in user, sorted by most recently updated. This endpoint does not read each show's `episodes` subcollection.
 
 Response:
 
@@ -336,12 +338,19 @@ Response:
       "progressPercent": 10.53,
       "currentSeason": 1,
       "currentEpisode": 2,
-      "updatedAt": "2026-07-10T07:00:00.000Z",
-      "episodes": []
+      "nextEpisode": {
+        "episodeKey": "s01e03",
+        "seasonNumber": 1,
+        "episodeNumber": 3,
+        "episodeTitle": "In Perpetuity"
+      },
+      "updatedAt": "2026-07-10T07:00:00.000Z"
     }
   ]
 }
 ```
+
+### Get Show Progress
 
 ```http
 GET /progress/:showId
@@ -368,6 +377,12 @@ Response after watched episodes exist:
     "progressPercent": 10.53,
     "currentSeason": 1,
     "currentEpisode": 2,
+    "nextEpisode": {
+      "episodeKey": "s01e03",
+      "seasonNumber": 1,
+      "episodeNumber": 3,
+      "episodeTitle": "In Perpetuity"
+    },
     "updatedAt": "2026-07-10T07:00:00.000Z",
     "episodes": [
       {
@@ -394,15 +409,34 @@ Request:
 
 ```json
 {
-  "title": "Severance",
   "seasonNumber": 1,
-  "episodeNumber": 1,
-  "episodeTitle": "Good News About Hell",
-  "totalEpisodes": 19
+  "episodeNumber": 1
 }
 ```
 
-Response: `201 Created` with the updated show progress. Re-marking the same episode overwrites that episode row and keeps the watched count deduplicated.
+The backend validates the show, season, and episode against TMDb and resolves the canonical show title, episode title, and total episode count. Response: `201 Created` with the updated show progress. Re-marking the same episode is idempotent for counts.
+
+### Batch Mark Episodes Watched Or Unwatched
+
+```http
+POST /progress/:showId/episodes/batch
+```
+
+Request:
+
+```json
+{
+  "watched": true,
+  "episodes": [
+    {"seasonNumber": 1, "episodeNumber": 1},
+    {"seasonNumber": 1, "episodeNumber": 2}
+  ]
+}
+```
+
+`episodes` is deduplicated by season/episode and limited to 100 entries. The backend validates all requested episodes before writing, then updates episode rows, history entries, and the aggregate progress summary in one Firestore transaction.
+
+Response: updated show progress.
 
 ### Mark Episode Unwatched
 
@@ -410,7 +444,7 @@ Response: `201 Created` with the updated show progress. Re-marking the same epis
 DELETE /progress/:showId/episode/:episodeKey
 ```
 
-Response: updated show progress, or `{ "progress": null }` if the show has no progress document.
+Response: updated show progress.
 
 ## Profile Stats
 

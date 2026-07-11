@@ -1,10 +1,12 @@
 import {Router} from "express";
 import {AuthenticatedRequest, requireAuth} from "../middleware/auth";
 import {
-  parseMarkEpisodeWatchedInput,
+  parseBatchEpisodeProgressInput,
+  parseEpisodeProgressInput,
   parseShowId,
   progressService,
 } from "../services/progressService";
+import {HttpError} from "../lib/httpError";
 
 export const progressRouter = Router();
 
@@ -34,9 +36,24 @@ progressRouter.post("/progress/:showId/episode", async (req: AuthenticatedReques
       req.user!.uid,
       showId,
       tmdbId,
-      parseMarkEpisodeWatchedInput(req.body),
+      parseEpisodeProgressInput(req.body),
     );
     res.status(201).json(progress);
+  } catch (error) {
+    next(error);
+  }
+});
+
+progressRouter.post("/progress/:showId/episodes/batch", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const {showId, tmdbId} = parseShowId(req.params.showId);
+    const progress = await progressService.updateEpisodes(
+      req.user!.uid,
+      showId,
+      tmdbId,
+      parseBatchEpisodeProgressInput(req.body),
+    );
+    res.json(progress);
   } catch (error) {
     next(error);
   }
@@ -45,7 +62,16 @@ progressRouter.post("/progress/:showId/episode", async (req: AuthenticatedReques
 progressRouter.delete("/progress/:showId/episode/:episodeKey", async (req: AuthenticatedRequest, res, next) => {
   try {
     const {showId, tmdbId} = parseShowId(req.params.showId);
-    res.json({progress: await progressService.markUnwatched(req.user!.uid, showId, tmdbId, req.params.episodeKey)});
+    const match = /^s(\d{2,})e(\d{2,})$/.exec(req.params.episodeKey);
+    if (!match) {
+      throw new HttpError(400, "Episode key must look like s01e01.", "invalid_episode_key");
+    }
+    res.json({
+      progress: await progressService.markUnwatched(req.user!.uid, showId, tmdbId, {
+        seasonNumber: Number(match[1]),
+        episodeNumber: Number(match[2]),
+      }),
+    });
   } catch (error) {
     next(error);
   }

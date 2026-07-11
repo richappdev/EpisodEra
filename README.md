@@ -4,13 +4,7 @@ Episodera is a movie and TV tracking app for discovering titles, saving a watchl
 
 ## Current Status
 
-The project is in MVP hardening. Core web features are implemented, baseline CI exists, and the remaining work is runtime emulator validation, dependency upgrade planning, and production-readiness decisions.
-
-Latest documented implementation commit:
-
-```text
-cf5049b Document dependency audit review
-```
+The project is in MVP hardening. Core web features are implemented, the progress-tracking reliability fixes are in the current working tree, and the remaining work is emulator integration validation, broader automated tests, dependency upgrade planning, and production-readiness decisions.
 
 ## Features
 
@@ -31,9 +25,12 @@ cf5049b Document dependency audit review
   - episode list
   - mark watched
   - mark unwatched
+  - batch watched/unwatched updates
+  - backend-resolved canonical TMDb episode metadata
+  - atomic progress, episode, and history updates
   - watched count
   - progress percentage
-- Continue Watching shortcuts for in-progress TV shows.
+- Continue Watching shortcuts for in-progress TV shows using the backend-calculated next unwatched episode.
 - Profile and stats:
   - watched movies
   - watched episodes
@@ -44,7 +41,7 @@ cf5049b Document dependency audit review
 - Recent watched history timeline for movies and episodes.
 - Owner-scoped Firestore security rules for watchlist, progress, and history.
 - Firebase Analytics and Performance Monitoring for the web app.
-- Baseline GitHub Actions CI for backend and frontend checks.
+- GitHub Actions CI for backend build, backend lint, backend progress logic tests, and frontend build.
 - Project documentation for architecture, API contracts, Firestore schema, auth, navigation, deployment, coding standards, and dependency audit posture.
 
 ## Tech Stack
@@ -120,11 +117,14 @@ Authenticated user endpoints:
 - `GET /progress`
 - `GET /progress/:showId`
 - `POST /progress/:showId/episode`
+- `POST /progress/:showId/episodes/batch`
 - `DELETE /progress/:showId/episode/:episodeKey`
 - `GET /me/stats`
 - `GET /me/history`
 
-See `docs/API.md` for request and response contracts.
+Progress writes accept season and episode numbers only. The backend validates against TMDb, resolves canonical titles and episode counts, and writes episode rows, progress summary, and watched history in one Firestore transaction. `GET /progress` returns summary rows only; use `GET /progress/:showId` when full watched episode rows are required.
+
+See `docs/API.md` for full request and response contracts.
 
 ## Local Setup
 
@@ -143,6 +143,7 @@ Configure local environment values:
 - Root `.env` from `.env.example` for backend/Firebase emulator values.
 - `web/.env` from `web/.env.example` for Vite and Firebase web values.
 - Firebase secret `TMDB_API_KEY` for deployed functions.
+- Optional `CORS_ORIGINS` comma-separated allowlist for deployed API origins. Leave unset only for local development.
 
 For local emulator development, Java is required by the Firestore emulator.
 
@@ -157,6 +158,8 @@ npm run lint
 npm test
 npm run serve
 ```
+
+`npm test` builds the functions TypeScript and runs Node test files emitted into `lib/`.
 
 Frontend:
 
@@ -193,6 +196,9 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 ## Known Gaps
 
 - Signed-in Firestore emulator validation is pending because Java is not installed in the current local environment.
+- API route tests, Firestore emulator integration tests, Firestore rules tests, frontend component tests, and a signed-in Playwright critical flow are still pending.
+- TMDb metadata caching is not implemented yet; progress validation currently resolves canonical metadata directly from TMDb.
+- Production deployment must configure `CORS_ORIGINS` for the Firebase Hosting, staging, and production domains.
 - Dependency audit findings are documented in `docs/DependencyAudit.md`; fixes require semver-major upgrades for Firebase Functions packages and Vite tooling.
 - Production beta readiness still needs runtime validation and an explicit dependency-risk decision.
 - Firebase Crashlytics is not available for the current web-only client; add it when native Apple, Android, Flutter, or Unity clients exist.
