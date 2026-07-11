@@ -796,10 +796,38 @@ button {
   border: 1px solid #dedbd2;
   border-radius: 8px;
   color: #434a55;
-  display: inline-flex;
+  display: flex;
   gap: 10px;
+  justify-content: space-between;
   min-height: 46px;
   padding: 0 14px;
+}
+
+.progress-copy,
+.season-watch-button {
+  align-items: center;
+  display: inline-flex;
+  gap: 10px;
+}
+
+.progress-copy {
+  min-width: 0;
+}
+
+.season-watch-button {
+  background: #0f6f63;
+  border: 0;
+  border-radius: 6px;
+  color: #ffffff;
+  flex: 0 0 auto;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 12px;
+}
+
+.season-watch-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .episode-list {
@@ -905,6 +933,16 @@ button {
   .episode-header {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .progress-strip {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 14px;
+  }
+
+  .season-watch-button {
+    align-self: start;
   }
 
   .episode-row {

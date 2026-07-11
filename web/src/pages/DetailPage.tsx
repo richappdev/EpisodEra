@@ -1,4 +1,15 @@
-import {ArrowLeft, Bookmark, Check, CheckCircle2, Circle, Clock, ExternalLink, ListChecks, Star, Trash2} from "lucide-react";
+import {
+  ArrowLeft,
+  Bookmark,
+  Check,
+  CheckCircle2,
+  Circle,
+  Clock,
+  ExternalLink,
+  ListChecks,
+  Star,
+  Trash2,
+} from "lucide-react";
 import {EpisodeSummary, MediaDetail, TvSeasonDetail} from "../types/media";
 import {ShowProgress} from "../types/progress";
 import {WatchlistItem, WatchlistStatus, watchlistStatuses} from "../types/watchlist";
@@ -16,6 +27,7 @@ interface DetailPageProps {
   onEpisodeUnwatched: (episode: EpisodeSummary) => void;
   onAddToWatchlist: (detail: MediaDetail) => void;
   onBack: () => void;
+  onMarkAvailableSeasonWatched: () => void;
   onRemoveFromWatchlist: (item: WatchlistItem) => void;
   onSeasonChange: (seasonNumber: number) => void;
   onWatchlistStatusChange: (item: WatchlistItem, status: WatchlistStatus) => void;
@@ -36,6 +48,7 @@ export const DetailPage = ({
   onEpisodeUnwatched,
   onAddToWatchlist,
   onBack,
+  onMarkAvailableSeasonWatched,
   onRemoveFromWatchlist,
   onSeasonChange,
   onWatchlistStatusChange,
@@ -51,6 +64,17 @@ export const DetailPage = ({
 }: DetailPageProps) => {
   const watchedKeys = new Set(progress?.episodes.map((episode) => episode.episodeKey) ?? []);
   const seasons = detail.seasons ?? [];
+  const availableSeasonEpisodes =
+    seasonDetail?.episodes.filter((episode) => {
+      if (!episode.airDate) {
+        return true;
+      }
+
+      return new Date(`${episode.airDate}T00:00:00`).getTime() <= Date.now();
+    }) ?? [];
+  const unwatchedAvailableSeasonCount = availableSeasonEpisodes.filter(
+    (episode) => !watchedKeys.has(episode.episodeKey),
+  ).length;
 
   return (
     <main className="detail-page">
@@ -155,16 +179,27 @@ export const DetailPage = ({
 
           {signedIn ? (
             <div className="progress-strip">
-              <ListChecks size={18} aria-hidden="true" />
-              {progressLoading ? (
-                <span>Loading progress...</span>
-              ) : progress ? (
-                <span>
-                  {progress.watchedEpisodeCount} of {progress.totalEpisodes} watched ({progress.progressPercent}%)
-                </span>
-              ) : (
-                <span>No watched episodes yet.</span>
-              )}
+              <span className="progress-copy">
+                <ListChecks size={18} aria-hidden="true" />
+                {progressLoading ? (
+                  <span>Loading progress...</span>
+                ) : progress ? (
+                  <span>
+                    {progress.watchedEpisodeCount} of {progress.totalEpisodes} watched ({progress.progressPercent}%)
+                  </span>
+                ) : (
+                  <span>No watched episodes yet.</span>
+                )}
+              </span>
+              <button
+                className="season-watch-button"
+                type="button"
+                disabled={progressLoading || seasonLoading || unwatchedAvailableSeasonCount === 0}
+                onClick={onMarkAvailableSeasonWatched}
+              >
+                <CheckCircle2 size={18} aria-hidden="true" />
+                Mark season watched
+              </button>
             </div>
           ) : (
             <div className="state-panel">Sign in to track watched episodes.</div>
