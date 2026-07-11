@@ -66,7 +66,8 @@ The project is in MVP hardening. Core web features are implemented, progress-tra
 │   ├── DependencyAudit.md
 │   ├── Deployment.md
 │   ├── Firestore.md
-│   └── Navigation.md
+│   ├── Navigation.md
+│   └── ResourceAlignment.md
 ├── functions/
 │   ├── src/
 │   │   ├── api/
@@ -217,3 +218,4 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 - `docs/CodingStandard.md` records implementation conventions.
 - `docs/DependencyAudit.md` records current audit findings and upgrade plan.
 - `docs/Deployment.md` covers deployment and CI.
+- `docs/ResourceAlignment.md` records GitHub, Notion, Figma, and Canva source-of-truth rules.

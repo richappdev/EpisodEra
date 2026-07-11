@@ -4,7 +4,7 @@ Last updated: 2026-07-11
 
 ## Purpose
 
-This document defines how Episodera’s implementation, planning, design, and presentation resources stay aligned across GitHub, Notion, Figma, and Canva.
+This document defines how Episodera's implementation, planning, design, and presentation resources stay aligned across GitHub, Notion, Figma, and Canva.
 
 GitHub is the implementation source of truth. Notion defines product scope, delivery priorities, testing expectations, and current project status. Figma defines the responsive interaction and component behavior expected from the application. Canva provides stakeholder-facing summaries and should reflect, but never override, the implementation and planning sources.
 
@@ -16,6 +16,18 @@ GitHub is the implementation source of truth. Notion defines product scope, deli
 | Notion   | Product and delivery planning         | MVP scope, priorities, milestones, reliability plan, testing plan, blockers, and completion status                         |
 | Figma    | Product interaction and responsive UI | Screens, components, navigation, layout behavior, loading states, error states, recovery behavior, and responsive patterns |
 | Canva    | Stakeholder communication             | Product overview, design review, MVP status, reliability summaries, and presentation material                              |
+
+## GitHub Alignment Document
+
+This file is the repository-local resource alignment reference. It should be kept in sync with the Notion alignment report whenever cross-resource status changes.
+
+The Notion report remains the planning and decision record. This GitHub document records the implementation-facing interpretation of that report, including current technical status, validation expectations, and the source-of-truth rules that agents and maintainers should apply while changing the codebase.
+
+When the Notion alignment report and this file disagree:
+
+1. Use GitHub code and technical docs as the implementation authority.
+2. Use Notion as the product-scope and delivery-priority authority.
+3. Update whichever resource is stale, or explicitly record the conflict as a migration task.
 
 ## Canonical Product Scope
 
@@ -311,7 +323,7 @@ A feature is complete only when all applicable conditions are met:
 
 | Resource              | Current status                                                                                                          |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| GitHub implementation | Core MVP and backend reliability work substantially implemented; frontend and runtime validation remain                 |
+| GitHub implementation | Core MVP and backend reliability work substantially implemented; `docs/ResourceAlignment.md` now records repository alignment rules; frontend and runtime validation remain |
 | Notion planning       | MVP hardening, testing priorities, and beta blockers updated                                                            |
 | Figma design          | Responsive screen system and core states documented; additional reliability-state synchronization may still be required |
 | Canva reporting       | MVP scope and reliability language updated; unsupported claims and placeholders removed                                 |
@@ -320,10 +332,19 @@ A feature is complete only when all applicable conditions are met:
 
 At the time of this update:
 
-* Automated GitHub write access may fail with `403 Resource not accessible by integration`.
-* Figma write operations may be blocked when the connected Starter plan reaches its MCP tool-call limit.
+* The previous GitHub documentation update blocker is resolved for this repository because `docs/ResourceAlignment.md` has been added locally.
+* Future automated GitHub connector writes may still fail with `403 Resource not accessible by integration`; when that happens, update the repository directly and record the local file path.
+* Figma write operations may still be blocked when the connected Starter plan reaches its MCP tool-call limit.
 
 These limitations affect resource synchronization only. They do not change product scope or implementation status.
+
+## Change Log
+
+### 2026-07-11
+
+* Added `docs/ResourceAlignment.md` as the GitHub-side alignment reference.
+* Marked the prior GitHub resource-alignment documentation blocker as resolved for the repository.
+* Kept Figma reliability-state synchronization listed as an external access limitation until the connected plan allows more MCP write operations.
 
 ## Review Cadence
 
