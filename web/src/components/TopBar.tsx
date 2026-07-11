@@ -11,7 +11,7 @@ interface TopBarProps {
 
 export const TopBar = ({activeView, user, onAuthOpen, onSignOut, onViewChange}: TopBarProps) => (
   <header className="top-bar">
-    <div>
+    <div className="brand-lockup">
       <h1>Episodera</h1>
       <p>Track movies, shows, and next episodes</p>
     </div>
@@ -25,7 +25,7 @@ export const TopBar = ({activeView, user, onAuthOpen, onSignOut, onViewChange}: 
           title="Trending"
         >
           <TrendingUp size={18} aria-hidden="true" />
-          Trending
+          <span>Trending</span>
         </button>
         <button
           className={activeView === "search" ? "active" : ""}
@@ -34,7 +34,7 @@ export const TopBar = ({activeView, user, onAuthOpen, onSignOut, onViewChange}: 
           title="Search"
         >
           <Search size={18} aria-hidden="true" />
-          Search
+          <span>Search</span>
         </button>
         <button
           className={activeView === "watchlist" ? "active" : ""}
@@ -43,7 +43,7 @@ export const TopBar = ({activeView, user, onAuthOpen, onSignOut, onViewChange}: 
           title="Watchlist"
         >
           <Bookmark size={18} aria-hidden="true" />
-          Watchlist
+          <span>Watchlist</span>
         </button>
         <button
           className={activeView === "profile" ? "active" : ""}
@@ -52,7 +52,7 @@ export const TopBar = ({activeView, user, onAuthOpen, onSignOut, onViewChange}: 
           title="Profile"
         >
           <BarChart3 size={18} aria-hidden="true" />
-          Profile
+          <span>Profile</span>
         </button>
         <button
           className={activeView === "settings" ? "active" : ""}
@@ -61,7 +61,7 @@ export const TopBar = ({activeView, user, onAuthOpen, onSignOut, onViewChange}: 
           title="Settings"
         >
           <Settings size={18} aria-hidden="true" />
-          Settings
+          <span>Settings</span>
         </button>
       </nav>
       <button className="account-button" type="button" onClick={user ? onSignOut : onAuthOpen}>
