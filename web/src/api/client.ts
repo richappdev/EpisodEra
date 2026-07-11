@@ -70,7 +70,7 @@ export const api = {
     request<ProgressResponse>(`/progress/${showId}/episode/${episodeKey}`, {method: "DELETE"}),
   meHistory: () => request<HistoryResponse>("/me/history"),
   meSettings: () => request<UserSettings>("/me/settings"),
-  updateMeSettings: (settings: Pick<UserSettings, "language">) =>
+  updateMeSettings: (settings: Partial<Pick<UserSettings, "autoMarkPreviousEpisodesWatched" | "language">>) =>
     request<UserSettings>("/me/settings", {method: "PATCH", body: settings}),
   meStats: () => request<UserStats>("/me/stats"),
   listWatchlist: () => request<WatchlistResponse>("/watchlist"),

@@ -468,6 +468,7 @@ Response:
 
 ```json
 {
+  "autoMarkPreviousEpisodesWatched": false,
   "language": "en-US",
   "updatedAt": "2026-07-11T07:00:00.000Z"
 }
@@ -481,11 +482,12 @@ Request:
 
 ```json
 {
+  "autoMarkPreviousEpisodesWatched": true,
   "language": "zh-TW"
 }
 ```
 
-Response: updated settings. Supported language values are `en-US` and `zh-TW`.
+Response: updated settings. Supported language values are `en-US` and `zh-TW`. `autoMarkPreviousEpisodesWatched` controls whether marking a later episode watched also marks earlier unwatched episodes in that season.
 
 ## Errors
 

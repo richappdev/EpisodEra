@@ -138,12 +138,13 @@ For movie entries, `seasonNumber`, `episodeNumber`, and `episodeTitle` are `null
 
 ## users/{userId}/settings/profile
 
-Stores user preferences. The MVP settings document is intentionally limited to language.
+Stores user preferences.
 
 Shape:
 
 ```json
 {
+  "autoMarkPreviousEpisodesWatched": false,
   "language": "en-US",
   "updatedAt": "<server timestamp>"
 }

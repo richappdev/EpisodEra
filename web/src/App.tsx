@@ -19,11 +19,15 @@ import {WatchlistItem, WatchlistStatus} from "./types/watchlist";
 type View = "trending" | "search" | "watchlist" | "profile" | "settings" | "auth";
 
 const languageStorageKey = "episodera.language";
+const autoMarkPreviousEpisodesWatchedStorageKey = "episodera.autoMarkPreviousEpisodesWatched";
 
 const initialLanguage = (): SupportedLanguage => {
   const stored = window.localStorage.getItem(languageStorageKey);
   return isSupportedLanguage(stored) ? stored : "en-US";
 };
+
+const initialAutoMarkPreviousEpisodesWatched = () =>
+  window.localStorage.getItem(autoMarkPreviousEpisodesWatchedStorageKey) === "true";
 
 const isAvailableEpisode = (episode: EpisodeSummary) => {
   if (!episode.airDate) {
@@ -55,6 +59,9 @@ export const App = () => {
   const [seasonLoading, setSeasonLoading] = useState(false);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [settingsLoading, setSettingsLoading] = useState(false);
+  const [autoMarkPreviousEpisodesWatched, setAutoMarkPreviousEpisodesWatched] = useState(
+    initialAutoMarkPreviousEpisodesWatched,
+  );
   const [selectedSeason, setSelectedSeason] = useState(1);
 
   useEffect(() => {
@@ -87,6 +94,10 @@ export const App = () => {
   }, [language]);
 
   useEffect(() => {
+    window.localStorage.setItem(autoMarkPreviousEpisodesWatchedStorageKey, String(autoMarkPreviousEpisodesWatched));
+  }, [autoMarkPreviousEpisodesWatched]);
+
+  useEffect(() => {
     if (!user) {
       setWatchlistItems([]);
       setWatchlistError(null);
@@ -114,6 +125,7 @@ export const App = () => {
         setStats(loadedStats);
         setHistoryItems(loadedHistoryItems);
         setLanguage(loadedSettings.language);
+        setAutoMarkPreviousEpisodesWatched(loadedSettings.autoMarkPreviousEpisodesWatched);
       })
       .catch((err: Error) => {
         setWatchlistError(err.message);
@@ -258,7 +270,32 @@ export const App = () => {
 
     setSettingsLoading(true);
     api.updateMeSettings({language: nextLanguage})
-      .then((settings) => setLanguage(settings.language))
+      .then((settings) => {
+        setLanguage(settings.language);
+        setAutoMarkPreviousEpisodesWatched(settings.autoMarkPreviousEpisodesWatched);
+      })
+      .catch((err: Error) => setSettingsError(err.message))
+      .finally(() => setSettingsLoading(false));
+  };
+
+  const changeAutoMarkPreviousEpisodesWatched = (enabled: boolean) => {
+    setAutoMarkPreviousEpisodesWatched(enabled);
+    trackEvent("select_content", {
+      content_type: "auto_mark_previous_episodes_watched",
+      item_id: String(enabled),
+    });
+    setSettingsError(null);
+
+    if (!user) {
+      return;
+    }
+
+    setSettingsLoading(true);
+    api.updateMeSettings({autoMarkPreviousEpisodesWatched: enabled})
+      .then((settings) => {
+        setLanguage(settings.language);
+        setAutoMarkPreviousEpisodesWatched(settings.autoMarkPreviousEpisodesWatched);
+      })
       .catch((err: Error) => setSettingsError(err.message))
       .finally(() => setSettingsLoading(false));
   };
@@ -335,13 +372,7 @@ export const App = () => {
             !watchedKeys.has(candidate.episodeKey),
         )
         .sort((left, right) => left.episodeNumber - right.episodeNumber);
-      const shouldMarkPrevious =
-        previousEpisodes.length > 0 &&
-        window.confirm(
-          `Mark ${previousEpisodes.length} earlier episode${
-            previousEpisodes.length === 1 ? "" : "s"
-          } from this season as watched too?`,
-        );
+      const shouldMarkPrevious = previousEpisodes.length > 0 && autoMarkPreviousEpisodesWatched;
       const episodesToMark = shouldMarkPrevious ? [...previousEpisodes, episode] : [episode];
 
       let latestProgress: ShowProgress | null = null;
@@ -613,10 +644,12 @@ export const App = () => {
         />
       ) : view === "settings" ? (
         <SettingsPage
+          autoMarkPreviousEpisodesWatched={autoMarkPreviousEpisodesWatched}
           error={settingsError}
           language={language}
           loading={settingsLoading}
           signedIn={Boolean(user)}
+          onAutoMarkPreviousEpisodesWatchedChange={changeAutoMarkPreviousEpisodesWatched}
           onLanguageChange={changeLanguage}
         />
       ) : view === "watchlist" ? (

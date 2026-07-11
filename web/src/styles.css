@@ -538,6 +538,28 @@ select:focus-visible {
   margin: 2px 0 0;
 }
 
+.settings-group {
+  border-top: 1px solid var(--color-border);
+  display: grid;
+  gap: 12px;
+  padding-top: 18px;
+}
+
+.settings-group h3 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.settings-group-heading {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.settings-group-heading svg {
+  color: var(--color-primary);
+}
+
 .settings-field {
   color: var(--color-text-soft);
   display: grid;
@@ -552,6 +574,21 @@ select:focus-visible {
   color: var(--color-text);
   min-height: var(--tap-target);
   padding: 0 12px;
+}
+
+.settings-check {
+  align-items: center;
+  color: var(--color-text-soft);
+  display: flex;
+  font-weight: 700;
+  gap: 10px;
+}
+
+.settings-check input {
+  accent-color: var(--color-primary);
+  height: 18px;
+  margin: 0;
+  width: 18px;
 }
 
 .settings-note {

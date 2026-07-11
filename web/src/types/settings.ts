@@ -3,6 +3,7 @@ export const supportedLanguages = ["en-US", "zh-TW"] as const;
 export type SupportedLanguage = (typeof supportedLanguages)[number];
 
 export interface UserSettings {
+  autoMarkPreviousEpisodesWatched: boolean;
   language: SupportedLanguage;
   updatedAt: string | null;
 }
@@ -29,11 +30,16 @@ export const uiCopy = {
     },
     settings: {
       eyebrow: "Settings",
-      title: "Language",
-      fieldLabel: "App language",
-      note: "Metadata is loaded from TMDb in the selected language where available. Unsupported locales fall back to English.",
-      signedOutNote: "Sign in to sync this preference across sessions. This device still uses it now.",
-      saving: "Saving language...",
+      title: "Settings",
+      languageTitle: "Language",
+      languageFieldLabel: "App language",
+      languageNote: "Metadata is loaded from TMDb in the selected language where available. Unsupported locales fall back to English.",
+      progressTitle: "Episode progress",
+      autoMarkPreviousLabel: "Automatically mark earlier episodes watched",
+      autoMarkPreviousNote:
+        "When enabled, marking a later episode watched also marks earlier unwatched episodes in that season.",
+      signedOutNote: "Sign in to sync these preferences across sessions. This device still uses them now.",
+      saving: "Saving settings...",
     },
     search: {
       noResults: "No results found.",
@@ -52,11 +58,15 @@ export const uiCopy = {
     },
     settings: {
       eyebrow: "設定",
-      title: "語言",
-      fieldLabel: "應用程式語言",
-      note: "中繼資料會優先使用 TMDb 支援的所選語言；不支援的地區設定會回退為英文。",
-      signedOutNote: "登入後可跨工作階段同步此偏好。此裝置現在仍會套用此設定。",
-      saving: "正在儲存語言...",
+      title: "設定",
+      languageTitle: "語言",
+      languageFieldLabel: "應用程式語言",
+      languageNote: "中繼資料會優先使用 TMDb 支援的所選語言；不支援的地區設定會回退為英文。",
+      progressTitle: "集數進度",
+      autoMarkPreviousLabel: "自動將較早集數標記為已觀看",
+      autoMarkPreviousNote: "啟用後，將較後面的集數標記為已觀看時，也會標記同季中較早且尚未觀看的集數。",
+      signedOutNote: "登入後可跨工作階段同步這些偏好。此裝置現在仍會套用這些設定。",
+      saving: "正在儲存設定...",
     },
     search: {
       noResults: "找不到結果。",
