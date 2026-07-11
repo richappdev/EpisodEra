@@ -42,6 +42,7 @@ cf5049b Document dependency audit review
   - tracked show count
 - Recent watched history timeline for movies and episodes.
 - Owner-scoped Firestore security rules for watchlist, progress, and history.
+- Firebase Analytics and Performance Monitoring for the web app.
 - Baseline GitHub Actions CI for backend and frontend checks.
 - Project documentation for architecture, API contracts, Firestore schema, auth, navigation, deployment, coding standards, and dependency audit posture.
 
@@ -51,6 +52,7 @@ cf5049b Document dependency audit review
 - Backend: Firebase Cloud Functions, Express, TypeScript
 - Auth: Firebase Authentication
 - Database: Firestore
+- Monitoring: Firebase Analytics, Firebase Performance Monitoring, Analytics exception events for web errors
 - Metadata provider: TMDb API
 - CI: GitHub Actions
 
@@ -192,6 +194,7 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 - Signed-in Firestore emulator validation is pending because Java is not installed in the current local environment.
 - Dependency audit findings are documented in `docs/DependencyAudit.md`; fixes require semver-major upgrades for Firebase Functions packages and Vite tooling.
 - Production beta readiness still needs runtime validation and an explicit dependency-risk decision.
+- Firebase Crashlytics is not available for the current web-only client; add it when native Apple, Android, Flutter, or Unity clients exist.
 - Mobile apps are not implemented yet; the current MVP client is web-first.
 
 ## Documentation

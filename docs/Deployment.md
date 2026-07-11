@@ -47,6 +47,7 @@ VITE_FIREBASE_API_KEY=...
 VITE_FIREBASE_AUTH_DOMAIN=episodera.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=episodera
 VITE_FIREBASE_APP_ID=...
+VITE_FIREBASE_MEASUREMENT_ID=...
 ```
 
 Then build:
@@ -68,6 +69,16 @@ firebase deploy --only hosting
 
 The app is an SPA, so all routes rewrite to `index.html`.
 
+## Firebase app monitoring
+
+Enable these Firebase products for the registered web app before deploying the production build:
+
+- Google Analytics: enable Google Analytics for the Firebase project, then copy the web app `measurementId` into `VITE_FIREBASE_MEASUREMENT_ID`.
+- Performance Monitoring: enable Performance Monitoring for the web app in Firebase Console. The web client initializes `firebase/performance` at startup and sends page-load and network request metrics when the browser supports the SDK.
+- Web exceptions: the web client logs uncaught `error` and `unhandledrejection` events as Google Analytics `exception` events.
+
+Firebase Crashlytics does not currently provide a Web SDK. Add Crashlytics when native Apple, Android, Flutter, or Unity clients are introduced; for the current web client, use Analytics exception events or a dedicated browser error-reporting service.
+
 ## Continuous Integration
 
 GitHub Actions runs the baseline MVP regression on pushes to `main` and on pull requests:
@@ -86,6 +97,8 @@ The `functions` test script currently compiles TypeScript through `npm run build
 - `functions`: `npm run build`
 - `web`: `npm run build`
 - Firebase Authentication email/password provider enabled
+- Firebase Analytics enabled and `VITE_FIREBASE_MEASUREMENT_ID` configured
+- Firebase Performance Monitoring enabled for the web app
 - `TMDB_API_KEY` secret configured
 - Firestore rules deployed
 - Production `VITE_API_BASE_URL` points to the deployed function

@@ -2,6 +2,7 @@ import {useEffect, useState} from "react";
 import {api, setApiTokenProvider} from "./api/client";
 import {useAuth} from "./auth/AuthContext";
 import {TopBar} from "./components/TopBar";
+import {setAnalyticsUserId, trackEvent} from "./firebase";
 import {HistoryEntry} from "./types/history";
 import {AuthPage} from "./pages/AuthPage";
 import {DetailPage} from "./pages/DetailPage";
@@ -59,6 +60,27 @@ export const App = () => {
   useEffect(() => {
     setApiTokenProvider(getIdToken);
   }, [getIdToken]);
+
+  useEffect(() => {
+    setAnalyticsUserId(user?.uid ?? null);
+  }, [user]);
+
+  useEffect(() => {
+    if (detail) {
+      trackEvent("screen_view", {
+        firebase_screen: "detail",
+        firebase_screen_class: "DetailPage",
+        media_type: detail.mediaType,
+        tmdb_id: detail.id,
+      });
+      return;
+    }
+
+    trackEvent("screen_view", {
+      firebase_screen: view,
+      firebase_screen_class: "App",
+    });
+  }, [detail, view]);
 
   useEffect(() => {
     window.localStorage.setItem(languageStorageKey, language);
@@ -212,6 +234,10 @@ export const App = () => {
 
   const changeLanguage = (nextLanguage: SupportedLanguage) => {
     setLanguage(nextLanguage);
+    trackEvent("select_content", {
+      content_type: "language",
+      item_id: nextLanguage,
+    });
     setSettingsError(null);
 
     if (!user) {
@@ -235,6 +261,10 @@ export const App = () => {
       backdrop: selectedDetail.images.backdrop,
     })
       .then((item) => {
+        trackEvent("add_to_wishlist", {
+          content_type: selectedDetail.mediaType,
+          item_id: String(selectedDetail.id),
+        });
         upsertWatchlistItem(item);
         refreshStats();
       })
@@ -249,6 +279,10 @@ export const App = () => {
     setWatchlistError(null);
     api.updateWatchlistStatus(item.itemId, status)
       .then((updatedItem) => {
+        trackEvent("select_content", {
+          content_type: "watchlist_status",
+          item_id: status,
+        });
         upsertWatchlistItem(updatedItem);
         refreshStats();
       })
@@ -259,6 +293,10 @@ export const App = () => {
     setWatchlistError(null);
     api.removeWatchlistItem(item.itemId)
       .then(() => {
+        trackEvent("remove_from_wishlist", {
+          content_type: item.mediaType,
+          item_id: String(item.tmdbId),
+        });
         setWatchlistItems((current) => current.filter((candidate) => candidate.itemId !== item.itemId));
         refreshStats();
       })
@@ -309,6 +347,10 @@ export const App = () => {
         return;
       }
 
+      trackEvent("select_content", {
+        content_type: "episode_watched",
+        item_id: episode.episodeKey,
+      });
       setProgress(latestProgress);
       upsertProgressItem(latestProgress);
       refreshStats();
@@ -362,6 +404,10 @@ export const App = () => {
         return;
       }
 
+      trackEvent("select_content", {
+        content_type: "season_watched",
+        item_id: `${detail.id}:${selectedSeason}`,
+      });
       setProgress(latestProgress);
       upsertProgressItem(latestProgress);
       refreshStats();
@@ -381,6 +427,10 @@ export const App = () => {
     setProgressError(null);
     api.markEpisodeUnwatched(detail.id, episode.episodeKey)
       .then(({progress: updatedProgress}) => {
+        trackEvent("select_content", {
+          content_type: "episode_unwatched",
+          item_id: episode.episodeKey,
+        });
         setProgress(updatedProgress);
         if (updatedProgress) {
           upsertProgressItem(updatedProgress);
