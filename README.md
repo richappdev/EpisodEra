@@ -199,6 +199,7 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 - Confirm the first GitHub Actions run passes Firestore emulator progress and rules tests with `npm run test:emulator`.
 - Local Firestore emulator execution still requires Java and the Firebase Emulator Suite.
 - TMDb detail, season, and trending responses use an in-memory TTL cache inside the Functions runtime. A persistent shared cache is still a possible future optimization.
+- TMDb images and metadata must retain visible app attribution: "This product uses the TMDb API and TMDb images/data but is not endorsed or certified by TMDb."
 - Frontend component tests and a signed-in Playwright critical flow are still pending.
 - Production deployment must configure `CORS_ORIGINS` for the Firebase Hosting, staging, and production domains.
 - Dependency audit findings are documented in `docs/DependencyAudit.md`; fixes require semver-major upgrades for Firebase Functions packages and Vite tooling.

@@ -162,6 +162,20 @@ select:focus-visible {
   padding: 28px var(--page-pad) 56px;
 }
 
+.tmdb-attribution {
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 auto;
+  max-width: var(--content-max);
+  padding: 0 var(--page-pad) 28px;
+}
+
+.tmdb-attribution a {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
 .auth-page {
   display: grid;
   min-height: calc(100vh - 82px);
@@ -1128,6 +1142,10 @@ select:focus-visible {
   .detail-page {
     padding-bottom: 28px;
     padding-top: 22px;
+  }
+
+  .tmdb-attribution {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
   }
 
   .auth-page {

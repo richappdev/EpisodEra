@@ -641,6 +641,13 @@ export const App = () => {
       ) : (
         <DiscoveryPage view={view} language={language} onSelect={selectItem} />
       )}
+      <footer className="tmdb-attribution">
+        This product uses the TMDb API and TMDb images/data but is not endorsed or certified by{" "}
+        <a href="https://www.themoviedb.org/about/logos-attribution" rel="noreferrer" target="_blank">
+          TMDb
+        </a>
+        .
+      </footer>
     </>
   );
 };
