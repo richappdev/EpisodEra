@@ -38,6 +38,16 @@ jobs:
         working-directory: functions
         run: npm run lint
 
+      - name: Set up Java for Firebase emulators
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Run Firestore emulator tests
+        working-directory: functions
+        run: npm run test:emulator
+
       - name: Install web dependencies
         working-directory: web
         run: npm ci

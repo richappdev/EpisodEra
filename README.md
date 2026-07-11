@@ -4,7 +4,7 @@ Episodera is a movie and TV tracking app for discovering titles, saving a watchl
 
 ## Current Status
 
-The project is in MVP hardening. Core web features are implemented, the progress-tracking reliability fixes are in the current working tree, and the remaining work is emulator integration validation, broader automated tests, dependency upgrade planning, and production-readiness decisions.
+The project is in MVP hardening. Core web features are implemented, progress-tracking reliability fixes are in place, and GitHub Actions is configured to run Java-backed Firestore emulator tests. The remaining work is broader automated tests, dependency upgrade planning, first hosted CI emulator-run confirmation, and production-readiness decisions.
 
 ## Features
 
@@ -41,7 +41,7 @@ The project is in MVP hardening. Core web features are implemented, the progress
 - Recent watched history timeline for movies and episodes.
 - Owner-scoped Firestore security rules for watchlist, progress, and history.
 - Firebase Analytics and Performance Monitoring for the web app.
-- GitHub Actions CI for backend build, backend lint, backend progress logic tests, and frontend build.
+- GitHub Actions CI for backend build, backend lint, backend unit tests, Java-backed Firestore emulator tests, and frontend build.
 - Project documentation for architecture, API contracts, Firestore schema, auth, navigation, deployment, coding standards, and dependency audit posture.
 
 ## Tech Stack
@@ -196,8 +196,8 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 
 ## Known Gaps
 
-- Signed-in Firestore emulator execution is pending in the current local environment because Java is not installed.
-- Firestore emulator progress integration tests and Firestore rules tests have been added, but still need to be run in an environment with Java and the Firebase Emulator Suite.
+- Confirm the first GitHub Actions run passes Firestore emulator progress and rules tests with `npm run test:emulator`.
+- Local Firestore emulator execution still requires Java and the Firebase Emulator Suite.
 - TMDb detail, season, and trending responses use an in-memory TTL cache inside the Functions runtime. A persistent shared cache is still a possible future optimization.
 - Frontend component tests and a signed-in Playwright critical flow are still pending.
 - Production deployment must configure `CORS_ORIGINS` for the Firebase Hosting, staging, and production domains.
