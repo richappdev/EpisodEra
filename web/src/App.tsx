@@ -459,11 +459,42 @@ export const App = () => {
   const currentWatchlistItem = detail
     ? watchlistItems.find((item) => item.mediaType === detail.mediaType && item.tmdbId === detail.id) ?? null
     : null;
+  const isDetailView = detail !== null && !["auth", "profile", "settings", "watchlist"].includes(view);
 
-  if (detail) {
+  if (loading) {
     return (
       <>
-        {watchlistError && <div className="floating-error">{watchlistError}</div>}
+        <TopBar
+          activeView={view === "auth" ? "trending" : view}
+          user={user}
+          onAuthOpen={() => setView("auth")}
+          onSignOut={() => {
+            void signOutUser();
+            setView("trending");
+          }}
+          onViewChange={setView}
+        />
+        <main className="page-shell">
+          <div className="state-panel">Loading account...</div>
+        </main>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <TopBar
+        activeView={view === "auth" ? "trending" : view}
+        user={user}
+        onAuthOpen={() => setView("auth")}
+        onSignOut={() => {
+          void signOutUser();
+          setView("trending");
+        }}
+        onViewChange={setView}
+      />
+      {detailError && <div className="floating-error">{detailError}</div>}
+      {isDetailView && detail ? (
         <DetailPage
           detail={detail}
           onEpisodeWatched={markEpisodeWatched}
@@ -484,32 +515,7 @@ export const App = () => {
           signedIn={Boolean(user)}
           watchlistItem={currentWatchlistItem}
         />
-      </>
-    );
-  }
-
-  if (loading) {
-    return (
-      <main className="page-shell">
-        <div className="state-panel">Loading account...</div>
-      </main>
-    );
-  }
-
-  return (
-    <>
-      <TopBar
-        activeView={view === "auth" ? "trending" : view}
-        user={user}
-        onAuthOpen={() => setView("auth")}
-        onSignOut={() => {
-          void signOutUser();
-          setView("trending");
-        }}
-        onViewChange={setView}
-      />
-      {detailError && <div className="floating-error">{detailError}</div>}
-      {view === "auth" ? (
+      ) : view === "auth" ? (
         <AuthPage onDone={() => setView("trending")} />
       ) : view === "profile" ? (
         <ProfilePage
