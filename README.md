@@ -156,10 +156,11 @@ cd functions
 npm run build
 npm run lint
 npm test
+npm run test:emulator
 npm run serve
 ```
 
-`npm test` builds the functions TypeScript and runs Node test files emitted into `lib/`.
+`npm test` builds the functions TypeScript and runs Node test files emitted into `lib/`. Firestore emulator integration tests are included in the tree and skip unless `FIRESTORE_EMULATOR_HOST` is set. Use `npm run test:emulator` on a machine with Java installed to run the Firestore-backed progress transaction tests.
 
 Frontend:
 
@@ -195,8 +196,9 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 
 ## Known Gaps
 
-- Signed-in Firestore emulator validation is pending because Java is not installed in the current local environment.
-- API route tests, Firestore emulator integration tests, Firestore rules tests, frontend component tests, and a signed-in Playwright critical flow are still pending.
+- Signed-in Firestore emulator execution is pending in the current local environment because Java is not installed.
+- Firestore emulator progress integration tests have been added, but still need to be run in an environment with Java and the Firebase Emulator Suite.
+- Firestore rules tests, frontend component tests, and a signed-in Playwright critical flow are still pending.
 - TMDb metadata caching is not implemented yet; progress validation currently resolves canonical metadata directly from TMDb.
 - Production deployment must configure `CORS_ORIGINS` for the Firebase Hosting, staging, and production domains.
 - Dependency audit findings are documented in `docs/DependencyAudit.md`; fixes require semver-major upgrades for Firebase Functions packages and Vite tooling.

@@ -10,7 +10,8 @@
     "build": "tsc",
     "serve": "npm run build && firebase emulators:start --only functions,firestore",
     "lint": "eslint \"src/**/*.ts\"",
-    "test": "npm run build && node --test \"lib/**/*.test.js\""
+    "test": "npm run build && node --test \"lib/**/*.test.js\"",
+    "test:emulator": "npm run build && firebase emulators:exec --only firestore \"node --test 'lib/**/*.emulator.test.js'\""
   },
   "dependencies": {
     "cors": "^2.8.5",
