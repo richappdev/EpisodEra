@@ -1,5 +1,5 @@
-import {Bookmark, Film, ListChecks, Loader2, Play, Trash2} from "lucide-react";
-import {ShowProgress} from "../types/progress";
+import {Bookmark, CheckCircle2, Film, ListChecks, Loader2, Trash2} from "lucide-react";
+import {EpisodeProgress, ShowProgress} from "../types/progress";
 import {WatchlistItem, WatchlistStatus, watchlistStatuses} from "../types/watchlist";
 
 const statusLabels: Record<WatchlistStatus, string> = {
@@ -17,8 +17,30 @@ interface WatchlistPageProps {
   signedIn: boolean;
   onRemove: (item: WatchlistItem) => void;
   onSelect: (item: WatchlistItem) => void;
+  onNextEpisodeWatched: (item: WatchlistItem, progress: ShowProgress) => void;
   onStatusChange: (item: WatchlistItem, status: WatchlistStatus) => void;
 }
+
+const compareEpisodes = (left: EpisodeProgress, right: EpisodeProgress) => {
+  if (left.seasonNumber !== right.seasonNumber) {
+    return left.seasonNumber - right.seasonNumber;
+  }
+
+  return left.episodeNumber - right.episodeNumber;
+};
+
+const nextEpisodeLabelFor = (progress: ShowProgress) => {
+  const sortedEpisodes = [...progress.episodes].sort(compareEpisodes);
+  const latestEpisode = sortedEpisodes[sortedEpisodes.length - 1];
+  const seasonNumber = progress.currentSeason ?? latestEpisode?.seasonNumber;
+  const episodeNumber = progress.currentEpisode ?? latestEpisode?.episodeNumber;
+
+  if (!seasonNumber || !episodeNumber) {
+    return "Next episode";
+  }
+
+  return `Next up S${seasonNumber} E${episodeNumber + 1}`;
+};
 
 export const WatchlistPage = ({
   error,
@@ -28,6 +50,7 @@ export const WatchlistPage = ({
   signedIn,
   onRemove,
   onSelect,
+  onNextEpisodeWatched,
   onStatusChange,
 }: WatchlistPageProps) => {
   const progressByShowId = new Map(progressItems.map((progress) => [progress.showId, progress]));
@@ -87,17 +110,19 @@ export const WatchlistPage = ({
                     {progress!.watchedEpisodeCount} of {progress!.totalEpisodes} watched
                   </span>
                   {progress!.currentSeason && progress!.currentEpisode && (
-                    <span>
-                      Last watched S{progress!.currentSeason} E{progress!.currentEpisode}
-                    </span>
+                    <span className="next-episode">{nextEpisodeLabelFor(progress!)}</span>
                   )}
                   <div className="progress-bar" aria-label={`${item.title} progress ${progress!.progressPercent}%`}>
                     <span style={{width: `${Math.min(progress!.progressPercent, 100)}%`}} />
                   </div>
                 </div>
-                <button className="continue-button" type="button" onClick={() => onSelect(item)}>
-                  <Play size={16} fill="currentColor" aria-hidden="true" />
-                  Continue
+                <button
+                  className="continue-button"
+                  type="button"
+                  onClick={() => onNextEpisodeWatched(item, progress!)}
+                >
+                  <CheckCircle2 size={16} aria-hidden="true" />
+                  Watched
                 </button>
               </article>
             ))}

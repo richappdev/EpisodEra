@@ -443,6 +443,75 @@ export const App = () => {
       .finally(() => setProgressLoading(false));
   };
 
+  const markNextWatchlistEpisodeWatched = async (item: WatchlistItem, itemProgress: ShowProgress) => {
+    if (item.mediaType !== "tv") {
+      return;
+    }
+
+    setWatchlistError(null);
+
+    try {
+      const watchedKeys = new Set(itemProgress.episodes.map((episode) => episode.episodeKey));
+      const sortedWatchedEpisodes = [...itemProgress.episodes].sort((left, right) => {
+        if (left.seasonNumber !== right.seasonNumber) {
+          return left.seasonNumber - right.seasonNumber;
+        }
+
+        return left.episodeNumber - right.episodeNumber;
+      });
+      const latestEpisode = sortedWatchedEpisodes[sortedWatchedEpisodes.length - 1];
+      const currentSeason = itemProgress.currentSeason ?? latestEpisode?.seasonNumber ?? 1;
+      const currentEpisode = itemProgress.currentEpisode ?? latestEpisode?.episodeNumber ?? 0;
+      const tvDetail = await api.detail("tv", item.tmdbId, language);
+      const candidateSeasons = (tvDetail.seasons ?? [])
+        .filter((season) => season.seasonNumber >= currentSeason)
+        .sort((left, right) => left.seasonNumber - right.seasonNumber);
+
+      let nextEpisode: EpisodeSummary | null = null;
+      for (const season of candidateSeasons) {
+        const candidateSeason = await api.tvSeason(item.tmdbId, season.seasonNumber, language);
+        nextEpisode =
+          candidateSeason.episodes
+            .filter(
+              (episode) =>
+                isAvailableEpisode(episode) &&
+                !watchedKeys.has(episode.episodeKey) &&
+                (episode.seasonNumber > currentSeason || episode.episodeNumber > currentEpisode),
+            )
+            .sort((left, right) => left.episodeNumber - right.episodeNumber)[0] ?? null;
+
+        if (nextEpisode) {
+          break;
+        }
+      }
+
+      if (!nextEpisode) {
+        setWatchlistError(`No available next episode found for ${item.title}.`);
+        return;
+      }
+
+      const updatedProgress = await api.markEpisodeWatched(item.tmdbId, {
+        title: tvDetail.title,
+        seasonNumber: nextEpisode.seasonNumber,
+        episodeNumber: nextEpisode.episodeNumber,
+        episodeTitle: nextEpisode.title || `Episode ${nextEpisode.episodeNumber}`,
+        totalEpisodes: tvDetail.totalEpisodes ?? itemProgress.totalEpisodes,
+      });
+
+      trackEvent("select_content", {
+        content_type: "episode_watched",
+        item_id: nextEpisode.episodeKey,
+      });
+      upsertProgressItem(updatedProgress);
+      if (detail?.mediaType === "tv" && detail.id === item.tmdbId) {
+        setProgress(updatedProgress);
+      }
+      refreshStats();
+    } catch (err) {
+      setWatchlistError(err instanceof Error ? err.message : "Could not mark next episode watched.");
+    }
+  };
+
   const selectWatchlistItem = (item: WatchlistItem) => {
     selectItem({
       id: item.tmdbId,
@@ -543,6 +612,7 @@ export const App = () => {
           signedIn={Boolean(user)}
           onRemove={removeWatchlistItem}
           onSelect={selectWatchlistItem}
+          onNextEpisodeWatched={markNextWatchlistEpisodeWatched}
           onStatusChange={updateWatchlistStatus}
         />
       ) : (
