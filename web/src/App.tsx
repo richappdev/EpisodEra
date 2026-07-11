@@ -232,6 +232,18 @@ export const App = () => {
       .catch((err: Error) => setDetailError(err.message));
   };
 
+  const changeView = (nextView: Exclude<View, "auth">) => {
+    setDetail(null);
+    setDetailError(null);
+    setView(nextView);
+  };
+
+  const openAuth = () => {
+    setDetail(null);
+    setDetailError(null);
+    setView("auth");
+  };
+
   const changeLanguage = (nextLanguage: SupportedLanguage) => {
     setLanguage(nextLanguage);
     trackEvent("select_content", {
@@ -535,13 +547,15 @@ export const App = () => {
       <>
         <TopBar
           activeView={view === "auth" ? "trending" : view}
+          language={language}
           user={user}
-          onAuthOpen={() => setView("auth")}
+          onAuthOpen={openAuth}
           onSignOut={() => {
             void signOutUser();
+            setDetail(null);
             setView("trending");
           }}
-          onViewChange={setView}
+          onViewChange={changeView}
         />
         <main className="page-shell">
           <div className="state-panel">Loading account...</div>
@@ -554,13 +568,15 @@ export const App = () => {
     <>
       <TopBar
         activeView={view === "auth" ? "trending" : view}
+        language={language}
         user={user}
-        onAuthOpen={() => setView("auth")}
+        onAuthOpen={openAuth}
         onSignOut={() => {
           void signOutUser();
+          setDetail(null);
           setView("trending");
         }}
-        onViewChange={setView}
+        onViewChange={changeView}
       />
       {detailError && <div className="floating-error">{detailError}</div>}
       {isDetailView && detail ? (
@@ -585,7 +601,7 @@ export const App = () => {
           watchlistItem={currentWatchlistItem}
         />
       ) : view === "auth" ? (
-        <AuthPage onDone={() => setView("trending")} />
+        <AuthPage onDone={() => changeView("trending")} />
       ) : view === "profile" ? (
         <ProfilePage
           error={statsError}

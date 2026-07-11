@@ -3,7 +3,7 @@ import {Search} from "lucide-react";
 import {api} from "../api/client";
 import {MediaSection} from "../components/MediaSection";
 import {DiscoveryResponse, MediaSummary, MediaType, PagedResult} from "../types/media";
-import {SupportedLanguage} from "../types/settings";
+import {SupportedLanguage, uiCopy} from "../types/settings";
 
 interface DiscoveryPageProps {
   view: "trending" | "search";
@@ -14,6 +14,7 @@ interface DiscoveryPageProps {
 type TrendingTab = Extract<MediaType, "movie" | "tv">;
 
 export const DiscoveryPage = ({view, language, onSelect}: DiscoveryPageProps) => {
+  const copy = uiCopy[language].search;
   const [query, setQuery] = useState("");
   const [searchData, setSearchData] = useState<DiscoveryResponse | null>(null);
   const [trendingData, setTrendingData] = useState<PagedResult<MediaSummary> | null>(null);
@@ -45,6 +46,7 @@ export const DiscoveryPage = ({view, language, onSelect}: DiscoveryPageProps) =>
 
     setLoading(true);
     setError(null);
+    setSearchData(null);
     api.search(nextQuery, language)
       .then(setSearchData)
       .catch((err: Error) => setError(err.message))
@@ -104,6 +106,9 @@ export const DiscoveryPage = ({view, language, onSelect}: DiscoveryPageProps) =>
         <>
           <MediaSection title="Movies" items={searchData.movies.results} onSelect={onSelect} />
           <MediaSection title="TV Shows" items={searchData.tv.results} onSelect={onSelect} />
+          {searchData.movies.results.length === 0 && searchData.tv.results.length === 0 && (
+            <div className="state-panel">{copy.noResults}</div>
+          )}
         </>
       )}
 
