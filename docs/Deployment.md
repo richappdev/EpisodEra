@@ -86,10 +86,10 @@ GitHub Actions runs the baseline MVP regression on pushes to `main` and on pull 
 ```text
 functions: npm ci && npm test && npm run lint
 functions emulator: setup Java && npm run test:emulator
-web: npm ci && npm run build && npx playwright install --with-deps chromium && npm run test:e2e
+web: npm ci && npm run build && npm run test:components && npx playwright install --with-deps chromium && npm run test:e2e
 ```
 
-The Playwright critical-flow test runs against a deterministic mocked API and test-only signed-in auth mode. It does not require live Firebase credentials.
+Frontend component tests use Vitest and React Testing Library. The Playwright critical-flow test runs against a deterministic mocked API and test-only signed-in auth mode. It does not require live Firebase credentials.
 
 ## Pre-deploy checklist
 
@@ -97,6 +97,7 @@ The Playwright critical-flow test runs against a deterministic mocked API and te
 - `docs/DependencyAudit.md` reviewed and release risk accepted or resolved
 - `functions`: `npm run build`
 - `web`: `npm run build`
+- `web`: `npm run test:components`
 - `web`: `npm run test:e2e`
 - Firebase Authentication email/password provider enabled
 - Firebase Analytics enabled and `VITE_FIREBASE_MEASUREMENT_ID` configured

@@ -77,6 +77,7 @@ The MVP hardening work has added or defined the following reliability behavior:
 * Emulator-backed backend validation
 * Firebase security-rules testing
 * Java-backed CI support for emulator tests
+* Frontend component tests for key page state, controls, and localized settings behavior
 * Signed-in Playwright critical-flow coverage for the core watchlist/progress path
 * Pending-write states
 * Duplicate-action prevention
@@ -92,16 +93,15 @@ The implementation must remain the final authority for whether each capability i
 
 The highest-priority remaining work is:
 
-1. Frontend component tests for critical UI and progress states
-2. Broader Playwright coverage for responsive, accessibility, failure, and additional progress flows
-3. Runtime validation against a staging Firebase environment
-4. Accessibility validation, including keyboard flow, focus states, contrast, and touch-target checks
-5. Offline and reconnect testing
-6. Account lifecycle validation, including deletion and related user-data handling
-7. Privacy and data-retention review
-8. TMDb attribution and API-compliance verification
-9. Observability, release monitoring, and rollback procedures
-10. Final beta-readiness acceptance review
+1. Broader Playwright coverage for responsive, accessibility, failure, and additional progress flows
+2. Runtime validation against a staging Firebase environment
+3. Accessibility validation, including keyboard flow, focus states, contrast, and touch-target checks
+4. Offline and reconnect testing
+5. Account lifecycle validation, including deletion and related user-data handling
+6. Privacy and data-retention review
+7. TMDb attribution and API-compliance verification
+8. Observability, release monitoring, and rollback procedures
+9. Final beta-readiness acceptance review
 
 A feature should not be marked complete solely because its normal-path UI exists.
 
@@ -180,15 +180,22 @@ Cover:
 
 ### Frontend component tests
 
-Cover:
+Implemented:
 
 * Loading, empty, and error panels
-* Pending-write controls
-* Disabled duplicate actions
+* Signed-out states
+* Detail page watchlist and episode controls
+* Watchlist saved count, Continue Watching next episode, status, remove, and next-episode controls
+* Profile stats and recent history
+* Settings language and previous-episode preference controls
+* Trending/search tab, submit, no-result, and API-error states
+* Top-bar auth/navigation states
+
+Still needed:
+
 * Retry behavior
 * Rollback feedback
-* Previous-episode dialog
-* Batch progress UI
+* Previous-episode dialog or decision flow
 * Offline indicators
 
 ### End-to-end tests

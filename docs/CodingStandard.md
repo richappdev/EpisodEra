@@ -137,10 +137,10 @@ For docs-only changes, run:
 git diff --check
 ```
 
-Baseline CI runs functions tests, Firestore emulator tests, web build checks, and the Playwright critical flow on pull requests and pushes to `main`.
+Baseline CI runs functions tests, Firestore emulator tests, web build checks, frontend component tests, and the Playwright critical flow on pull requests and pushes to `main`.
 
 ## Known Gaps
 
 - Full signed-in Firestore emulator validation is pending locally until Java or another emulator-capable environment is available.
-- Frontend component tests and broader Playwright coverage are still pending beyond the current signed-in critical flow.
+- Broader Playwright coverage is still pending beyond the current signed-in critical flow.
 - Dependency audit findings currently require semver-major framework/tooling upgrades before production risk can be fully closed.
