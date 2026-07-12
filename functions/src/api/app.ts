@@ -1,9 +1,14 @@
 import cors from "cors";
 import express, {ErrorRequestHandler} from "express";
 import crypto from "node:crypto";
-import {corsOrigins} from "../config/env";
+import {authenticatedWriteRateLimit, corsOrigins, publicReadRateLimit} from "../config/env";
 import {HttpError} from "../lib/httpError";
 import {optionalAuth} from "../middleware/auth";
+import {
+  authenticatedWriteRateLimitKey,
+  publicReadRateLimitKey,
+  rateLimit,
+} from "../middleware/rateLimit";
 import {mediaRouter} from "./mediaRoutes";
 import {meRouter} from "./meRoutes";
 import {progressRouter} from "./progressRoutes";
@@ -39,6 +44,16 @@ app.use((req, res, next) => {
   next();
 });
 app.use(optionalAuth);
+app.use(rateLimit({
+  key: publicReadRateLimitKey,
+  maxRequests: publicReadRateLimit.maxRequests,
+  windowMs: publicReadRateLimit.windowMs,
+}));
+app.use(rateLimit({
+  key: authenticatedWriteRateLimitKey,
+  maxRequests: authenticatedWriteRateLimit.maxRequests,
+  windowMs: authenticatedWriteRateLimit.windowMs,
+}));
 
 app.get("/health", (_req, res) => {
   res.json({ok: true});

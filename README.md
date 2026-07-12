@@ -145,6 +145,7 @@ Configure local environment values:
 - `web/.env` from `web/.env.example` for Vite and Firebase web values.
 - Firebase secret `TMDB_API_KEY` for deployed functions.
 - Optional `CORS_ORIGINS` comma-separated allowlist for deployed API origins. Leave unset only for local development.
+- Optional rate-limit overrides: `PUBLIC_READ_RATE_LIMIT_MAX`, `PUBLIC_READ_RATE_LIMIT_WINDOW_MS`, `AUTH_WRITE_RATE_LIMIT_MAX`, and `AUTH_WRITE_RATE_LIMIT_WINDOW_MS`.
 
 For local emulator development, Java is required by the Firestore emulator.
 
@@ -209,6 +210,7 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 - TMDb images and metadata must retain visible app attribution: "This product uses the TMDb API and TMDb images/data but is not endorsed or certified by TMDb."
 - Backend and frontend coverage enforcement is now configured for the current automated test surfaces. Playwright covers the signed-in critical flow, responsive/accessibility smoke, previous-episode gap resolution, season batch writes, failed/offline progress-write recovery, duplicate-action prevention during pending writes, and concurrent browser progress consistency. Broader full-app frontend coverage, real deployed smoke, and deeper accessibility automation are still pending.
 - Production deployment must configure `CORS_ORIGINS` for the Firebase Hosting, staging, and production domains.
+- Rate limiting is implemented with per-Functions-instance in-memory buckets for public reads and authenticated writes. Firebase App Check or a distributed quota layer is still a future production-hardening option.
 - Dependency audit findings are documented in `docs/DependencyAudit.md`; fixes require semver-major upgrades for Firebase Functions packages and Vite tooling.
 - Production beta readiness still needs runtime validation and an explicit dependency-risk decision.
 - Firebase Crashlytics is not available for the current web-only client; add it when native Apple, Android, Flutter, or Unity clients exist.

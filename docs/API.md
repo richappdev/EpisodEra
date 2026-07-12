@@ -16,6 +16,37 @@ Set `CORS_ORIGINS` to a comma-separated allowlist for deployed environments. Whe
 
 TMDb detail, TV season, and trending reads use a per-Functions-instance in-memory TTL cache. Stable detail and season metadata are cached longer than trending responses. Search requests are not cached.
 
+## Rate limiting
+
+The API applies per-Functions-instance rate limits before route handlers run:
+
+| Bucket | Scope | Default |
+| --- | --- | --- |
+| Public reads | Client IP for `GET /search`, `GET /trending*`, `GET /movie/:id`, `GET /tv/:id`, and `GET /tv/:id/season/:seasonNumber` | 120 requests per 60 seconds |
+| Authenticated writes | Firebase UID for `POST`, `PATCH`, and `DELETE` requests under `/watchlist`, `/progress`, and `/me/settings` | 60 requests per 60 seconds |
+
+Configure defaults with:
+
+```text
+PUBLIC_READ_RATE_LIMIT_MAX=120
+PUBLIC_READ_RATE_LIMIT_WINDOW_MS=60000
+AUTH_WRITE_RATE_LIMIT_MAX=60
+AUTH_WRITE_RATE_LIMIT_WINDOW_MS=60000
+```
+
+Rate-limited responses use HTTP `429`:
+
+```json
+{
+  "error": {
+    "code": "rate_limited",
+    "message": "Too many requests. Please retry later."
+  }
+}
+```
+
+Responses include `x-ratelimit-limit`, `x-ratelimit-remaining`, and `x-ratelimit-reset` headers when a route is covered by a bucket.
+
 ## Language
 
 TMDb-backed read endpoints accept an optional `language` query parameter. MVP supported values are:
