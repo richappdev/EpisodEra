@@ -2,6 +2,20 @@ import {render, screen} from "@testing-library/react";
 import {describe, expect, it} from "vitest";
 import {ProfilePage} from "../ProfilePage";
 import {now, stats, tvDetail} from "../../test/fixtures";
+import {UserProfile} from "../../types/profile";
+
+const profile = {
+  firstName: "Ada",
+  lastName: "Viewer",
+  email: "viewer@example.com",
+  displayName: "Ada Viewer",
+  photoURL: null,
+  bio: null,
+  country: null,
+  timezone: null,
+  createdAt: null,
+  updatedAt: null,
+} satisfies UserProfile;
 
 describe("ProfilePage", () => {
   it("renders stats and recent history for a signed-in user", () => {
@@ -22,13 +36,15 @@ describe("ProfilePage", () => {
           },
         ]}
         loading={false}
+        profile={profile}
         signedIn
         stats={stats}
         userEmail="viewer@example.com"
       />,
     );
 
-    expect(screen.getByRole("heading", {name: "viewer@example.com"})).toBeVisible();
+    expect(screen.getByRole("heading", {name: "Ada Viewer"})).toBeVisible();
+    expect(screen.getByText("viewer@example.com")).toBeVisible();
     expect(screen.getByTestId("stat-watched-episodes")).toHaveTextContent("1");
     expect(screen.getByTestId("stat-currently-watching")).toHaveTextContent("1");
     expect(screen.getByTestId("stat-watchlist-count")).toHaveTextContent("1");
@@ -38,11 +54,11 @@ describe("ProfilePage", () => {
 
   it("renders signed-out, loading, error, and empty-history states", () => {
     const {rerender} = render(
-      <ProfilePage error={null} history={[]} loading={false} signedIn={false} stats={null} userEmail={null} />,
+      <ProfilePage error={null} history={[]} loading={false} profile={null} signedIn={false} stats={null} userEmail={null} />,
     );
     expect(screen.getByText("Sign in to view your stats.")).toBeVisible();
 
-    rerender(<ProfilePage error={null} history={[]} loading signedIn stats={null} userEmail="viewer@example.com" />);
+    rerender(<ProfilePage error={null} history={[]} loading profile={null} signedIn stats={null} userEmail="viewer@example.com" />);
     expect(screen.getByText("Loading stats...")).toBeVisible();
 
     rerender(
@@ -50,6 +66,7 @@ describe("ProfilePage", () => {
         error="Could not load profile stats."
         history={[]}
         loading={false}
+        profile={null}
         signedIn
         stats={null}
         userEmail="viewer@example.com"
@@ -58,7 +75,7 @@ describe("ProfilePage", () => {
     expect(screen.getByText("Could not load profile stats.")).toBeVisible();
 
     rerender(
-      <ProfilePage error={null} history={[]} loading={false} signedIn stats={stats} userEmail="viewer@example.com" />,
+      <ProfilePage error={null} history={[]} loading={false} profile={profile} signedIn stats={stats} userEmail="viewer@example.com" />,
     );
     expect(screen.getByText("Watched movies and episodes will appear here.")).toBeVisible();
   });

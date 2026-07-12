@@ -210,6 +210,12 @@ select:focus-visible {
   gap: 16px;
 }
 
+.auth-name-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .auth-form label {
   color: var(--color-text-soft);
   display: grid;
@@ -718,6 +724,11 @@ select:focus-visible {
   margin: 4px 0 0;
 }
 
+.profile-header p {
+  color: var(--color-text-soft);
+  margin: 6px 0 0;
+}
+
 .profile-header > svg {
   color: var(--color-primary);
 }
@@ -1156,6 +1167,10 @@ select:focus-visible {
   .auth-panel,
   .settings-panel {
     width: 100%;
+  }
+
+  .auth-name-grid {
+    grid-template-columns: 1fr;
   }
 
   .media-grid {

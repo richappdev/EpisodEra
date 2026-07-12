@@ -1,5 +1,6 @@
 import {DiscoveryResponse, MediaDetail, MediaType, TvSeasonDetail} from "../types/media";
 import {HistoryResponse} from "../types/history";
+import {ProfileResponse, UpdateUserProfileInput, UserProfile} from "../types/profile";
 import {
   BatchEpisodeProgressInput,
   MarkEpisodeWatchedInput,
@@ -22,6 +23,7 @@ export const setApiTokenProvider = (provider: () => Promise<string | null>) => {
 interface RequestOptions {
   body?: unknown;
   method?: "GET" | "POST" | "PATCH" | "DELETE";
+  token?: string | null;
 }
 
 const withLanguage = (path: string, language: SupportedLanguage) => {
@@ -30,7 +32,7 @@ const withLanguage = (path: string, language: SupportedLanguage) => {
 };
 
 const request = async <T>(path: string, options: RequestOptions = {}): Promise<T> => {
-  const token = tokenProvider ? await tokenProvider() : null;
+  const token = options.token !== undefined ? options.token : tokenProvider ? await tokenProvider() : null;
   const headers = new Headers();
 
   if (token) {
@@ -77,6 +79,9 @@ export const api = {
   markEpisodeUnwatched: (showId: number, episodeKey: string) =>
     request<ProgressResponse>(`/progress/${showId}/episode/${episodeKey}`, {method: "DELETE"}),
   meHistory: () => request<HistoryResponse>("/me/history"),
+  meProfile: () => request<ProfileResponse>("/me/profile"),
+  updateMeProfile: (profile: UpdateUserProfileInput, token?: string | null) =>
+    request<UserProfile>("/me/profile", {method: "PATCH", body: profile, token}),
   meSettings: () => request<UserSettings>("/me/settings"),
   updateMeSettings: (settings: Partial<Pick<UserSettings, "autoMarkPreviousEpisodesWatched" | "language">>) =>
     request<UserSettings>("/me/settings", {method: "PATCH", body: settings}),

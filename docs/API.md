@@ -532,6 +532,50 @@ Movie history entries use `mediaType: "movie"` and return `null` for episode fie
 
 ## User Settings
 
+Profile endpoints require authentication and store personal profile fields under `users/{uid}`. `email` is derived from Firebase Auth on writes and should not be trusted from client request bodies.
+
+```http
+GET /me/profile
+```
+
+Response:
+
+```json
+{
+  "profile": {
+    "firstName": "Rich",
+    "lastName": "Chang",
+    "email": "rich@example.com",
+    "displayName": "Rich Chang",
+    "photoURL": null,
+    "bio": null,
+    "country": null,
+    "timezone": "Asia/Taipei",
+    "createdAt": "2026-07-11T07:00:00.000Z",
+    "updatedAt": "2026-07-11T07:00:00.000Z"
+  }
+}
+```
+
+`profile` is `null` when a signed-in user has no profile document yet.
+
+```http
+PATCH /me/profile
+```
+
+Request:
+
+```json
+{
+  "firstName": "Rich",
+  "lastName": "Chang",
+  "bio": "Optional short profile text.",
+  "timezone": "Asia/Taipei"
+}
+```
+
+Response: updated profile. `firstName` and `lastName` are required before a profile document can be created; optional fields are `displayName`, `photoURL`, `bio`, `country`, and `timezone`.
+
 Settings endpoints require authentication and store user preferences under `users/{uid}/settings/profile`.
 
 ```http
@@ -586,8 +630,11 @@ Common status codes:
 | `400` | `invalid_episode_key` | An episode progress key was not formatted like `s01e01`. |
 | `400` | `invalid_progress_payload` | A progress request body failed validation. |
 | `400` | `invalid_item_id` | A watchlist item ID was not formatted as `movie_550` or `tv_95396`. |
+| `400` | `invalid_profile_payload` | A profile request body failed validation. |
 | `400` | `invalid_status` | A watchlist status was not one of the allowed values. |
 | `400` | `invalid_settings_payload` | A settings request body failed validation. |
+| `400` | `missing_firstName` | A profile write did not include a required first name. |
+| `400` | `missing_lastName` | A profile write did not include a required last name. |
 | `400` | `invalid_watchlist_payload` | A watchlist request body failed validation. |
 | `400` | `unsupported_language` | A settings update used a language other than `en-US` or `zh-TW`. |
 | `401` | `unauthenticated` | A protected endpoint was called without a valid user. |

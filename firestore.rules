@@ -31,9 +31,20 @@ service cloud.firestore {
     }
 
     function validUserProfile() {
-      return request.resource.data.keys().hasOnly(['displayName', 'photoURL', 'createdAt', 'updatedAt'])
+      return request.resource.data.keys().hasOnly([
+          'firstName', 'lastName', 'email', 'displayName', 'photoURL', 'bio', 'country', 'timezone', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasAll(['firstName', 'lastName', 'email'])
+        && request.resource.data.firstName is string
+        && request.resource.data.firstName.size() > 0
+        && request.resource.data.lastName is string
+        && request.resource.data.lastName.size() > 0
+        && isNullableString(request.resource.data.email)
         && (!('displayName' in request.resource.data) || isNullableString(request.resource.data.displayName))
-        && (!('photoURL' in request.resource.data) || isNullableString(request.resource.data.photoURL));
+        && (!('photoURL' in request.resource.data) || isNullableString(request.resource.data.photoURL))
+        && (!('bio' in request.resource.data) || isNullableString(request.resource.data.bio))
+        && (!('country' in request.resource.data) || isNullableString(request.resource.data.country))
+        && (!('timezone' in request.resource.data) || isNullableString(request.resource.data.timezone));
     }
 
     function validWatchlistItem(itemId) {

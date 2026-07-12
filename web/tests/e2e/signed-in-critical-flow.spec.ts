@@ -5,7 +5,7 @@ test("signed-in user can complete the core watchlist and episode progress flow",
   const requests = await installMockApi(page);
 
   await page.goto("/");
-  await expect(page.getByText("e2e-user@example.com")).toBeVisible();
+  await expect(page.getByText("Welcome, E2E")).toBeVisible();
 
   await openShowDetailFromSearch(page);
 
@@ -50,7 +50,7 @@ test("signed-in user can complete the core watchlist and episode progress flow",
 
   await page.getByTestId("account-button").click();
   await expect(page.getByTestId("account-button")).toContainText("Sign in");
-  await expect(page.getByText("e2e-user@example.com")).toHaveCount(0);
+  await expect(page.getByText("Welcome, E2E")).toHaveCount(0);
   await expect(page.getByRole("heading", {name: "Trending TV Shows"})).toBeVisible();
   await expect(page.getByTestId("stat-watched-episodes")).toHaveCount(0);
 });

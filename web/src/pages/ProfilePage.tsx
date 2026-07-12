@@ -1,11 +1,13 @@
 import {BarChart3, CheckCircle2, Clapperboard, Film, ListChecks, Loader2, PlayCircle, Tv} from "lucide-react";
 import {HistoryEntry} from "../types/history";
+import {UserProfile} from "../types/profile";
 import {UserStats} from "../types/stats";
 
 interface ProfilePageProps {
   error: string | null;
   history: HistoryEntry[];
   loading: boolean;
+  profile: UserProfile | null;
   signedIn: boolean;
   stats: UserStats | null;
   userEmail: string | null;
@@ -19,7 +21,7 @@ const formatWatchedAt = (value: string | null) => {
   return new Intl.DateTimeFormat(undefined, {dateStyle: "medium"}).format(new Date(value));
 };
 
-export const ProfilePage = ({error, history, loading, signedIn, stats, userEmail}: ProfilePageProps) => {
+export const ProfilePage = ({error, history, loading, profile, signedIn, stats, userEmail}: ProfilePageProps) => {
   if (!signedIn) {
     return (
       <main className="page-shell">
@@ -28,12 +30,17 @@ export const ProfilePage = ({error, history, loading, signedIn, stats, userEmail
     );
   }
 
+  const fullName = [profile?.firstName, profile?.lastName].filter(Boolean).join(" ");
+  const heading = fullName || userEmail || "Your stats";
+  const profileEmail = profile?.email ?? userEmail;
+
   return (
     <main className="page-shell">
       <section className="profile-header">
         <div>
           <span className="media-kind">Profile</span>
-          <h2>{userEmail ?? "Your stats"}</h2>
+          <h2>{heading}</h2>
+          {profileEmail && <p>{profileEmail}</p>}
         </div>
         <BarChart3 size={28} aria-hidden="true" />
       </section>

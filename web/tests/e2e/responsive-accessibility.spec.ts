@@ -19,7 +19,7 @@ test("signed-in shell keeps critical controls accessible on desktop and mobile",
     await expect(page.getByRole("banner")).toBeVisible();
     await expect(page.getByRole("heading", {name: "Episodera"})).toBeVisible();
     if (viewport.width >= 768) {
-      await expect(page.getByText("e2e-user@example.com")).toBeVisible();
+      await expect(page.getByText("Welcome, E2E")).toBeVisible();
     }
 
     for (const label of criticalNavLabels) {

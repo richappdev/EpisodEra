@@ -108,6 +108,32 @@ test("rules reject unexpected fields and invalid watchlist status", {
   }));
 });
 
+test("rules require valid user profile names and email", {
+  skip: skipWithoutEmulator,
+}, async () => {
+  await clearData();
+  const db = await withAuthedDb("alice");
+
+  await assertSucceeds(setDoc(doc(db, "users/alice"), {
+    firstName: "Ada",
+    lastName: "Viewer",
+    email: "ada@example.com",
+    displayName: "Ada Viewer",
+    bio: null,
+  }));
+
+  await assertFails(setDoc(doc(db, "users/alice"), {
+    firstName: "Ada",
+    email: "ada@example.com",
+  }));
+
+  await assertFails(setDoc(doc(db, "users/alice"), {
+    firstName: "",
+    lastName: "Viewer",
+    email: "ada@example.com",
+  }));
+});
+
 test("rules validate progress summaries and nested episode documents", {
   skip: skipWithoutEmulator,
 }, async () => {

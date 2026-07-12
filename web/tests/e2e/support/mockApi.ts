@@ -104,6 +104,23 @@ export const installMockApi = async (page: Page, options: MockApiOptions = {}) =
       });
     }
 
+    if (method === "GET" && path === "/me/profile") {
+      return json(route, {
+        profile: {
+          firstName: "E2E",
+          lastName: "User",
+          email: "e2e-user@example.com",
+          displayName: "E2E User",
+          photoURL: null,
+          bio: null,
+          country: null,
+          timezone: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+    }
+
     if (method === "GET" && path === "/watchlist") {
       return json(route, {items: state.watchlistItem ? [state.watchlistItem] : []});
     }

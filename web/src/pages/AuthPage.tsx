@@ -1,18 +1,23 @@
 import {FormEvent, useState} from "react";
-import {createUserWithEmailAndPassword, signInWithEmailAndPassword} from "firebase/auth";
+import {createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile} from "firebase/auth";
 import {LogIn, UserPlus} from "lucide-react";
+import {api} from "../api/client";
 import {useAuth} from "../auth/AuthContext";
 import {auth} from "../firebase";
+import {UserProfile} from "../types/profile";
 
 type AuthMode = "signin" | "signup";
 
 interface AuthPageProps {
   onDone: () => void;
+  onProfileLoaded: (profile: UserProfile) => void;
 }
 
-export const AuthPage = ({onDone}: AuthPageProps) => {
+export const AuthPage = ({onDone, onProfileLoaded}: AuthPageProps) => {
   const {configError} = useAuth();
   const [mode, setMode] = useState<AuthMode>("signin");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +35,23 @@ export const AuthPage = ({onDone}: AuthPageProps) => {
 
     try {
       if (mode === "signup") {
-        await createUserWithEmailAndPassword(auth, email.trim(), password);
+        const trimmedFirstName = firstName.trim();
+        const trimmedLastName = lastName.trim();
+        if (!trimmedFirstName || !trimmedLastName) {
+          setError("First name and last name are required.");
+          return;
+        }
+
+        const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+        const displayName = `${trimmedFirstName} ${trimmedLastName}`;
+        await updateProfile(credential.user, {displayName});
+        const token = await credential.user.getIdToken();
+        const profile = await api.updateMeProfile({
+          firstName: trimmedFirstName,
+          lastName: trimmedLastName,
+          displayName,
+        }, token);
+        onProfileLoaded(profile);
       } else {
         await signInWithEmailAndPassword(auth, email.trim(), password);
       }
@@ -56,6 +77,30 @@ export const AuthPage = ({onDone}: AuthPageProps) => {
         {configError && <div className="state-panel error">{configError}</div>}
 
         <form className="auth-form" onSubmit={submit}>
+          {isSignup && (
+            <div className="auth-name-grid">
+              <label>
+                First name
+                <input
+                  autoComplete="given-name"
+                  onChange={(event) => setFirstName(event.target.value)}
+                  required
+                  type="text"
+                  value={firstName}
+                />
+              </label>
+              <label>
+                Last name
+                <input
+                  autoComplete="family-name"
+                  onChange={(event) => setLastName(event.target.value)}
+                  required
+                  type="text"
+                  value={lastName}
+                />
+              </label>
+            </div>
+          )}
           <label>
             Email
             <input
@@ -93,6 +138,8 @@ export const AuthPage = ({onDone}: AuthPageProps) => {
           onClick={() => {
             setMode(isSignup ? "signin" : "signup");
             setError(null);
+            setFirstName("");
+            setLastName("");
           }}
         >
           {isSignup ? "Already have an account? Sign in" : "Need an account? Sign up"}

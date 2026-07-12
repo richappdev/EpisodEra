@@ -21,12 +21,20 @@ User profile document. The document ID must match the Firebase Auth UID.
 
 ```json
 {
-  "displayName": "Rich",
+  "firstName": "Rich",
+  "lastName": "Chang",
+  "email": "rich@example.com",
+  "displayName": "Rich Chang",
   "photoURL": "https://example.com/avatar.png",
+  "bio": "Optional short profile text.",
+  "country": "TW",
+  "timezone": "Asia/Taipei",
   "createdAt": "<server timestamp>",
   "updatedAt": "<server timestamp>"
 }
 ```
+
+`firstName`, `lastName`, and `email` are required for newly written profile documents. Optional personal fields may be omitted or stored as `null`.
 
 ## users/{userId}/watchlist/{mediaType_id}
 

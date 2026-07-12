@@ -11,6 +11,7 @@ import {ProfilePage} from "./pages/ProfilePage";
 import {SettingsPage} from "./pages/SettingsPage";
 import {WatchlistPage} from "./pages/WatchlistPage";
 import {EpisodeSummary, MediaDetail, MediaSummary, TvSeasonDetail} from "./types/media";
+import {UserProfile} from "./types/profile";
 import {MarkEpisodeWatchedInput, ShowProgress, ShowProgressSummary} from "./types/progress";
 import {SupportedLanguage, isSupportedLanguage} from "./types/settings";
 import {UserStats} from "./types/stats";
@@ -46,6 +47,7 @@ export const App = () => {
   const [watchlistItems, setWatchlistItems] = useState<WatchlistItem[]>([]);
   const [watchlistError, setWatchlistError] = useState<string | null>(null);
   const [watchlistLoading, setWatchlistLoading] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [historyItems, setHistoryItems] = useState<HistoryEntry[]>([]);
   const [statsError, setStatsError] = useState<string | null>(null);
@@ -102,6 +104,7 @@ export const App = () => {
       setWatchlistItems([]);
       setWatchlistError(null);
       setWatchlistLoading(false);
+      setProfile(null);
       setStats(null);
       setHistoryItems([]);
       setStatsError(null);
@@ -118,8 +121,15 @@ export const App = () => {
     setWatchlistError(null);
     setStatsError(null);
     setSettingsError(null);
-    Promise.allSettled([api.listWatchlist(), api.listProgress(), api.meStats(), api.meHistory(), api.meSettings()])
-      .then(([watchlistResult, progressResult, statsResult, historyResult, settingsResult]) => {
+    Promise.allSettled([
+      api.listWatchlist(),
+      api.listProgress(),
+      api.meProfile(),
+      api.meStats(),
+      api.meHistory(),
+      api.meSettings(),
+    ])
+      .then(([watchlistResult, progressResult, profileResult, statsResult, historyResult, settingsResult]) => {
         if (watchlistResult.status === "fulfilled") {
           setWatchlistItems(watchlistResult.value.items);
         } else {
@@ -130,6 +140,10 @@ export const App = () => {
           setProgressItems(progressResult.value.items);
         } else {
           setProgressError(progressResult.reason instanceof Error ? progressResult.reason.message : "Could not load progress.");
+        }
+
+        if (profileResult.status === "fulfilled") {
+          setProfile(profileResult.value.profile);
         }
 
         if (statsResult.status === "fulfilled") {
@@ -553,6 +567,7 @@ export const App = () => {
         <TopBar
           activeView={view === "auth" ? "trending" : view}
           language={language}
+          profile={profile}
           user={user}
           onAuthOpen={openAuth}
           onSignOut={() => {
@@ -574,6 +589,7 @@ export const App = () => {
       <TopBar
         activeView={view === "auth" ? "trending" : view}
         language={language}
+        profile={profile}
         user={user}
         onAuthOpen={openAuth}
         onSignOut={() => {
@@ -606,12 +622,13 @@ export const App = () => {
           watchlistItem={currentWatchlistItem}
         />
       ) : view === "auth" ? (
-        <AuthPage onDone={() => changeView("trending")} />
+        <AuthPage onDone={() => changeView("trending")} onProfileLoaded={setProfile} />
       ) : view === "profile" ? (
         <ProfilePage
           error={statsError}
           history={historyItems}
           loading={statsLoading}
+          profile={profile}
           signedIn={Boolean(user)}
           stats={stats}
           userEmail={user?.email ?? null}
