@@ -10,6 +10,7 @@ firestore-debug.log
 ui-debug.log
 web/playwright-report/
 web/test-results/
+web/coverage/
 firepit-log.txt
 .firebase/
 *.local

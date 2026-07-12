@@ -41,7 +41,7 @@ The project is in MVP hardening. Core web features are implemented, progress-tra
 - Recent watched history timeline for movies and episodes.
 - Owner-scoped Firestore security rules for watchlist, progress, and history.
 - Firebase Analytics and Performance Monitoring for the web app.
-- GitHub Actions CI for backend build, backend lint, backend unit tests, Java-backed Firestore emulator tests, frontend build, frontend component tests, and Playwright critical-flow, progress edge-case, and responsive/accessibility smoke coverage.
+- GitHub Actions CI for backend build, backend lint, backend unit tests with coverage enforcement, Java-backed Firestore emulator tests, frontend build, frontend component coverage enforcement, and Playwright critical-flow, progress edge-case, and responsive/accessibility smoke coverage.
 - Project documentation for architecture, API contracts, Firestore schema, auth, navigation, deployment, coding standards, and dependency audit posture.
 
 ## Tech Stack
@@ -157,11 +157,12 @@ cd functions
 npm run build
 npm run lint
 npm test
+npm run test:coverage
 npm run test:emulator
 npm run serve
 ```
 
-`npm test` builds the functions TypeScript and runs Node test files emitted into `lib/`. Firestore emulator integration tests are included in the tree and skip unless `FIRESTORE_EMULATOR_HOST` is set. Use `npm run test:emulator` on a machine with Java installed to run the Firestore-backed progress transaction tests.
+`npm test` builds the functions TypeScript and runs Node test files emitted into `lib/`. `npm run test:coverage` uses Node's built-in test coverage with baseline thresholds for backend unit and route-test coverage. Firestore emulator integration tests are included in the tree and skip unless `FIRESTORE_EMULATOR_HOST` is set. Use `npm run test:emulator` on a machine with Java installed to run the Firestore-backed progress transaction tests.
 
 Frontend:
 
@@ -170,11 +171,12 @@ cd web
 npm run dev
 npm run build
 npm run test:components
+npm run test:coverage
 npm run test:e2e
 npm run preview
 ```
 
-`npm run test:e2e` runs the signed-in critical flow plus deterministic Playwright coverage for responsive shell accessibility, Continue Watching gap resolution, season batch progress writes, and failed progress-write UI preservation.
+`npm run test:coverage` runs the Vitest component/page suite with V8 coverage and enforced thresholds for the currently covered UI surfaces. `npm run test:e2e` runs the signed-in critical flow plus deterministic Playwright coverage for responsive shell accessibility, Continue Watching gap resolution, season batch progress writes, and failed progress-write UI preservation.
 
 ## Deployment
 
@@ -205,7 +207,7 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 - Local Firestore emulator execution still requires Java and the Firebase Emulator Suite.
 - TMDb detail, season, and trending responses use an in-memory TTL cache inside the Functions runtime. A persistent shared cache is still a possible future optimization.
 - TMDb images and metadata must retain visible app attribution: "This product uses the TMDb API and TMDb images/data but is not endorsed or certified by TMDb."
-- Frontend component tests cover key page/component states. Playwright now covers the signed-in critical flow, responsive/accessibility smoke, previous-episode gap resolution, season batch writes, and failed progress-write preservation. Broader offline/recovery, concurrent-browser, and staging smoke UI automation is still pending.
+- Backend and frontend coverage enforcement is now configured for the current automated test surfaces. Playwright covers the signed-in critical flow, responsive/accessibility smoke, previous-episode gap resolution, season batch writes, and failed progress-write preservation. Broader full-app frontend coverage, offline/recovery, concurrent-browser, and staging smoke UI automation is still pending.
 - Production deployment must configure `CORS_ORIGINS` for the Firebase Hosting, staging, and production domains.
 - Dependency audit findings are documented in `docs/DependencyAudit.md`; fixes require semver-major upgrades for Firebase Functions packages and Vite tooling.
 - Production beta readiness still needs runtime validation and an explicit dependency-risk decision.

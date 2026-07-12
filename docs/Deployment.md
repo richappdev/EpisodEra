@@ -84,20 +84,22 @@ Firebase Crashlytics does not currently provide a Web SDK. Add Crashlytics when 
 GitHub Actions runs the baseline MVP regression on pushes to `main` and on pull requests:
 
 ```text
-functions: npm ci && npm test && npm run lint
+functions: npm ci && npm test && npm run test:coverage && npm run lint
 functions emulator: setup Java && npm run test:emulator
-web: npm ci && npm run build && npm run test:components && npx playwright install --with-deps chromium && npm run test:e2e
+web: npm ci && npm run build && npm run test:components && npm run test:coverage && npx playwright install --with-deps chromium && npm run test:e2e
 ```
 
-Frontend component tests use Vitest and React Testing Library. The Playwright critical-flow test runs against a deterministic mocked API and test-only signed-in auth mode. It does not require live Firebase credentials.
+Backend coverage uses Node's built-in test coverage thresholds. Frontend component coverage uses Vitest, React Testing Library, and V8 coverage thresholds over the currently tested UI surfaces. The Playwright critical-flow and reliability tests run against a deterministic mocked API and test-only signed-in auth mode. They do not require live Firebase credentials.
 
 ## Pre-deploy checklist
 
 - `docs/CodingStandard.md` reviewed for current conventions
 - `docs/DependencyAudit.md` reviewed and release risk accepted or resolved
 - `functions`: `npm run build`
+- `functions`: `npm run test:coverage`
 - `web`: `npm run build`
 - `web`: `npm run test:components`
+- `web`: `npm run test:coverage`
 - `web`: `npm run test:e2e`
 - Firebase Authentication email/password provider enabled
 - Firebase Analytics enabled and `VITE_FIREBASE_MEASUREMENT_ID` configured

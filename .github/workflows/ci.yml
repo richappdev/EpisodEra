@@ -34,6 +34,10 @@ jobs:
         working-directory: functions
         run: npm test
 
+      - name: Check functions coverage
+        working-directory: functions
+        run: npm run test:coverage
+
       - name: Lint functions
         working-directory: functions
         run: npm run lint
@@ -59,6 +63,10 @@ jobs:
       - name: Run frontend component tests
         working-directory: web
         run: npm run test:components
+
+      - name: Check frontend component coverage
+        working-directory: web
+        run: npm run test:coverage
 
       - name: Install Playwright browsers
         working-directory: web
