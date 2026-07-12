@@ -91,6 +91,21 @@ web: npm ci && npm run build && npm run test:components && npm run test:coverage
 
 Backend coverage uses Node's built-in test coverage thresholds. Frontend component coverage uses Vitest, React Testing Library, and V8 coverage thresholds over the currently tested UI surfaces. The Playwright critical-flow and reliability tests run against a deterministic mocked API and test-only signed-in auth mode. They do not require live Firebase credentials.
 
+## Production smoke validation
+
+After deployment, run the opt-in signed-in smoke test with a dedicated automation account:
+
+```plain text
+cd web
+EPISODERA_FIREBASE_API_KEY=...
+EPISODERA_SMOKE_EMAIL=...
+EPISODERA_SMOKE_PASSWORD=...
+EPISODERA_PROD_API_BASE_URL=https://api-m74gmd4u4a-uc.a.run.app
+npm run smoke:prod
+```
+
+`EPISODERA_PROD_API_BASE_URL` defaults to the current deployed API URL and `EPISODERA_SMOKE_SHOW_ID` defaults to `125988`. The smoke test signs in through Firebase Auth REST, validates `/health`, profile read/update, TV detail, watchlist add/status/remove, episode progress write/read/remove, stats, and history. The script cleans up its watchlist item and watched episode before exiting.
+
 ## Pre-deploy checklist
 
 - `docs/CodingStandard.md` reviewed for current conventions
@@ -101,6 +116,7 @@ Backend coverage uses Node's built-in test coverage thresholds. Frontend compone
 - `web`: `npm run test:components`
 - `web`: `npm run test:coverage`
 - `web`: `npm run test:e2e`
+- `web`: `npm run smoke:prod` with a dedicated automation account after deploy
 - Firebase Authentication email/password provider enabled
 - Firebase Analytics enabled and `VITE_FIREBASE_MEASUREMENT_ID` configured
 - Firebase Performance Monitoring enabled for the web app

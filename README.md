@@ -174,10 +174,13 @@ npm run build
 npm run test:components
 npm run test:coverage
 npm run test:e2e
+npm run smoke:prod
 npm run preview
 ```
 
 `npm run test:coverage` runs the Vitest component/page suite with V8 coverage and enforced thresholds for the currently covered UI surfaces. `npm run test:e2e` runs the signed-in critical flow plus deterministic Playwright coverage for responsive shell accessibility, Continue Watching gap resolution, season batch progress writes, failed/offline progress-write recovery, duplicate-action prevention during pending writes, and concurrent browser progress consistency.
+
+`npm run smoke:prod` runs an opt-in deployed runtime validation against Firebase Auth and the deployed API. It requires `EPISODERA_FIREBASE_API_KEY` or `VITE_FIREBASE_API_KEY`, `EPISODERA_SMOKE_EMAIL`, and `EPISODERA_SMOKE_PASSWORD`; optionally set `EPISODERA_PROD_API_BASE_URL` and `EPISODERA_SMOKE_SHOW_ID`. Use a dedicated automation account because the script updates profile data, adds/removes one watchlist item, and marks/unmarks S1 E1 for the smoke show.
 
 ## Deployment
 
@@ -209,6 +212,7 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 - TMDb detail, season, and trending responses use an in-memory TTL cache inside the Functions runtime. A persistent shared cache is still a possible future optimization.
 - TMDb images and metadata must retain visible app attribution: "This product uses the TMDb API and TMDb images/data but is not endorsed or certified by TMDb."
 - Backend and frontend coverage enforcement is now configured for the current automated test surfaces. Playwright covers the signed-in critical flow, responsive/accessibility smoke, previous-episode gap resolution, season batch writes, failed/offline progress-write recovery, duplicate-action prevention during pending writes, and concurrent browser progress consistency. Broader full-app frontend coverage, real deployed smoke, and deeper accessibility automation are still pending.
+- A production smoke script exists for real signed-in runtime validation, but it is opt-in and requires dedicated automation account credentials.
 - Production deployment must configure `CORS_ORIGINS` for the Firebase Hosting, staging, and production domains.
 - Rate limiting is implemented with per-Functions-instance in-memory buckets for public reads and authenticated writes. Firebase App Check or a distributed quota layer is still a future production-hardening option.
 - Dependency audit findings are documented in `docs/DependencyAudit.md`; fixes require semver-major upgrades for Firebase Functions packages and Vite tooling.

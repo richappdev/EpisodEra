@@ -10,7 +10,8 @@
     "preview": "vite preview --host 127.0.0.1",
     "test:components": "vitest run --config vitest.config.ts",
     "test:coverage": "vitest run --config vitest.config.ts --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "smoke:prod": "node scripts/production-smoke.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.1",
