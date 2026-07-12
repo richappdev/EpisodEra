@@ -55,3 +55,11 @@ jobs:
       - name: Build web
         working-directory: web
         run: npm run build
+
+      - name: Install Playwright browsers
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright critical flow
+        working-directory: web
+        run: npm run test:e2e

@@ -77,6 +77,7 @@ The MVP hardening work has added or defined the following reliability behavior:
 * Emulator-backed backend validation
 * Firebase security-rules testing
 * Java-backed CI support for emulator tests
+* Signed-in Playwright critical-flow coverage for the core watchlist/progress path
 * Pending-write states
 * Duplicate-action prevention
 * Recoverable error handling
@@ -92,7 +93,7 @@ The implementation must remain the final authority for whether each capability i
 The highest-priority remaining work is:
 
 1. Frontend component tests for critical UI and progress states
-2. Playwright coverage for critical end-to-end user flows
+2. Broader Playwright coverage for responsive, accessibility, failure, and additional progress flows
 3. Runtime validation against a staging Firebase environment
 4. Accessibility validation, including keyboard flow, focus states, contrast, and touch-target checks
 5. Offline and reconnect testing
@@ -194,14 +195,25 @@ Cover:
 
 Critical Playwright flows should include:
 
-* Sign up and sign in
+Implemented:
+
+* Signed-in deterministic auth state
 * Search and open detail
-* Add and remove watchlist item
+* Add a watchlist item
+* Change TV watchlist status to Watching
 * Mark one episode watched
+* Verify next-unwatched guidance
+* Verify profile and history consistency
+* Unmark one episode
+* Verify protected data clears after sign-out
+
+Still needed:
+
+* Sign up and sign in against a real auth environment
+* Add and remove watchlist item
 * Create and resolve a watched-progress gap
 * Mark a season watched
 * Reverse a season progress action
-* Verify next-unwatched guidance
 * Recover from a failed write
 * Verify responsive navigation on mobile
 

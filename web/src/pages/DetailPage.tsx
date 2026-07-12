@@ -86,7 +86,7 @@ export const DetailPage = ({
         Back
       </button>
 
-      <section className="detail-hero">
+      <section className="detail-hero" data-testid={`detail-${detail.mediaType}-${detail.id}`}>
         {detail.images.backdrop && <img src={detail.images.backdrop} alt="" />}
         <div className="detail-overlay" />
         <div className="detail-content">
@@ -133,6 +133,7 @@ export const DetailPage = ({
                   </span>
                   <select
                     aria-label={`Watchlist status for ${detail.title}`}
+                    data-testid="detail-watchlist-status"
                     value={watchlistItem.status}
                     onChange={(event) => onWatchlistStatusChange(watchlistItem, event.target.value as WatchlistStatus)}
                   >
@@ -142,13 +143,13 @@ export const DetailPage = ({
                       </option>
                     ))}
                   </select>
-                  <button type="button" onClick={() => onRemoveFromWatchlist(watchlistItem)}>
+                  <button data-testid="detail-remove-watchlist" type="button" onClick={() => onRemoveFromWatchlist(watchlistItem)}>
                     <Trash2 size={16} aria-hidden="true" />
                     Remove
                   </button>
                 </>
               ) : (
-                <button type="button" onClick={() => onAddToWatchlist(detail)}>
+                <button data-testid="detail-add-watchlist" type="button" onClick={() => onAddToWatchlist(detail)}>
                   <Bookmark size={16} aria-hidden="true" />
                   Add to watchlist
                 </button>
@@ -196,6 +197,7 @@ export const DetailPage = ({
               </span>
               <button
                 className="season-watch-button"
+                data-testid="mark-season-watched"
                 type="button"
                 disabled={progressLoading || seasonLoading || unwatchedAvailableSeasonCount === 0}
                 onClick={onMarkAvailableSeasonWatched}
@@ -217,7 +219,7 @@ export const DetailPage = ({
               {(seasonDetail?.episodes ?? []).map((episode) => {
                 const watched = watchedKeys.has(episode.episodeKey);
                 return (
-                  <article className="episode-row" key={episode.episodeKey}>
+                  <article className="episode-row" data-testid={`episode-row-${episode.episodeKey}`} key={episode.episodeKey}>
                     <div className="episode-number">
                       S{episode.seasonNumber} E{episode.episodeNumber}
                     </div>
@@ -227,6 +229,7 @@ export const DetailPage = ({
                     </div>
                     <button
                       className={watched ? "episode-toggle watched" : "episode-toggle"}
+                      data-testid={`episode-toggle-${episode.episodeKey}`}
                       type="button"
                       disabled={!signedIn || progressLoading}
                       onClick={() => (watched ? onEpisodeUnwatched(episode) : onEpisodeWatched(episode))}

@@ -10,7 +10,12 @@ export const MediaCard = ({item, onSelect}: MediaCardProps) => {
   const year = item.releaseDate ? new Date(item.releaseDate).getFullYear() : "TBA";
 
   return (
-    <button className="media-card" type="button" onClick={() => onSelect(item)}>
+    <button
+      className="media-card"
+      data-testid={`media-card-${item.mediaType}-${item.id}`}
+      type="button"
+      onClick={() => onSelect(item)}
+    >
       <div className="poster-frame">
         {item.images.poster ? (
           <img src={item.images.poster} alt="" loading="lazy" />

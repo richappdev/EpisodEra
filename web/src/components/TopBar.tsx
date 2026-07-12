@@ -25,6 +25,7 @@ export const TopBar = ({activeView, language, user, onAuthOpen, onSignOut, onVie
         <nav aria-label="Primary">
           <button
             className={activeView === "trending" ? "active" : ""}
+            data-testid="nav-trending"
             type="button"
             onClick={() => onViewChange("trending")}
             title={copy.trending}
@@ -34,6 +35,7 @@ export const TopBar = ({activeView, language, user, onAuthOpen, onSignOut, onVie
           </button>
           <button
             className={activeView === "search" ? "active" : ""}
+            data-testid="nav-search"
             type="button"
             onClick={() => onViewChange("search")}
             title={copy.search}
@@ -43,6 +45,7 @@ export const TopBar = ({activeView, language, user, onAuthOpen, onSignOut, onVie
           </button>
           <button
             className={activeView === "watchlist" ? "active" : ""}
+            data-testid="nav-watchlist"
             type="button"
             onClick={() => onViewChange("watchlist")}
             title={copy.watchlist}
@@ -52,6 +55,7 @@ export const TopBar = ({activeView, language, user, onAuthOpen, onSignOut, onVie
           </button>
           <button
             className={activeView === "profile" ? "active" : ""}
+            data-testid="nav-profile"
             type="button"
             onClick={() => onViewChange("profile")}
             title={copy.profile}
@@ -61,6 +65,7 @@ export const TopBar = ({activeView, language, user, onAuthOpen, onSignOut, onVie
           </button>
           <button
             className={activeView === "settings" ? "active" : ""}
+            data-testid="nav-settings"
             type="button"
             onClick={() => onViewChange("settings")}
             title={copy.settings}
@@ -69,7 +74,7 @@ export const TopBar = ({activeView, language, user, onAuthOpen, onSignOut, onVie
             <span>{copy.settings}</span>
           </button>
         </nav>
-        <button className="account-button" type="button" onClick={user ? onSignOut : onAuthOpen}>
+        <button className="account-button" data-testid="account-button" type="button" onClick={user ? onSignOut : onAuthOpen}>
           {user ? <LogOut size={18} aria-hidden="true" /> : <LogIn size={18} aria-hidden="true" />}
           {user ? copy.signOut : copy.signIn}
         </button>

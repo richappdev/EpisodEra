@@ -59,12 +59,13 @@ export const DiscoveryPage = ({view, language, onSelect}: DiscoveryPageProps) =>
         <form className="search-form" onSubmit={submitSearch}>
           <Search size={20} aria-hidden="true" />
           <input
+            data-testid="search-input"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search movies and TV"
             aria-label="Search movies and TV"
           />
-          <button type="submit">Search</button>
+          <button data-testid="search-submit" type="submit">Search</button>
         </form>
       )}
 

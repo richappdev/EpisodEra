@@ -545,7 +545,7 @@ export const App = () => {
   const currentWatchlistItem = detail
     ? watchlistItems.find((item) => item.mediaType === detail.mediaType && item.tmdbId === detail.id) ?? null
     : null;
-  const isDetailView = detail !== null && !["auth", "profile", "settings", "watchlist"].includes(view);
+  const isDetailView = detail !== null && !["auth", "profile", "settings"].includes(view);
 
   if (loading) {
     return (

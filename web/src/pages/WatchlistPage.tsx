@@ -58,7 +58,7 @@ export const WatchlistPage = ({
 
   return (
     <main className="page-shell">
-      <section className="watchlist-header">
+      <section className="watchlist-header" data-testid="watchlist-header">
         <div>
           <span className="media-kind">Library</span>
           <h2>Watchlist</h2>
@@ -88,7 +88,7 @@ export const WatchlistPage = ({
           </div>
           <div className="continue-grid">
             {continueWatchingItems.map(({item, progress}) => (
-              <article className="continue-card" key={item.itemId}>
+              <article className="continue-card" data-testid={`continue-card-${item.tmdbId}`} key={item.itemId}>
                 <button className="watchlist-poster" type="button" onClick={() => onSelect(item)}>
                   {item.poster ? <img src={item.poster} alt="" loading="lazy" /> : <Film size={28} aria-hidden="true" />}
                 </button>
@@ -99,7 +99,9 @@ export const WatchlistPage = ({
                     {progress!.watchedEpisodeCount} of {progress!.totalEpisodes} watched
                   </span>
                   {progress!.nextEpisode && (
-                    <span className="next-episode">{nextEpisodeLabelFor(progress!)}</span>
+                    <span className="next-episode" data-testid={`continue-next-${item.tmdbId}`}>
+                      {nextEpisodeLabelFor(progress!)}
+                    </span>
                   )}
                   <div className="progress-bar" aria-label={`${item.title} progress ${progress!.progressPercent}%`}>
                     <span style={{width: `${Math.min(progress!.progressPercent, 100)}%`}} />
@@ -107,6 +109,7 @@ export const WatchlistPage = ({
                 </div>
                 <button
                   className="continue-button"
+                  data-testid={`continue-watched-${item.tmdbId}`}
                   type="button"
                   onClick={() => onNextEpisodeWatched(item, progress!)}
                 >
@@ -124,7 +127,7 @@ export const WatchlistPage = ({
           const statusOptions = item.mediaType === "movie" ? movieWatchlistStatuses : tvWatchlistStatuses;
 
           return (
-            <article className="watchlist-item" key={item.itemId}>
+            <article className="watchlist-item" data-testid={`watchlist-item-${item.tmdbId}`} key={item.itemId}>
               <button className="watchlist-poster" type="button" onClick={() => onSelect(item)}>
                 {item.poster ? <img src={item.poster} alt="" loading="lazy" /> : <Film size={28} aria-hidden="true" />}
               </button>
@@ -135,6 +138,7 @@ export const WatchlistPage = ({
                 <span className="media-kind">{item.mediaType === "movie" ? "Movie" : "TV"}</span>
                 <select
                   aria-label={`Watchlist status for ${item.title}`}
+                  data-testid={`watchlist-status-${item.tmdbId}`}
                   value={item.status}
                   onChange={(event) => onStatusChange(item, event.target.value as WatchlistStatus)}
                 >

@@ -41,7 +41,7 @@ The project is in MVP hardening. Core web features are implemented, progress-tra
 - Recent watched history timeline for movies and episodes.
 - Owner-scoped Firestore security rules for watchlist, progress, and history.
 - Firebase Analytics and Performance Monitoring for the web app.
-- GitHub Actions CI for backend build, backend lint, backend unit tests, Java-backed Firestore emulator tests, and frontend build.
+- GitHub Actions CI for backend build, backend lint, backend unit tests, Java-backed Firestore emulator tests, frontend build, and Playwright critical-flow coverage.
 - Project documentation for architecture, API contracts, Firestore schema, auth, navigation, deployment, coding standards, and dependency audit posture.
 
 ## Tech Stack
@@ -169,6 +169,7 @@ Frontend:
 cd web
 npm run dev
 npm run build
+npm run test:e2e
 npm run preview
 ```
 
@@ -201,7 +202,7 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 - Local Firestore emulator execution still requires Java and the Firebase Emulator Suite.
 - TMDb detail, season, and trending responses use an in-memory TTL cache inside the Functions runtime. A persistent shared cache is still a possible future optimization.
 - TMDb images and metadata must retain visible app attribution: "This product uses the TMDb API and TMDb images/data but is not endorsed or certified by TMDb."
-- Frontend component tests and a signed-in Playwright critical flow are still pending.
+- Frontend component tests are still pending; one signed-in Playwright critical flow now covers the core watchlist/progress path.
 - Production deployment must configure `CORS_ORIGINS` for the Firebase Hosting, staging, and production domains.
 - Dependency audit findings are documented in `docs/DependencyAudit.md`; fixes require semver-major upgrades for Firebase Functions packages and Vite tooling.
 - Production beta readiness still needs runtime validation and an explicit dependency-risk decision.

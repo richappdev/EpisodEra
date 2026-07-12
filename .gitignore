@@ -8,6 +8,8 @@ dist/
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
+web/playwright-report/
+web/test-results/
 firepit-log.txt
 .firebase/
 *.local

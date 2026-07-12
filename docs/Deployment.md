@@ -85,10 +85,11 @@ GitHub Actions runs the baseline MVP regression on pushes to `main` and on pull 
 
 ```text
 functions: npm ci && npm test && npm run lint
-web: npm ci && npm run build
+functions emulator: setup Java && npm run test:emulator
+web: npm ci && npm run build && npx playwright install --with-deps chromium && npm run test:e2e
 ```
 
-The `functions` test script currently compiles TypeScript through `npm run build`. Add runtime integration tests to the workflow once the Firestore emulator environment is ready.
+The Playwright critical-flow test runs against a deterministic mocked API and test-only signed-in auth mode. It does not require live Firebase credentials.
 
 ## Pre-deploy checklist
 
@@ -96,6 +97,7 @@ The `functions` test script currently compiles TypeScript through `npm run build
 - `docs/DependencyAudit.md` reviewed and release risk accepted or resolved
 - `functions`: `npm run build`
 - `web`: `npm run build`
+- `web`: `npm run test:e2e`
 - Firebase Authentication email/password provider enabled
 - Firebase Analytics enabled and `VITE_FIREBASE_MEASUREMENT_ID` configured
 - Firebase Performance Monitoring enabled for the web app

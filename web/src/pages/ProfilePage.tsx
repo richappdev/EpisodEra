@@ -51,34 +51,34 @@ export const ProfilePage = ({error, history, loading, signedIn, stats, userEmail
             <article className="stat-card">
               <Clapperboard size={22} aria-hidden="true" />
               <span>Watched movies</span>
-              <strong>{stats.totalWatchedMovies}</strong>
+              <strong data-testid="stat-watched-movies">{stats.totalWatchedMovies}</strong>
             </article>
             <article className="stat-card">
               <ListChecks size={22} aria-hidden="true" />
               <span>Watched episodes</span>
-              <strong>{stats.totalWatchedEpisodes}</strong>
+              <strong data-testid="stat-watched-episodes">{stats.totalWatchedEpisodes}</strong>
             </article>
             <article className="stat-card">
               <PlayCircle size={22} aria-hidden="true" />
               <span>Currently watching</span>
-              <strong>{stats.currentlyWatchingCount}</strong>
+              <strong data-testid="stat-currently-watching">{stats.currentlyWatchingCount}</strong>
             </article>
             <article className="stat-card">
               <CheckCircle2 size={22} aria-hidden="true" />
               <span>Completed shows</span>
-              <strong>{stats.completedShowsCount}</strong>
+              <strong data-testid="stat-completed-shows">{stats.completedShowsCount}</strong>
             </article>
           </section>
 
           <section className="profile-summary">
             <div>
               <span className="media-kind">Library</span>
-              <strong>{stats.watchlistCount}</strong>
+              <strong data-testid="stat-watchlist-count">{stats.watchlistCount}</strong>
               <span>saved titles</span>
             </div>
             <div>
               <span className="media-kind">Progress</span>
-              <strong>{stats.progressShowCount}</strong>
+              <strong data-testid="stat-progress-show-count">{stats.progressShowCount}</strong>
               <span>tracked shows</span>
             </div>
           </section>
@@ -93,7 +93,7 @@ export const ProfilePage = ({error, history, loading, signedIn, stats, userEmail
             ) : (
               <div className="history-list">
                 {history.map((entry) => (
-                  <article className="history-row" key={entry.historyId}>
+                  <article className="history-row" data-testid={`history-row-${entry.historyId}`} key={entry.historyId}>
                     {entry.mediaType === "movie" ? <Film size={18} aria-hidden="true" /> : <Tv size={18} aria-hidden="true" />}
                     <div>
                       <strong>{entry.title}</strong>

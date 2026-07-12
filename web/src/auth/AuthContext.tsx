@@ -12,11 +12,23 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const useE2eAuth = import.meta.env.MODE === "e2e" && import.meta.env.VITE_E2E_AUTH === "true";
+
+const e2eAuthUser = useE2eAuth ? {
+  email: "e2e-user@example.com",
+  getIdToken: async () => "e2e-token",
+  uid: "e2e-user",
+} as User : null;
+
 export const AuthProvider = ({children}: {children: ReactNode}) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(Boolean(auth));
+  const [user, setUser] = useState<User | null>(e2eAuthUser);
+  const [loading, setLoading] = useState(Boolean(auth) && !e2eAuthUser);
 
   useEffect(() => {
+    if (e2eAuthUser) {
+      return undefined;
+    }
+
     if (!auth) {
       setLoading(false);
       return undefined;
@@ -34,6 +46,11 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
       getIdToken: async () => user?.getIdToken() ?? null,
       loading,
       signOutUser: async () => {
+        if (e2eAuthUser) {
+          setUser(null);
+          return;
+        }
+
         if (auth) {
           await signOut(auth);
         }
