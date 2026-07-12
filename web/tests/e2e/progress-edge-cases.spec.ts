@@ -1,5 +1,5 @@
 import {expect, test} from "@playwright/test";
-import {installMockApi, openShowDetailFromSearch, showId} from "./support/mockApi";
+import {createMockApiState, installMockApi, openShowDetailFromSearch, showId} from "./support/mockApi";
 
 test("continue watching resolves the first unwatched gap and sends a canonical episode write", async ({page}) => {
   const requests = await installMockApi(page, {
@@ -60,4 +60,88 @@ test("failed episode progress write preserves current watched state and surfaces
     watched: true,
     episodes: [{seasonNumber: 1, episodeNumber: 2}],
   });
+});
+
+test("offline progress write can be retried without corrupting watched state", async ({page}) => {
+  const requests = await installMockApi(page);
+
+  await page.goto("/");
+  await openShowDetailFromSearch(page);
+
+  requests.abortNextProgressWrite();
+  await page.getByTestId("episode-toggle-s01e01").click();
+
+  await expect(page.getByText(/Failed to fetch|Could not update episode progress/)).toBeVisible();
+  await expect(page.getByText("No watched episodes yet.")).toBeVisible();
+  await expect(page.getByTestId("episode-toggle-s01e01")).toContainText("Mark watched");
+
+  await page.getByTestId("episode-toggle-s01e01").click();
+
+  await expect(page.getByText("1 of 3 watched")).toBeVisible();
+  await expect(page.getByTestId("episode-toggle-s01e01")).toContainText("Watched");
+  expect(requests.progressBatchBodies).toEqual([
+    {watched: true, episodes: [{seasonNumber: 1, episodeNumber: 1}]},
+    {watched: true, episodes: [{seasonNumber: 1, episodeNumber: 1}]},
+  ]);
+});
+
+test("pending progress write disables duplicate episode actions", async ({page}) => {
+  const requests = await installMockApi(page);
+
+  await page.goto("/");
+  await openShowDetailFromSearch(page);
+
+  requests.holdNextProgressWrite();
+  const firstClick = page.getByTestId("episode-toggle-s01e01").click();
+
+  await expect.poll(() => requests.progressBatchBodies.length).toBe(1);
+  await expect(page.getByTestId("episode-toggle-s01e01")).toBeDisabled();
+  await expect(page.getByTestId("episode-toggle-s01e02")).toBeDisabled();
+
+  requests.releaseProgressWrite();
+  await firstClick;
+
+  await expect(page.getByText("1 of 3 watched")).toBeVisible();
+  expect(requests.progressBatchBodies).toEqual([{watched: true, episodes: [{seasonNumber: 1, episodeNumber: 1}]}]);
+});
+
+test("concurrent browser progress writes converge to a consistent final summary", async ({browser, baseURL}) => {
+  const state = createMockApiState({
+    initialWatchedEpisodes: [1],
+    initialWatchlistStatus: "watching",
+  });
+  const contextA = await browser.newContext();
+  const contextB = await browser.newContext();
+  const pageA = await contextA.newPage();
+  const pageB = await contextB.newPage();
+  const requestsA = await installMockApi(pageA, {state});
+  await installMockApi(pageB, {state});
+
+  await Promise.all([pageA.goto(baseURL ?? "/"), pageB.goto(baseURL ?? "/")]);
+  await Promise.all([openShowDetailFromSearch(pageA), openShowDetailFromSearch(pageB)]);
+
+  await Promise.all([
+    pageA.getByTestId("episode-toggle-s01e02").click(),
+    pageB.getByTestId("episode-toggle-s01e03").click(),
+  ]);
+
+  await pageA.reload();
+  await pageA.getByTestId("nav-profile").click();
+  await expect(pageA.getByTestId("stat-watched-episodes")).toHaveText("3");
+  await expect(pageA.getByTestId("history-row-tv_1001_s01e01")).toContainText("Pilot");
+  await expect(pageA.getByTestId("history-row-tv_1001_s01e02")).toContainText("The Gap");
+  await expect(pageA.getByTestId("history-row-tv_1001_s01e03")).toContainText("Next Step");
+
+  await pageA.getByTestId("nav-watchlist").click();
+  await expect(pageA.getByTestId(`continue-card-${showId}`)).toHaveCount(0);
+  expect(requestsA.progressBatchBodies).toHaveLength(2);
+  expect(requestsA.progressBatchBodies).toEqual(
+    expect.arrayContaining([
+      {watched: true, episodes: [{seasonNumber: 1, episodeNumber: 2}]},
+      {watched: true, episodes: [{seasonNumber: 1, episodeNumber: 3}]},
+    ]),
+  );
+
+  await contextA.close();
+  await contextB.close();
 });

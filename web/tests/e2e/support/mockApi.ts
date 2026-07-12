@@ -50,18 +50,45 @@ interface MockApiOptions {
   autoMarkPreviousEpisodesWatched?: boolean;
   initialWatchedEpisodes?: number[];
   initialWatchlistStatus?: "planned" | "watching" | "completed" | "dropped";
+  state?: MockApiState;
 }
 
-export const installMockApi = async (page: Page, options: MockApiOptions = {}) => {
-  let watchlistItem: Record<string, unknown> | null = options.initialWatchlistStatus
-    ? watchlistItemFor(options.initialWatchlistStatus)
-    : null;
-  let watchedEpisodeNumbers = new Set(options.initialWatchedEpisodes ?? []);
-  let failNextProgressWrite = false;
-  const progressBatchBodies: EpisodeWriteBody[] = [];
+interface MockApiStateOptions {
+  initialWatchedEpisodes?: number[];
+  initialWatchlistStatus?: "planned" | "watching" | "completed" | "dropped";
+}
 
-  const currentProgress = () => progressFromWatchedEpisodes([...watchedEpisodeNumbers]);
-  const currentHistory = () => historyFromWatchedEpisodes([...watchedEpisodeNumbers]);
+export interface MockApiState {
+  abortNextProgressWrite: boolean;
+  failNextProgressWrite: boolean;
+  progressBatchBodies: EpisodeWriteBody[];
+  releaseProgressWrite: (() => void) | null;
+  watchlistItem: Record<string, unknown> | null;
+  watchedEpisodeNumbers: Set<number>;
+}
+
+export const createMockApiState = (options: MockApiStateOptions = {}): MockApiState => ({
+  abortNextProgressWrite: false,
+  failNextProgressWrite: false,
+  progressBatchBodies: [],
+  releaseProgressWrite: null,
+  watchlistItem: options.initialWatchlistStatus ? watchlistItemFor(options.initialWatchlistStatus) : null,
+  watchedEpisodeNumbers: new Set(options.initialWatchedEpisodes ?? []),
+});
+
+export const installMockApi = async (page: Page, options: MockApiOptions = {}) => {
+  const state = options.state ?? createMockApiState({
+    initialWatchedEpisodes: options.initialWatchedEpisodes,
+    initialWatchlistStatus: options.initialWatchlistStatus,
+  });
+  state.watchlistItem = options.initialWatchlistStatus
+    ? watchlistItemFor(options.initialWatchlistStatus)
+    : state.watchlistItem;
+  state.watchedEpisodeNumbers =
+    options.initialWatchedEpisodes !== undefined ? new Set(options.initialWatchedEpisodes) : state.watchedEpisodeNumbers;
+
+  const currentProgress = () => progressFromWatchedEpisodes([...state.watchedEpisodeNumbers]);
+  const currentHistory = () => historyFromWatchedEpisodes([...state.watchedEpisodeNumbers]);
 
   await page.route("**/e2e-api/**", async (route) => {
     const request = route.request();
@@ -78,7 +105,7 @@ export const installMockApi = async (page: Page, options: MockApiOptions = {}) =
     }
 
     if (method === "GET" && path === "/watchlist") {
-      return json(route, {items: watchlistItem ? [watchlistItem] : []});
+      return json(route, {items: state.watchlistItem ? [state.watchlistItem] : []});
     }
 
     if (method === "GET" && path === "/progress") {
@@ -87,7 +114,7 @@ export const installMockApi = async (page: Page, options: MockApiOptions = {}) =
     }
 
     if (method === "GET" && path === "/me/stats") {
-      return json(route, statsFromState(watchlistItem, currentProgress()));
+      return json(route, statsFromState(state.watchlistItem, currentProgress()));
     }
 
     if (method === "GET" && path === "/me/history") {
@@ -119,35 +146,46 @@ export const installMockApi = async (page: Page, options: MockApiOptions = {}) =
     }
 
     if (method === "POST" && path === "/watchlist") {
-      watchlistItem = watchlistItemFor("planned");
-      return json(route, watchlistItem, 201);
+      state.watchlistItem = watchlistItemFor("planned");
+      return json(route, state.watchlistItem, 201);
     }
 
     if (method === "PATCH" && path === `/watchlist/tv_${showId}/status`) {
       const body = await request.postDataJSON();
-      watchlistItem = {...watchlistItem, status: body.status, updatedAt: now};
-      return json(route, watchlistItem);
+      state.watchlistItem = {...state.watchlistItem, status: body.status, updatedAt: now};
+      return json(route, state.watchlistItem);
     }
 
     if (method === "DELETE" && path === `/watchlist/tv_${showId}`) {
-      watchlistItem = null;
+      state.watchlistItem = null;
       return json(route, null, 204);
     }
 
     if (method === "POST" && path === `/progress/${showId}/episodes/batch`) {
       const body = (await request.postDataJSON()) as EpisodeWriteBody;
-      progressBatchBodies.push(body);
+      state.progressBatchBodies.push(body);
 
-      if (failNextProgressWrite) {
-        failNextProgressWrite = false;
+      if (state.abortNextProgressWrite) {
+        state.abortNextProgressWrite = false;
+        return route.abort("internetdisconnected");
+      }
+
+      if (state.failNextProgressWrite) {
+        state.failNextProgressWrite = false;
         return json(route, {error: {message: "Temporary progress outage."}}, 503);
+      }
+
+      if (state.releaseProgressWrite) {
+        await new Promise<void>((resolve) => {
+          state.releaseProgressWrite = resolve;
+        });
       }
 
       for (const item of body.episodes) {
         if (body.watched) {
-          watchedEpisodeNumbers.add(item.episodeNumber);
+          state.watchedEpisodeNumbers.add(item.episodeNumber);
         } else {
-          watchedEpisodeNumbers.delete(item.episodeNumber);
+          state.watchedEpisodeNumbers.delete(item.episodeNumber);
         }
       }
 
@@ -157,7 +195,7 @@ export const installMockApi = async (page: Page, options: MockApiOptions = {}) =
     if (method === "DELETE" && path.startsWith(`/progress/${showId}/episode/`)) {
       const episodeKey = path.split("/").pop() ?? "";
       const episodeNumber = Number(episodeKey.replace("s01e", ""));
-      watchedEpisodeNumbers.delete(episodeNumber);
+      state.watchedEpisodeNumbers.delete(episodeNumber);
       return json(route, {progress: currentProgress()});
     }
 
@@ -165,10 +203,21 @@ export const installMockApi = async (page: Page, options: MockApiOptions = {}) =
   });
 
   return {
-    failNextProgressWrite: () => {
-      failNextProgressWrite = true;
+    abortNextProgressWrite: () => {
+      state.abortNextProgressWrite = true;
     },
-    progressBatchBodies,
+    failNextProgressWrite: () => {
+      state.failNextProgressWrite = true;
+    },
+    holdNextProgressWrite: () => {
+      state.releaseProgressWrite = () => undefined;
+    },
+    releaseProgressWrite: () => {
+      state.releaseProgressWrite?.();
+      state.releaseProgressWrite = null;
+    },
+    progressBatchBodies: state.progressBatchBodies,
+    state,
   };
 };
 
