@@ -119,7 +119,19 @@ EPISODERA_PROD_API_BASE_URL=https://api-m74gmd4u4a-uc.a.run.app
 npm run smoke:prod
 ```
 
-`EPISODERA_PROD_API_BASE_URL` defaults to the current deployed API URL and `EPISODERA_SMOKE_SHOW_ID` defaults to `125988`. The smoke test signs in through Firebase Auth REST, validates `/health`, profile read/update, TV detail, watchlist add/status/remove, episode progress write/read/remove, stats, and history. The script cleans up its watchlist item and watched episode before exiting.
+`EPISODERA_PROD_API_BASE_URL` defaults to the current deployed API URL and `EPISODERA_SMOKE_SHOW_ID` defaults to `125988`. The smoke test signs in through Firebase Auth REST, validates `/health`, profile read/update, TV detail, watchlist add/status/remove, episode progress write/read/remove, stats, and history, then cleans up its watchlist item and watched episode before exiting.
+
+Negative deployed checks (enabled by default after the happy path):
+
+- Invalid auth on `GET /me/profile` returns HTTP `401` with `unauthenticated`
+- CORS preflight from a disallowed origin returns HTTP `403` with `origin_not_allowed` when `CORS_ORIGINS` is enforced
+- Public read rate limiting returns HTTP `429` with `rate_limited` and `x-ratelimit-*` headers after the per-IP bucket is exhausted
+
+Optional smoke env flags:
+
+- `EPISODERA_SMOKE_ALLOWED_ORIGIN` (defaults to `https://episodera.web.app`)
+- `EPISODERA_SMOKE_SKIP_NEGATIVE_CHECKS=true` to skip all negative checks
+- `EPISODERA_SMOKE_SKIP_RATE_LIMIT_CHECK=true` to skip only the rate-limit burst
 
 ### GitHub Actions smoke workflow
 

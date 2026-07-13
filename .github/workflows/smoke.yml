@@ -25,7 +25,7 @@ jobs:
   smoke:
     name: Deployed signed-in smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       EPISODERA_FIREBASE_API_KEY: ${{ secrets.EPISODERA_FIREBASE_API_KEY }}
       EPISODERA_SMOKE_EMAIL: ${{ secrets.EPISODERA_SMOKE_EMAIL }}
@@ -90,4 +90,6 @@ jobs:
             echo "| Workflow run | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |"
             echo ""
             echo "Use a dedicated automation account. The smoke path updates profile data, watchlist state, and S1 E1 progress, then cleans up."
+            echo ""
+            echo "Negative checks: invalid auth (401), CORS rejection (403), and public read rate limit (429) unless skipped via env flags."
           } >> "$GITHUB_STEP_SUMMARY"

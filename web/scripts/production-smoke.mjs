@@ -100,11 +100,17 @@ const readPayload = async (response) => {
   }
 };
 
-const request = async (path, {body, method = "GET", token} = {}) =>
+const rawRequest = async (
+  path,
+  {allowError = false, body, method = "GET", origin, token} = {},
+) =>
   withTimeout(async (signal) => {
     const headers = new Headers();
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
+    }
+    if (origin) {
+      headers.set("Origin", origin);
     }
     if (body !== undefined) {
       headers.set("Content-Type", "application/json");
@@ -118,13 +124,168 @@ const request = async (path, {body, method = "GET", token} = {}) =>
     });
     const payload = await readPayload(response);
 
-    if (!response.ok) {
+    if (!allowError && !response.ok) {
       const message = payload?.error?.message ?? payload ?? response.statusText;
       throw new Error(`${method} ${path} failed with HTTP ${response.status}: ${message}`);
     }
 
     return {payload, response};
   }, `${method} ${path}`);
+
+const request = async (path, options = {}) => rawRequest(path, options);
+
+const negativeCheckResults = {
+  cors: "not-run",
+  invalidAuth: "not-run",
+  rateLimit: "not-run",
+};
+
+const runInvalidAuthCheck = async () => {
+  const result = await rawRequest("/me/profile", {
+    allowError: true,
+    token: "episodera-smoke-invalid-token",
+  });
+
+  assert(result.response.status === 401, `Invalid auth expected HTTP 401, got ${result.response.status}.`);
+  assert(
+    result.payload?.error?.code === "unauthenticated",
+    `Invalid auth expected unauthenticated error code, got ${result.payload?.error?.code ?? "none"}.`,
+  );
+  negativeCheckResults.invalidAuth = "passed";
+};
+
+const runCorsRejectionCheck = async () => {
+  const allowedOrigin = normalizeEnv(process.env.EPISODERA_SMOKE_ALLOWED_ORIGIN) ?? "https://episodera.web.app";
+  const invalidOrigin = "https://episodera-smoke-invalid.example";
+
+  const allowedPreflight = await withTimeout(async (signal) => {
+    const response = await fetch(`${apiBaseUrl}/health`, {
+      headers: {
+        "Access-Control-Request-Method": "GET",
+        Origin: allowedOrigin,
+      },
+      method: "OPTIONS",
+      signal,
+    });
+
+    return {payload: await readPayload(response), response};
+  }, "CORS preflight allowed origin");
+
+  if (![200, 204].includes(allowedPreflight.response.status)) {
+    console.warn(
+      `Skipping CORS negative check: allowed origin preflight returned HTTP ${allowedPreflight.response.status}.`,
+    );
+    negativeCheckResults.cors = "skipped";
+    return;
+  }
+
+  const rejected = await withTimeout(async (signal) => {
+    const response = await fetch(`${apiBaseUrl}/health`, {
+      headers: {
+        "Access-Control-Request-Method": "GET",
+        Origin: invalidOrigin,
+      },
+      method: "OPTIONS",
+      signal,
+    });
+
+    return {payload: await readPayload(response), response};
+  }, "CORS preflight rejected origin");
+
+  if ([200, 204].includes(rejected.response.status)) {
+    console.warn("Skipping CORS negative check: CORS allowlist does not appear enforced on this target.");
+    negativeCheckResults.cors = "skipped";
+    return;
+  }
+
+  assert(rejected.response.status === 403, `Rejected origin expected HTTP 403, got ${rejected.response.status}.`);
+  assert(
+    rejected.payload?.error?.code === "origin_not_allowed",
+    `Rejected origin expected origin_not_allowed error code, got ${rejected.payload?.error?.code ?? "none"}.`,
+  );
+  negativeCheckResults.cors = "passed";
+};
+
+const runRateLimitCheck = async () => {
+  const path = "/trending/tv?page=1&language=en-US";
+  const first = await rawRequest(path, {allowError: true});
+
+  if (!first.response.ok) {
+    throw new Error(`Rate-limit probe failed with HTTP ${first.response.status}.`);
+  }
+
+  const limitHeader = first.response.headers.get("x-ratelimit-limit");
+  const remainingHeader = first.response.headers.get("x-ratelimit-remaining");
+
+  if (!limitHeader || remainingHeader === null) {
+    console.warn("Skipping rate-limit negative check: x-ratelimit headers were not returned.");
+    negativeCheckResults.rateLimit = "skipped";
+    return;
+  }
+
+  let remaining = Number(remainingHeader);
+  assert(Number.isFinite(remaining) && remaining >= 0, "x-ratelimit-remaining was not a valid number.");
+
+  while (remaining > 0) {
+    const burst = await rawRequest(path, {allowError: true});
+
+    if (burst.response.status === 429) {
+      assert(
+        burst.payload?.error?.code === "rate_limited",
+        `Rate-limit expected rate_limited error code, got ${burst.payload?.error?.code ?? "none"}.`,
+      );
+      assert(burst.response.headers.get("x-ratelimit-limit"), "Rate-limited response missing x-ratelimit-limit header.");
+      negativeCheckResults.rateLimit = "passed";
+      return;
+    }
+
+    if (!burst.response.ok) {
+      throw new Error(`Rate-limit burst failed unexpectedly with HTTP ${burst.response.status}.`);
+    }
+
+    const nextRemaining = burst.response.headers.get("x-ratelimit-remaining");
+    if (nextRemaining !== null) {
+      remaining = Number(nextRemaining);
+      continue;
+    }
+
+    remaining -= 1;
+  }
+
+  const limited = await rawRequest(path, {allowError: true});
+  assert(limited.response.status === 429, `Rate-limit expected HTTP 429, got ${limited.response.status}.`);
+  assert(
+    limited.payload?.error?.code === "rate_limited",
+    `Rate-limit expected rate_limited error code, got ${limited.payload?.error?.code ?? "none"}.`,
+  );
+  assert(limited.response.headers.get("x-ratelimit-limit"), "Rate-limited response missing x-ratelimit-limit header.");
+  negativeCheckResults.rateLimit = "passed";
+};
+
+const formatNegativeSummary = () => {
+  if (skipNegativeChecks) {
+    return "negative checks skipped";
+  }
+
+  const parts = [];
+  if (negativeCheckResults.invalidAuth === "passed") {
+    parts.push("invalid auth");
+  }
+  if (negativeCheckResults.cors === "passed") {
+    parts.push("CORS rejection");
+  } else if (negativeCheckResults.cors === "skipped") {
+    parts.push("CORS check skipped (allowlist not enforced)");
+  }
+  if (!skipRateLimitCheck) {
+    if (negativeCheckResults.rateLimit === "passed") {
+      parts.push("rate-limit 429");
+    } else if (negativeCheckResults.rateLimit === "skipped") {
+      parts.push("rate-limit check skipped");
+    }
+  }
+
+  return parts.length > 0 ? `${parts.join(", ")} verified` : "negative checks not run";
+};
 
 const signIn = async () =>
   withTimeout(async (signal) => {
@@ -201,9 +362,17 @@ const cleanup = async (token, originalProfile) => {
 let token;
 let originalProfile;
 
+const skipNegativeChecks = normalizeEnv(process.env.EPISODERA_SMOKE_SKIP_NEGATIVE_CHECKS) === "true";
+const skipRateLimitCheck = normalizeEnv(process.env.EPISODERA_SMOKE_SKIP_RATE_LIMIT_CHECK) === "true";
+
 try {
   const health = await request("/health");
   assert(health.payload?.ok === true, "Health check did not return {ok:true}.");
+
+  if (!skipNegativeChecks) {
+    await runInvalidAuthCheck();
+    await runCorsRejectionCheck();
+  }
 
   token = await signIn();
 
@@ -286,7 +455,13 @@ try {
     "Smoke progress episode was not removed during cleanup.",
   );
 
-  console.log(`Production smoke passed against ${apiBaseUrl} using TV ${showId} (${title}).`);
+  if (!skipNegativeChecks && !skipRateLimitCheck) {
+    await runRateLimitCheck();
+  }
+
+  console.log(
+    `Production smoke passed against ${apiBaseUrl} using TV ${showId} (${title}); ${formatNegativeSummary()}.`,
+  );
 } catch (error) {
   if (token) {
     await cleanup(token, originalProfile);
