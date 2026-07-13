@@ -1,0 +1,93 @@
+name: Production Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: Deployed API base URL (no trailing slash)
+        required: false
+        default: https://api-m74gmd4u4a-uc.a.run.app
+      smoke_show_id:
+        description: TMDb TV show ID used by the smoke test
+        required: false
+        default: "125988"
+  schedule:
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    name: Deployed signed-in smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EPISODERA_FIREBASE_API_KEY: ${{ secrets.EPISODERA_FIREBASE_API_KEY }}
+      EPISODERA_SMOKE_EMAIL: ${{ secrets.EPISODERA_SMOKE_EMAIL }}
+      EPISODERA_SMOKE_PASSWORD: ${{ secrets.EPISODERA_SMOKE_PASSWORD }}
+      EPISODERA_PROD_API_BASE_URL: ${{ inputs.api_base_url || 'https://api-m74gmd4u4a-uc.a.run.app' }}
+      EPISODERA_SMOKE_SHOW_ID: ${{ inputs.smoke_show_id || '125988' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Record run context
+        id: context
+        run: |
+          echo "commit_sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "commit_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+          echo "api_base_url=${EPISODERA_PROD_API_BASE_URL}" >> "$GITHUB_OUTPUT"
+          echo "smoke_show_id=${EPISODERA_SMOKE_SHOW_ID}" >> "$GITHUB_OUTPUT"
+          echo "trigger=${GITHUB_EVENT_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate smoke secrets
+        run: |
+          missing=0
+          for name in EPISODERA_FIREBASE_API_KEY EPISODERA_SMOKE_EMAIL EPISODERA_SMOKE_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing required repository secret: $name"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Run production smoke
+        id: smoke
+        working-directory: web
+        run: |
+          set -o pipefail
+          start_epoch=$(date +%s)
+          npm run smoke:prod 2>&1 | tee smoke.log
+          end_epoch=$(date +%s)
+          echo "duration_seconds=$((end_epoch - start_epoch))" >> "$GITHUB_OUTPUT"
+
+      - name: Write smoke evidence summary
+        if: always()
+        run: |
+          {
+            echo "## Production smoke evidence"
+            echo ""
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| Status | ${{ job.status }} |"
+            echo "| Trigger | ${{ steps.context.outputs.trigger }} |"
+            echo "| Commit | \`${{ steps.context.outputs.commit_short }}\` (\`${{ steps.context.outputs.commit_sha }}\`) |"
+            echo "| API | ${{ steps.context.outputs.api_base_url }} |"
+            echo "| Show ID | ${{ steps.context.outputs.smoke_show_id }} |"
+            echo "| Started (UTC) | ${{ steps.context.outputs.started_at }} |"
+            echo "| Duration (s) | ${{ steps.smoke.outputs.duration_seconds || 'n/a' }} |"
+            echo "| Workflow run | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |"
+            echo ""
+            echo "Use a dedicated automation account. The smoke path updates profile data, watchlist state, and S1 E1 progress, then cleans up."
+          } >> "$GITHUB_STEP_SUMMARY"

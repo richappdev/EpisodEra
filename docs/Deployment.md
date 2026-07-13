@@ -115,6 +115,28 @@ npm run smoke:prod
 
 `EPISODERA_PROD_API_BASE_URL` defaults to the current deployed API URL and `EPISODERA_SMOKE_SHOW_ID` defaults to `125988`. The smoke test signs in through Firebase Auth REST, validates `/health`, profile read/update, TV detail, watchlist add/status/remove, episode progress write/read/remove, stats, and history. The script cleans up its watchlist item and watched episode before exiting.
 
+### GitHub Actions smoke workflow
+
+The `Production Smoke` workflow at `.github/workflows/smoke.yml` runs the same signed-in deployed validation in GitHub Actions.
+
+Triggers:
+
+- Manual dispatch from the Actions tab (`workflow_dispatch`)
+- Weekly schedule: Mondays at 06:00 UTC
+
+Required repository secrets:
+
+- `EPISODERA_FIREBASE_API_KEY`
+- `EPISODERA_SMOKE_EMAIL`
+- `EPISODERA_SMOKE_PASSWORD`
+
+Optional manual-dispatch inputs:
+
+- `api_base_url` (defaults to the current deployed API URL)
+- `smoke_show_id` (defaults to `125988`)
+
+The workflow writes a run summary with commit SHA, API URL, show ID, duration, and workflow run link. Store that evidence in Notion for release candidates. For approval gates, attach the secrets to a protected GitHub environment and point the workflow job at that environment.
+
 ## Pre-deploy checklist
 
 - `docs/CodingStandard.md` reviewed for current conventions
