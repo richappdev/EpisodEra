@@ -238,8 +238,9 @@ Still needed:
 Recorded evidence (2026-07-13):
 
 * Local production smoke passed at `2e8e6c3` via `npm run smoke:prod:local`
+* Local production smoke passed at `a5205f6` via `npm run smoke:prod:local` (invalid auth, CORS `403`, rate-limit `429` verified)
 * Hosted GitHub Actions `Production Smoke` passed at `a8537b0` via `workflow_dispatch`
-* Negative deployed checks (invalid auth `401`, CORS `403`, rate-limit `429`) verified locally after CORS deploy at `df849b2`
+* Negative deployed checks verified locally after CORS deploy at `df849b2`
 * Privacy/account deletion deployed with `6acb749` / `3419172`; Functions and Hosting released to `https://episodera.web.app`
 
 Still required on future release candidates:
@@ -379,7 +380,7 @@ These limitations affect resource synchronization only. They do not change produ
 * Synchronized with Notion alignment review through commit `3272ab5`.
 * Marked privacy policy, account deletion, URL routing, expanded Playwright coverage, production smoke, negative deployed checks, and coverage enforcement as implemented.
 * Updated remaining priorities to focus on hosted smoke reruns, staging separation, domain hooks, pagination, WCAG depth, compliance review, dependency decisions, and observability.
-* Recorded runtime smoke evidence for commits `2e8e6c3`, `a8537b0`, and `df849b2`.
+* Recorded runtime smoke evidence for commits `2e8e6c3`, `a5205f6`, `a8537b0`, and `df849b2`.
 
 ### 2026-07-11
 
