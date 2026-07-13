@@ -17,6 +17,14 @@ firebase functions:secrets:set TMDB_API_KEY
 firebase deploy --only functions
 ```
 
+For production CORS enforcement, create `functions/.env.episodera` from `functions/.env.episodera.example` before deploying functions. Firebase loads project-specific env files during deploy. Production should allow at least:
+
+```plain text
+CORS_ORIGINS=https://episodera.web.app,https://episodera.firebaseapp.com
+```
+
+Without `CORS_ORIGINS`, the API accepts all browser origins and the deployed CORS negative smoke check will skip.
+
 The exported function is:
 
 ```plain text
