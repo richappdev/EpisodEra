@@ -10,6 +10,7 @@ import {
   watchlistStatuses,
 } from "../models/watchlist";
 import {listPaginated, PaginatedResult, PaginationQuery} from "../lib/pagination";
+import {historyService} from "./historyService";
 
 interface WatchlistDocument {
   tmdbId: number;
