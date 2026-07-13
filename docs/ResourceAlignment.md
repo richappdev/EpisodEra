@@ -380,7 +380,7 @@ These limitations affect resource synchronization only. They do not change produ
 * Synchronized with Notion alignment review through commit `031cb35`.
 * Marked privacy policy, account deletion, URL routing, expanded Playwright coverage, production smoke, negative deployed checks, and coverage enforcement as implemented.
 * Updated remaining priorities to focus on hosted smoke reruns, staging separation, domain hooks, pagination, WCAG depth, compliance review, dependency decisions, and observability.
-* Recorded runtime smoke evidence for commits `2e8e6c3`, `a5205f6`, `a8537b0`, `df849b2`, and local `031cb35` (`npm run smoke:prod:local` PASS with negative checks).
+* Recorded runtime smoke evidence for commits `2e8e6c3`, `a5205f6`, `a8537b0`, `df849b2`, local `031cb35`, and hosted `031cb35` ([workflow run](https://github.com/richappdev/EpisodEra/actions/runs/29232556051), PASS ~23s).
 
 ### 2026-07-11
 
