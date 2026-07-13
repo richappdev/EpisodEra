@@ -123,6 +123,10 @@ Authenticated user endpoints:
 - `DELETE /progress/:showId/episode/:episodeKey`
 - `GET /me/stats`
 - `GET /me/history`
+- `GET /me/profile`
+- `PATCH /me/profile`
+- `GET /me/settings`
+- `PATCH /me/settings`
 
 Progress writes accept season and episode numbers only. The backend validates against TMDb, resolves canonical titles and episode counts, and writes episode rows, progress summary, and watched history in one Firestore transaction. `GET /progress` returns summary rows only; use `GET /progress/:showId` when full watched episode rows are required.
 

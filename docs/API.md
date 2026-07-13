@@ -6,15 +6,56 @@ The backend exposes a single Firebase HTTPS Function named `api`. In local emula
 http://127.0.0.1:5001/<firebase-project-id>/us-central1/api
 ```
 
-All responses are JSON. Read-only discovery endpoints can be called without authentication. User-owned endpoints require a Firebase ID token in the `Authorization` header:
+The deployed Cloud Functions URL normally has this form:
+
+```text
+https://us-central1-<firebase-project-id>.cloudfunctions.net/api
+```
+
+Responses are JSON except for successful `DELETE /watchlist/:itemId`, which returns an empty `204 No Content` response. Send JSON request bodies with `Content-Type: application/json`; the request body limit is 64 KiB.
+
+Read-only discovery endpoints can be called without authentication. User-owned endpoints require a Firebase ID token in the `Authorization` header:
 
 ```http
 Authorization: Bearer <firebase-id-token>
 ```
 
+Missing, malformed, expired, and otherwise invalid tokens all produce the same `401 unauthenticated` response on protected routes. Public routes ignore invalid bearer tokens.
+
+Requests that pass CORS processing receive an `x-request-id` response header. If the request supplies an `x-request-id` header, the API echoes it; otherwise the API generates a UUID. This identifier is also included in the structured server log for the request.
+
 Set `CORS_ORIGINS` to a comma-separated allowlist for deployed environments. When omitted, the API allows all origins for local development.
 
-TMDb detail, TV season, and trending reads use a per-Functions-instance in-memory TTL cache. Stable detail and season metadata are cached longer than trending responses. Search requests are not cached.
+TMDb detail and TV season reads use a 24-hour per-Functions-instance in-memory TTL cache. Trending reads use a 5-minute cache. Search requests are not cached. Cache entries are local to one warm Functions instance and are not shared across instances.
+
+## Endpoint summary
+
+| Method | Path | Authentication | Success |
+| --- | --- | --- | --- |
+| `GET` | `/health` | Public | `200` |
+| `GET` | `/search` | Public | `200` |
+| `GET` | `/trending` | Public | `200` |
+| `GET` | `/trending/movie` | Public | `200` |
+| `GET` | `/trending/tv` | Public | `200` |
+| `GET` | `/trending/shows` | Public | `200` |
+| `GET` | `/movie/:id` | Public | `200` |
+| `GET` | `/tv/:id` | Public | `200` |
+| `GET` | `/tv/:id/season/:seasonNumber` | Public | `200` |
+| `GET` | `/watchlist` | Firebase ID token | `200` |
+| `POST` | `/watchlist` | Firebase ID token | `201` |
+| `PATCH` | `/watchlist/:itemId/status` | Firebase ID token | `200` |
+| `DELETE` | `/watchlist/:itemId` | Firebase ID token | `204` |
+| `GET` | `/progress` | Firebase ID token | `200` |
+| `GET` | `/progress/:showId` | Firebase ID token | `200` |
+| `POST` | `/progress/:showId/episode` | Firebase ID token | `201` |
+| `POST` | `/progress/:showId/episodes/batch` | Firebase ID token | `200` |
+| `DELETE` | `/progress/:showId/episode/:episodeKey` | Firebase ID token | `200` |
+| `GET` | `/me/stats` | Firebase ID token | `200` |
+| `GET` | `/me/history` | Firebase ID token | `200` |
+| `GET` | `/me/profile` | Firebase ID token | `200` |
+| `PATCH` | `/me/profile` | Firebase ID token | `200` |
+| `GET` | `/me/settings` | Firebase ID token | `200` |
+| `PATCH` | `/me/settings` | Firebase ID token | `200` |
 
 ## Rate limiting
 
@@ -23,7 +64,7 @@ The API applies per-Functions-instance rate limits before route handlers run:
 | Bucket | Scope | Default |
 | --- | --- | --- |
 | Public reads | Client IP for `GET /search`, `GET /trending*`, `GET /movie/:id`, `GET /tv/:id`, and `GET /tv/:id/season/:seasonNumber` | 120 requests per 60 seconds |
-| Authenticated writes | Firebase UID for `POST`, `PATCH`, and `DELETE` requests under `/watchlist`, `/progress`, and `/me/settings` | 60 requests per 60 seconds |
+| Authenticated writes | Firebase UID for `POST`, `PATCH`, and `DELETE` requests under `/watchlist`, `/progress`, `/me/profile`, and `/me/settings` | 60 requests per 60 seconds |
 
 Configure defaults with:
 
@@ -45,7 +86,7 @@ Rate-limited responses use HTTP `429`:
 }
 ```
 
-Responses include `x-ratelimit-limit`, `x-ratelimit-remaining`, and `x-ratelimit-reset` headers when a route is covered by a bucket.
+Responses include `x-ratelimit-limit`, `x-ratelimit-remaining`, and `x-ratelimit-reset` headers when a route is covered by a bucket. `x-ratelimit-reset` is a Unix timestamp in seconds. Limits are maintained in memory per Functions instance, so they are not a deployment-wide quota.
 
 ## Language
 
@@ -83,7 +124,7 @@ Parameters:
 | Name | Required | Description |
 | --- | --- | --- |
 | `q` | Yes | Search query text. |
-| `page` | No | Positive integer page number. Defaults to `1`. |
+| `page` | No | Positive integer page number. Missing or invalid values fall back to `1`. |
 | `language` | No | `en-US` or `zh-TW`. Defaults to `en-US`. |
 
 Response:
@@ -166,7 +207,9 @@ Response:
   "runtimeMinutes": 139,
   "status": "Released",
   "originalLanguage": "en",
-  "homepage": "https://www.example.com"
+  "homepage": "https://www.example.com",
+  "totalEpisodes": null,
+  "seasons": []
 }
 ```
 
@@ -312,7 +355,7 @@ Request:
 
 `status`, `poster`, and `backdrop` are optional. TV status defaults to `planned`; movie status defaults to `unwatched`.
 
-Response: `201 Created` with the saved watchlist item.
+This operation is an upsert keyed by `{mediaType}_{tmdbId}`. Re-adding an existing item preserves `addedAt`, updates the supplied fields and `updatedAt`, and still returns `201 Created` with the saved watchlist item.
 
 ### Update Watchlist Status
 
@@ -336,7 +379,7 @@ Response: updated watchlist item.
 DELETE /watchlist/:itemId
 ```
 
-Response: `204 No Content`.
+Response: `204 No Content`. Deleting a well-formed item ID is idempotent: a missing item also returns `204`.
 
 ## Episode Progress
 
@@ -406,15 +449,15 @@ Response after watched episodes exist:
     "tmdbId": 95396,
     "title": "Severance",
     "totalEpisodes": 19,
-    "watchedEpisodeCount": 2,
-    "progressPercent": 10.53,
+    "watchedEpisodeCount": 1,
+    "progressPercent": 5.26,
     "currentSeason": 1,
-    "currentEpisode": 2,
+    "currentEpisode": 1,
     "nextEpisode": {
-      "episodeKey": "s01e03",
+      "episodeKey": "s01e02",
       "seasonNumber": 1,
-      "episodeNumber": 3,
-      "episodeTitle": "In Perpetuity"
+      "episodeNumber": 2,
+      "episodeTitle": "Half Loop"
     },
     "updatedAt": "2026-07-10T07:00:00.000Z",
     "episodes": [
@@ -447,7 +490,7 @@ Request:
 }
 ```
 
-The backend validates the show, season, and episode against TMDb and resolves the canonical show title, episode title, and total episode count. Response: `201 Created` with the updated show progress. Re-marking the same episode is idempotent for counts.
+The backend validates the show, season, and episode against TMDb and resolves the canonical show title, episode title, and total episode count. Response: `201 Created` with the `ShowProgress` object directly (without a `progress` wrapper). Re-marking the same episode is idempotent for counts and preserves the original `watchedAt` value.
 
 ### Batch Mark Episodes Watched Or Unwatched
 
@@ -467,9 +510,9 @@ Request:
 }
 ```
 
-`episodes` is deduplicated by season/episode and limited to 100 entries. The backend validates all requested episodes before writing, then updates episode rows, history entries, and the aggregate progress summary in one Firestore transaction.
+The input array must contain 1-100 entries. It is deduplicated by season/episode after the 100-entry limit is checked. The backend validates all requested episodes before writing, then updates episode rows, history entries, and the aggregate progress summary in one Firestore transaction.
 
-Response: updated show progress.
+Response: the updated `ShowProgress` object directly (without a `progress` wrapper).
 
 ### Mark Episode Unwatched
 
@@ -477,7 +520,42 @@ Response: updated show progress.
 DELETE /progress/:showId/episode/:episodeKey
 ```
 
-Response: updated show progress.
+Response:
+
+```json
+{
+  "progress": {
+    "showId": "95396",
+    "tmdbId": 95396,
+    "title": "Severance",
+    "totalEpisodes": 19,
+    "watchedEpisodeCount": 1,
+    "progressPercent": 5.26,
+    "currentSeason": 1,
+    "currentEpisode": 2,
+    "nextEpisode": {
+      "episodeKey": "s01e01",
+      "seasonNumber": 1,
+      "episodeNumber": 1,
+      "episodeTitle": "Good News About Hell"
+    },
+    "updatedAt": "2026-07-10T07:00:00.000Z",
+    "episodes": [
+      {
+        "episodeKey": "s01e02",
+        "seasonNumber": 1,
+        "episodeNumber": 2,
+        "episodeTitle": "Half Loop",
+        "watched": true,
+        "watchedAt": "2026-07-10T07:00:00.000Z",
+        "updatedAt": "2026-07-10T07:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+Unlike the two progress `POST` endpoints, this response is wrapped in a `progress` property.
 
 ## Profile Stats
 
@@ -502,7 +580,7 @@ Response:
 
 ## Profile History
 
-History endpoints require authentication and return watched movie and episode events for the signed-in user.
+History endpoints require authentication and return up to the 25 most recent watched movie and episode events for the signed-in user, ordered by `watchedAt` descending. This endpoint has no pagination parameters.
 
 ```http
 GET /me/history
@@ -530,7 +608,7 @@ Response:
 
 Movie history entries use `mediaType: "movie"` and return `null` for episode fields.
 
-## User Settings
+## Profile and User Settings
 
 Profile endpoints require authentication and store personal profile fields under `users/{uid}`. `email` is derived from Firebase Auth on writes and should not be trusted from client request bodies.
 
@@ -605,7 +683,7 @@ Request:
 }
 ```
 
-Response: updated settings. Supported language values are `en-US` and `zh-TW`. `autoMarkPreviousEpisodesWatched` controls whether marking a later episode watched also marks earlier unwatched episodes in that season.
+Response: updated settings. Supported language values are `en-US` and `zh-TW`. The API stores `autoMarkPreviousEpisodesWatched`, but does not itself expand a single-episode progress request. The current web client implements the behavior by sending previous unwatched episodes through the batch endpoint.
 
 ## Errors
 
@@ -620,7 +698,7 @@ Errors use a consistent envelope:
 }
 ```
 
-Common status codes:
+Defined error codes:
 
 | Status | Code | Meaning |
 | --- | --- | --- |
@@ -629,15 +707,27 @@ Common status codes:
 | `400` | `invalid_show_id` | A progress endpoint received a non-positive TV show ID. |
 | `400` | `invalid_episode_key` | An episode progress key was not formatted like `s01e01`. |
 | `400` | `invalid_progress_payload` | A progress request body failed validation. |
+| `400` | `batch_too_large` | A batch progress request contained more than 100 input entries. |
+| `400` | `invalid_media_type` | Progress was requested for media that is not a TV show. |
 | `400` | `invalid_item_id` | A watchlist item ID was not formatted as `movie_550` or `tv_95396`. |
 | `400` | `invalid_profile_payload` | A profile request body failed validation. |
+| `400` | `invalid_firstName` / `invalid_lastName` | A supplied name was not a string. |
+| `400` | `invalid_displayName` / `invalid_photoURL` / `invalid_bio` / `invalid_country` / `invalid_timezone` | A supplied optional profile field was neither a string nor `null`. |
+| `400` | `missing_profile_fields` | A profile update contained no supported fields. |
 | `400` | `invalid_status` | A watchlist status was not one of the allowed values. |
 | `400` | `invalid_settings_payload` | A settings request body failed validation. |
+| `400` | `invalid_auto_mark_previous_episodes_watched` | `autoMarkPreviousEpisodesWatched` was not a boolean. |
+| `400` | `missing_settings` | A settings update contained no supported settings. |
 | `400` | `missing_firstName` | A profile write did not include a required first name. |
 | `400` | `missing_lastName` | A profile write did not include a required last name. |
 | `400` | `invalid_watchlist_payload` | A watchlist request body failed validation. |
 | `400` | `unsupported_language` | A settings update used a language other than `en-US` or `zh-TW`. |
 | `401` | `unauthenticated` | A protected endpoint was called without a valid user. |
+| `403` | `origin_not_allowed` | The browser request origin is not in `CORS_ORIGINS`. |
+| `404` | `episode_not_found` | A requested season/episode does not exist in the canonical TMDb show metadata. |
 | `404` | `watchlist_item_not_found` | A watchlist item was not found for the signed-in user. |
+| `429` | `rate_limited` | The applicable per-instance request bucket was exhausted. |
+| `500` | `progress_update_failed` | Progress could not be read immediately after a successful update transaction. |
+| `500` | `profile_update_failed` | The updated profile could not be read back. |
+| `500` | `internal` | An unhandled backend error occurred. |
 | `502` | `tmdb_request_failed` | TMDb returned an unsuccessful response. |
-| `500` | `internal` | Unhandled backend error. |
