@@ -55,14 +55,19 @@ The currently implemented or substantially implemented product areas include:
 
 * Trending movie and television discovery
 * Search across movie and television content
-* Movie and television detail views
+* Movie and television detail views with shareable URLs (React Router 6)
 * Authentication
+* User profile read/update (`GET/PATCH /me/profile`)
 * Watchlist management
 * Season and episode browsing
 * Individual episode watched and unwatched actions
 * Season-level batch watched and unwatched actions
+* Continue Watching with backend-calculated next-unwatched episode
 * Profile statistics
 * Watched-history records
+* Settings (language, previous-episode preference)
+* Public privacy policy (`/privacy`) with bilingual disclosures
+* Account deletion (`DELETE /me/account` and Settings confirmation UI)
 * Responsive navigation and layouts
 
 ## Reliability Work Implemented
@@ -79,6 +84,11 @@ The MVP hardening work has added or defined the following reliability behavior:
 * Java-backed CI support for emulator tests
 * Frontend component tests for key page state, controls, and localized settings behavior
 * Signed-in Playwright critical-flow coverage for the core watchlist/progress path
+* Expanded Playwright coverage: progress gaps, season batch writes, failed/offline recovery, duplicate-action prevention, concurrent browser consistency, responsive-shell and accessibility smoke
+* Production smoke runner (`npm run smoke:prod`, `npm run smoke:prod:local`) with negative deployed checks (invalid auth, CORS rejection, rate-limit `429`)
+* GitHub Actions `Production Smoke` workflow (manual dispatch and weekly schedule)
+* Backend and frontend coverage enforcement in CI
+* CORS allowlist, structured logging, payload/batch limits, and per-instance rate limiting
 * Pending-write states
 * Duplicate-action prevention
 * Recoverable error handling
@@ -93,15 +103,19 @@ The implementation must remain the final authority for whether each capability i
 
 The highest-priority remaining work is:
 
-1. Broader Playwright coverage for responsive, accessibility, failure, and additional progress flows
-2. Runtime validation against a staging Firebase environment
-3. Accessibility validation, including keyboard flow, focus states, contrast, and touch-target checks
-4. Offline and reconnect testing
-5. ~~Account lifecycle validation, including deletion and related user-data handling~~ — **complete.** `DELETE /me/account` and Settings UI implemented; manual production validation passed on 2026-07-13 with a throwaway account (Auth user removed, Firestore `users/{uid}` tree empty). Do not use the smoke automation account for deletion tests.
-6. Privacy and data-retention review — privacy policy page and in-app disclosures added; legal review remains
-7. TMDb attribution and API-compliance verification
-8. Observability, release monitoring, and rollback procedures
-9. Final beta-readiness acceptance review
+1. Repeat hosted `Production Smoke` on future release candidates and retain workflow evidence (latest reviewed commit: `3272ab5`)
+2. Staging Firebase environment separation and staging-specific smoke validation
+3. Domain-hook refactor and independent per-section loading/error ownership beyond current `Promise.allSettled` bootstrap
+4. Pagination/limits for user-owned watchlist, history, and progress lists
+5. Broader WCAG-focused accessibility audit beyond current Playwright smoke assertions
+6. Real-auth deployed E2E cases (signup, token refresh/expiry, deleted-account session, sign-out during write)
+7. Legal review of privacy policy copy and formal TMDb terms/image compliance checklist
+8. Dependency major-upgrade and production-risk decision (`firebase-admin`, `firebase-functions`, Vite)
+9. Evaluate Firebase App Check or distributed rate limiting (current limits are per-Functions-instance)
+10. Observability dashboards, release monitoring, and rollback procedures
+11. Final beta-readiness acceptance review
+
+Account lifecycle implementation is complete (`DELETE /me/account`, Settings UI, emulator test). Manual throwaway-account deletion validation passed on 2026-07-13. Do not delete the smoke automation account during smoke runs.
 
 A feature should not be marked complete solely because its normal-path UI exists.
 
@@ -187,53 +201,54 @@ Implemented:
 * Detail page watchlist and episode controls
 * Watchlist saved count, Continue Watching next episode, status, remove, and next-episode controls
 * Profile stats and recent history
-* Settings language and previous-episode preference controls
+* Settings language, previous-episode preference, privacy link, and account-deletion confirmation flow
 * Trending/search tab, submit, no-result, and API-error states
 * Top-bar auth/navigation states
 
 Still needed:
 
-* Retry behavior
-* Rollback feedback
-* Previous-episode dialog or decision flow
-* Offline indicators
+* Deeper component coverage for retry/rollback messaging and offline indicators where not already covered by Playwright
 
 ### End-to-end tests
 
 Critical Playwright flows should include:
 
-Implemented:
+Implemented (deterministic mocked/API-controlled suite):
 
 * Signed-in deterministic auth state
 * Search and open detail
-* Add a watchlist item
-* Change TV watchlist status to Watching
-* Mark one episode watched
-* Verify next-unwatched guidance
-* Verify profile and history consistency
-* Unmark one episode
+* Add a watchlist item and change TV watchlist status to Watching
+* Mark one episode watched and verify next-unwatched guidance
+* Verify profile and history consistency; unmark one episode
 * Verify protected data clears after sign-out
+* Continue Watching gap resolution
+* Season batch watched/unwatched writes
+* Failed/offline progress-write recovery and duplicate-action prevention during pending writes
+* Concurrent browser progress consistency
+* Responsive shell and accessibility smoke (desktop and mobile), including TMDb footer attribution
 
 Still needed:
 
-* Sign up and sign in against a real auth environment
-* Add and remove watchlist item
-* Create and resolve a watched-progress gap
-* Mark a season watched
-* Reverse a season progress action
-* Recover from a failed write
-* Verify responsive navigation on mobile
+* Sign up and sign in against a real deployed Firebase Auth environment
+* Randomized soak/performance coverage with console and network telemetry
+* Full cross-browser coverage beyond Chromium
 
 ### Runtime validation
 
-Staging validation should confirm:
+Recorded evidence (2026-07-13):
 
-* Firebase emulator and deployed behavior are consistent
-* Security rules behave as expected
-* Authentication redirects are correct
-* TMDb requests and attribution are compliant
-* Environment variables are correctly configured
-* Offline and reconnect states behave predictably
+* Local production smoke passed at `2e8e6c3` via `npm run smoke:prod:local`
+* Hosted GitHub Actions `Production Smoke` passed at `a8537b0` via `workflow_dispatch`
+* Negative deployed checks (invalid auth `401`, CORS `403`, rate-limit `429`) verified locally after CORS deploy at `df849b2`
+* Privacy/account deletion deployed with `6acb749` / `3419172`; Functions and Hosting released to `https://episodera.web.app`
+
+Still required on future release candidates:
+
+* Repeat hosted smoke for the exact release commit SHA and archive workflow URL in Notion
+* Staging-environment smoke if a distinct staging Firebase project is introduced
+* Firebase emulator and deployed behavior remain consistent for new changes
+* Security rules, auth redirects, env configuration, and offline/reconnect behavior under staging/production targets
+* Formal TMDb terms/image compliance sign-off
 
 ## Cross-Resource Update Rules
 
@@ -342,10 +357,10 @@ A feature is complete only when all applicable conditions are met:
 
 | Resource              | Current status                                                                                                          |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| GitHub implementation | Core MVP and backend reliability work substantially implemented; `docs/ResourceAlignment.md` now records repository alignment rules; frontend and runtime validation remain |
-| Notion planning       | MVP hardening, testing priorities, and beta blockers updated                                                            |
-| Figma design          | Responsive screen system and core states documented; additional reliability-state synchronization may still be required |
-| Canva reporting       | MVP scope and reliability language updated; unsupported claims and placeholders removed                                 |
+| GitHub implementation | Core MVP, reliability hardening, privacy/account deletion, URL routing, expanded automated tests, and production smoke tooling implemented through `3272ab5`; architecture polish, pagination, compliance review, and ops hardening remain |
+| Notion planning       | Parent and child pages synchronized on 2026-07-13; historical sections below current baselines should not override top status blocks |
+| Figma design          | Responsive screen system documented; direct latest-file verification pending when connector access allows |
+| Canva reporting       | Should distinguish implemented code, recorded smoke evidence, and beta-ready status; refresh after hosted smoke reruns |
 
 ## Known Integration Constraints
 
@@ -358,6 +373,13 @@ At the time of this update:
 These limitations affect resource synchronization only. They do not change product scope or implementation status.
 
 ## Change Log
+
+### 2026-07-13
+
+* Synchronized with Notion alignment review through commit `3272ab5`.
+* Marked privacy policy, account deletion, URL routing, expanded Playwright coverage, production smoke, negative deployed checks, and coverage enforcement as implemented.
+* Updated remaining priorities to focus on hosted smoke reruns, staging separation, domain hooks, pagination, WCAG depth, compliance review, dependency decisions, and observability.
+* Recorded runtime smoke evidence for commits `2e8e6c3`, `a8537b0`, and `df849b2`.
 
 ### 2026-07-11
 
