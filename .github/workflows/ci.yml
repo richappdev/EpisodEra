@@ -17,6 +17,9 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v5
 
+      - name: Prepare CI logs
+        run: mkdir -p logs
+
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
@@ -32,15 +35,33 @@ jobs:
 
       - name: Build functions
         working-directory: functions
-        run: npm test
+        run: |
+          set -o pipefail
+          {
+            echo ""
+            echo "=== functions: npm test ==="
+          } >> ../logs/ci.log
+          npm test 2>&1 | tee -a ../logs/ci.log
 
       - name: Check functions coverage
         working-directory: functions
-        run: npm run test:coverage
+        run: |
+          set -o pipefail
+          {
+            echo ""
+            echo "=== functions: npm run test:coverage ==="
+          } >> ../logs/ci.log
+          npm run test:coverage 2>&1 | tee -a ../logs/ci.log
 
       - name: Lint functions
         working-directory: functions
-        run: npm run lint
+        run: |
+          set -o pipefail
+          {
+            echo ""
+            echo "=== functions: npm run lint ==="
+          } >> ../logs/ci.log
+          npm run lint 2>&1 | tee -a ../logs/ci.log
 
       - name: Set up Java for Firebase emulators
         uses: actions/setup-java@v5
@@ -50,7 +71,13 @@ jobs:
 
       - name: Run Firestore emulator tests
         working-directory: functions
-        run: npm run test:emulator
+        run: |
+          set -o pipefail
+          {
+            echo ""
+            echo "=== functions: npm run test:emulator ==="
+          } >> ../logs/ci.log
+          npm run test:emulator 2>&1 | tee -a ../logs/ci.log
 
       - name: Install web dependencies
         working-directory: web
@@ -58,15 +85,33 @@ jobs:
 
       - name: Build web
         working-directory: web
-        run: npm run build
+        run: |
+          set -o pipefail
+          {
+            echo ""
+            echo "=== web: npm run build ==="
+          } >> ../logs/ci.log
+          npm run build 2>&1 | tee -a ../logs/ci.log
 
       - name: Run frontend component tests
         working-directory: web
-        run: npm run test:components
+        run: |
+          set -o pipefail
+          {
+            echo ""
+            echo "=== web: npm run test:components ==="
+          } >> ../logs/ci.log
+          npm run test:components 2>&1 | tee -a ../logs/ci.log
 
       - name: Check frontend component coverage
         working-directory: web
-        run: npm run test:coverage
+        run: |
+          set -o pipefail
+          {
+            echo ""
+            echo "=== web: npm run test:coverage ==="
+          } >> ../logs/ci.log
+          npm run test:coverage 2>&1 | tee -a ../logs/ci.log
 
       - name: Install Playwright browsers
         working-directory: web
@@ -74,4 +119,19 @@ jobs:
 
       - name: Run Playwright critical flow
         working-directory: web
-        run: npm run test:e2e
+        run: |
+          set -o pipefail
+          {
+            echo ""
+            echo "=== web: npm run test:e2e ==="
+          } >> ../logs/ci.log
+          npm run test:e2e 2>&1 | tee -a ../logs/ci.log
+
+      - name: Upload CI log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-log-${{ github.run_id }}
+          path: logs/ci.log
+          retention-days: 14
+          if-no-files-found: warn
