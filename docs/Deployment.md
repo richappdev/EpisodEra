@@ -163,6 +163,17 @@ Optional manual-dispatch inputs:
 
 The workflow writes a run summary with commit SHA, API URL, show ID, duration, and workflow run link. Store that evidence in Notion for release candidates. For approval gates, attach the secrets to a protected GitHub environment and point the workflow job at that environment.
 
+### Account deletion manual validation
+
+The production smoke path intentionally does not delete accounts. Validate account deletion separately with a dedicated throwaway user:
+
+1. Sign up or use a disposable test account (not `EPISODERA_SMOKE_EMAIL`).
+2. Add watchlist/progress data so Firestore subcollections exist under `users/{uid}`.
+3. Open Settings, type `DELETE` in the confirmation dialog, and submit.
+4. Confirm the app signs out, Firebase Auth no longer accepts the credentials, and `users/{uid}` has no remaining documents in Firestore.
+
+**Status:** Manual validation passed on 2026-07-13 against `https://episodera.web.app`.
+
 ## Pre-deploy checklist
 
 - `docs/CodingStandard.md` reviewed for current conventions

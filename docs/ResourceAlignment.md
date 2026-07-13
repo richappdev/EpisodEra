@@ -1,6 +1,6 @@
 # Episodera Resource Alignment
 
-Last updated: 2026-07-11
+Last updated: 2026-07-13
 
 ## Purpose
 
@@ -97,7 +97,7 @@ The highest-priority remaining work is:
 2. Runtime validation against a staging Firebase environment
 3. Accessibility validation, including keyboard flow, focus states, contrast, and touch-target checks
 4. Offline and reconnect testing
-5. Account lifecycle validation, including deletion and related user-data handling — implemented via `DELETE /me/account` and Settings UI; staging verification remains
+5. ~~Account lifecycle validation, including deletion and related user-data handling~~ — **complete.** `DELETE /me/account` and Settings UI implemented; manual production validation passed on 2026-07-13 with a throwaway account (Auth user removed, Firestore `users/{uid}` tree empty). Do not use the smoke automation account for deletion tests.
 6. Privacy and data-retention review — privacy policy page and in-app disclosures added; legal review remains
 7. TMDb attribution and API-compliance verification
 8. Observability, release monitoring, and rollback procedures

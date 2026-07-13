@@ -49,6 +49,7 @@ For local emulator runs, provide the secret through the Firebase emulator secret
 - Users can create an account with email/password.
 - Users can sign in and sign out.
 - Users can delete their account from Settings. Deletion calls `DELETE /me/account`, which removes all Firestore data under `users/{uid}` and deletes the Firebase Authentication user.
+- Manual account-deletion validation passed on 2026-07-13 against the deployed app using a throwaway account. Confirmed `DELETE` confirmation UI, HTTP `204`, Firebase Auth user removal, and empty Firestore user data. The smoke automation account must not be used for deletion tests.
 - Existing discovery and detail screens still work after sign-in.
 - API requests include an ID token for signed-in users.
 - Signed-out users can still browse public discovery pages.
