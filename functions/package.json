@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "serve": "npm run build && firebase emulators:start --only functions,firestore",
+    "serve": "npm run build && firebase emulators:start --only auth,functions,firestore",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "npm run build && node --test \"lib/**/*.test.js\"",
     "test:coverage": "npm run build && node --test --experimental-test-coverage --test-coverage-include=\"lib/**/*.js\" --test-coverage-exclude=\"lib/**/*.test.js\" --test-coverage-exclude=\"lib/**/*.emulator.test.js\" --test-coverage-lines=55 --test-coverage-functions=55 --test-coverage-branches=45 \"lib/**/*.test.js\"",

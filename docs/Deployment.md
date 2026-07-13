@@ -34,6 +34,12 @@ api
 Expected deployed API shape:
 
 ```plain text
+https://api-m74gmd4u4a-uc.a.run.app
+```
+
+Legacy Gen2 URL (still valid during migration):
+
+```plain text
 https://us-central1-episodera.cloudfunctions.net/api
 ```
 
@@ -50,7 +56,7 @@ firebase deploy --only firestore
 Create a production web environment with:
 
 ```plain text
-VITE_API_BASE_URL=https://us-central1-episodera.cloudfunctions.net/api
+VITE_API_BASE_URL=https://api-m74gmd4u4a-uc.a.run.app
 VITE_FIREBASE_API_KEY=...
 VITE_FIREBASE_AUTH_DOMAIN=episodera.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=episodera
@@ -190,5 +196,6 @@ The production smoke path intentionally does not delete accounts. Validate accou
 - Firebase Performance Monitoring enabled for the web app
 - `TMDB_API_KEY` secret configured
 - Firestore rules deployed
-- Production `VITE_API_BASE_URL` points to the deployed function
+- Production `VITE_API_BASE_URL` points to the deployed API (`https://api-m74gmd4u4a-uc.a.run.app`)
 - Firebase Hosting deployed from `web/dist`
+- Review `docs/AppCheck.md` before enabling App Check enforcement

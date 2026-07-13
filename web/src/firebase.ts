@@ -1,6 +1,6 @@
 import {FirebaseApp, FirebaseOptions, initializeApp} from "firebase/app";
 import {Analytics, getAnalytics, isSupported as isAnalyticsSupported, logEvent, setUserId} from "firebase/analytics";
-import {getAuth} from "firebase/auth";
+import {connectAuthEmulator, getAuth} from "firebase/auth";
 import {FirebasePerformance, getPerformance} from "firebase/performance";
 
 const firebaseConfig: FirebaseOptions = {
@@ -20,7 +20,18 @@ export const firebaseConfigError = missingKeys.length
 
 const app: FirebaseApp | null = firebaseConfigError ? null : initializeApp(firebaseConfig);
 
+const useFirebaseEmulators = import.meta.env.VITE_USE_FIREBASE_EMULATORS === "true";
+const authEmulatorHost = (import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_HOST as string | undefined)
+  ?? "http://127.0.0.1:9099";
+
+let connectedAuthEmulator = false;
+
 export const auth = app ? getAuth(app) : null;
+
+if (auth && useFirebaseEmulators && !connectedAuthEmulator) {
+  connectAuthEmulator(auth, authEmulatorHost, {disableWarnings: true});
+  connectedAuthEmulator = true;
+}
 
 let analyticsPromise: Promise<Analytics | null> | null = null;
 let performancePromise: Promise<FirebasePerformance | null> | null = null;

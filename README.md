@@ -150,12 +150,13 @@ Configure local environment values:
 
 - Root `.env` from `.env.example` for backend/Firebase emulator values.
 - `web/.env` from `web/.env.example` for local Vite and Firebase web values.
+- Set `VITE_USE_FIREBASE_EMULATORS=true` in `web/.env` when using local Auth/Functions/Firestore emulators.
 - `web/.env.production` from `web/.env.production.example` for production hosting builds. This file is gitignored; create it on the machine that builds and deploys Firebase Hosting.
 - Firebase secret `TMDB_API_KEY` for deployed functions.
 - Optional `CORS_ORIGINS` comma-separated allowlist for deployed API origins. Leave unset only for local development.
 - Optional rate-limit overrides: `PUBLIC_READ_RATE_LIMIT_MAX`, `PUBLIC_READ_RATE_LIMIT_WINDOW_MS`, `AUTH_WRITE_RATE_LIMIT_MAX`, and `AUTH_WRITE_RATE_LIMIT_WINDOW_MS`.
 
-For local emulator development, Java is required by the Firestore emulator.
+For local emulator development, Java is required by the Firestore emulator. Start Auth, Functions, and Firestore together with `npm run serve` in `functions/`, then run the web app with `VITE_USE_FIREBASE_EMULATORS=true`. See `docs/Authentication.md`.
 
 ## Development Commands
 
@@ -253,7 +254,7 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 - Backend and frontend coverage enforcement is now configured for the current automated test surfaces. Playwright covers the signed-in critical flow, responsive/accessibility smoke, previous-episode gap resolution, season batch writes, failed/offline progress-write recovery, duplicate-action prevention during pending writes, and concurrent browser progress consistency. Broader full-app frontend coverage and deeper accessibility automation are still pending.
 - Deployed production smoke is available locally (`npm run smoke:prod:local`) and in GitHub Actions (`Production Smoke` workflow). Hosted runs require protected repository secrets and recorded workflow evidence for release candidates.
 - Production deployment must configure `CORS_ORIGINS` for the Firebase Hosting, staging, and production domains.
-- Rate limiting is implemented with per-Functions-instance in-memory buckets for public reads and authenticated writes. Firebase App Check or a distributed quota layer is still a future production-hardening option.
+- Rate limiting is implemented with per-Functions-instance in-memory buckets for public reads and authenticated writes. See `docs/AppCheck.md` for the phased App Check rollout plan.
 - Dependency audit findings are documented in `docs/DependencyAudit.md`; fixes require semver-major upgrades for Firebase Functions packages and Vite tooling.
 - Production beta readiness still needs runtime validation and an explicit dependency-risk decision.
 - Firebase Crashlytics is not available for the current web-only client; add it when native Apple, Android, Flutter, or Unity clients exist.
@@ -265,6 +266,8 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 - `docs/API.md` defines backend contracts.
 - `docs/Firestore.md` defines Firestore documents and ownership rules.
 - `docs/Authentication.md` explains auth flow.
+- `docs/AppCheck.md` defines the App Check rollout plan.
+- `docs/FirebaseProject.md` records project verification and live endpoint checks.
 - `docs/Navigation.md` describes screen structure and URL routes.
 - `docs/CodingStandard.md` records implementation conventions.
 - `docs/DependencyAudit.md` records current audit findings and upgrade plan.

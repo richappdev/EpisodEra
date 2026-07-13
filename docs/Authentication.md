@@ -20,6 +20,38 @@ VITE_FIREBASE_PROJECT_ID=episodera
 VITE_FIREBASE_APP_ID=...
 ```
 
+For local emulator development, also set:
+
+```plain text
+VITE_USE_FIREBASE_EMULATORS=true
+VITE_FIREBASE_AUTH_EMULATOR_HOST=http://127.0.0.1:9099
+```
+
+When `VITE_USE_FIREBASE_EMULATORS=true`, the web client connects Firebase Auth to the Auth emulator (`9099`) instead of the live `episodera` project. Use any email/password in the emulator UI; accounts are local only.
+
+## Local emulator flow
+
+1. Start emulators from `functions/`:
+
+```bash
+npm run serve
+```
+
+This starts Auth (`9099`), Functions (`5001`), Firestore (`8080`), and the Emulator UI (`4000`).
+
+2. Configure `web/.env` from `web/.env.example` with `VITE_USE_FIREBASE_EMULATORS=true`.
+
+3. Start the web app:
+
+```bash
+cd web
+npm run dev
+```
+
+4. Sign up or sign in against the Auth emulator. The Functions emulator verifies emulator-issued ID tokens automatically when started via the Emulator Suite.
+
+Do not set `VITE_USE_FIREBASE_EMULATORS=true` in production builds.
+
 ## Required backend secret
 
 ```plain text
@@ -53,3 +85,7 @@ For local emulator runs, provide the secret through the Firebase emulator secret
 - Existing discovery and detail screens still work after sign-in.
 - API requests include an ID token for signed-in users.
 - Signed-out users can still browse public discovery pages.
+
+## Future hardening
+
+See `docs/AppCheck.md` for the phased App Check rollout plan (reCAPTCHA v3, monitor mode, enforced API routes).
