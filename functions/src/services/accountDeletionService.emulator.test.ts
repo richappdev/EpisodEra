@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {FieldValue, getApps, initializeApp} from "firebase-admin/app";
-import {getFirestore} from "firebase-admin/firestore";
+import {getApps, initializeApp} from "firebase-admin/app";
+import {FieldValue, getFirestore} from "firebase-admin/firestore";
 import {accountDeletionService} from "./accountDeletionService";
 
 const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
