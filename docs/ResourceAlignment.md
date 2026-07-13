@@ -103,7 +103,7 @@ The implementation must remain the final authority for whether each capability i
 
 The highest-priority remaining work is:
 
-1. Repeat hosted `Production Smoke` on future release candidates and retain workflow evidence (latest reviewed commit: `031cb35`)
+1. Repeat hosted `Production Smoke` on future release candidates and retain workflow evidence (latest recorded: `031cb35` — [workflow run](https://github.com/richappdev/EpisodEra/actions/runs/29232556051); alignment docs through `2480170`)
 2. Staging Firebase environment separation and staging-specific smoke validation
 3. Domain-hook refactor and independent per-section loading/error ownership beyond current `Promise.allSettled` bootstrap
 4. Pagination/limits for user-owned watchlist, history, and progress lists
@@ -358,8 +358,8 @@ A feature is complete only when all applicable conditions are met:
 
 | Resource              | Current status                                                                                                          |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| GitHub implementation | Core MVP, reliability hardening, privacy/account deletion, URL routing, expanded automated tests, and production smoke tooling implemented through `031cb35`; architecture polish, pagination, compliance review, and ops hardening remain |
-| Notion planning       | Parent and child pages synchronized on 2026-07-13; historical sections below current baselines should not override top status blocks |
+| GitHub implementation | Core MVP, reliability hardening, privacy/account deletion, URL routing, expanded automated tests, and production smoke tooling implemented through `2480170`; architecture polish, pagination, compliance review, and ops hardening remain |
+| Notion planning       | Parent and child pages synchronized on 2026-07-13 through `2480170`; contradictory smoke callouts and Phase D overstatement corrected |
 | Figma design          | Responsive screen system documented; direct latest-file verification pending when connector access allows |
 | Canva reporting       | Should distinguish implemented code, recorded smoke evidence, and beta-ready status; refresh after hosted smoke reruns |
 
@@ -375,9 +375,14 @@ These limitations affect resource synchronization only. They do not change produ
 
 ## Change Log
 
+### 2026-07-13 (alignment drift correction)
+
+* Processed Notion drift review: removed contradictory hosted-smoke-pending callouts, reframed UI Testing P0, qualified Reliability Plan Phase D loading/error state, bumped canonical baseline to `2480170`, patched Alignment Report API list and account-lifecycle table, unified tagline wording.
+* Updated `README.md` emulator-CI wording to reflect hosted CI configuration.
+
 ### 2026-07-13
 
-* Synchronized with Notion alignment review through commit `031cb35`.
+* Synchronized with Notion alignment review through commit `2480170`.
 * Marked privacy policy, account deletion, URL routing, expanded Playwright coverage, production smoke, negative deployed checks, and coverage enforcement as implemented.
 * Updated remaining priorities to focus on hosted smoke reruns, staging separation, domain hooks, pagination, WCAG depth, compliance review, dependency decisions, and observability.
 * Recorded runtime smoke evidence for commits `2e8e6c3`, `a5205f6`, `a8537b0`, `df849b2`, local `031cb35`, and hosted `031cb35` ([workflow run](https://github.com/richappdev/EpisodEra/actions/runs/29232556051), PASS ~23s).

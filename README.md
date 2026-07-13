@@ -4,7 +4,7 @@ Episodera is a movie and TV tracking app for discovering titles, saving a watchl
 
 ## Current Status
 
-The project is in MVP hardening. Core web features are implemented, progress-tracking reliability fixes are in place, and GitHub Actions is configured to run Java-backed Firestore emulator tests. The remaining work is broader automated tests, dependency upgrade planning, first hosted CI emulator-run confirmation, and production-readiness decisions.
+The project is in MVP hardening. Core web features are implemented, progress-tracking reliability fixes are in place, and GitHub Actions runs Java-backed Firestore emulator tests (`npm run test:emulator`) on hosted CI. The remaining work is dependency upgrade planning, deeper accessibility validation, repeat hosted production-smoke evidence for future release candidates, and production-readiness decisions.
 
 ## Features
 
@@ -246,7 +246,7 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 
 ## Known Gaps
 
-- Confirm the first GitHub Actions run passes Firestore emulator progress and rules tests with `npm run test:emulator`.
+- Reconfirm the latest GitHub Actions CI run passes Firestore emulator progress and rules tests with `npm run test:emulator` after significant backend changes.
 - Local Firestore emulator execution still requires Java and the Firebase Emulator Suite.
 - TMDb detail, season, and trending responses use an in-memory TTL cache inside the Functions runtime. A persistent shared cache is still a possible future optimization.
 - TMDb images and metadata must retain visible app attribution: "This product uses the TMDb API and TMDb images/data but is not endorsed or certified by TMDb."
