@@ -103,7 +103,7 @@ The implementation must remain the final authority for whether each capability i
 
 The highest-priority remaining work is:
 
-1. Repeat hosted `Production Smoke` on future release candidates and retain workflow evidence (latest reviewed commit: `3272ab5`)
+1. Repeat hosted `Production Smoke` on future release candidates and retain workflow evidence (latest reviewed commit: `031cb35`)
 2. Staging Firebase environment separation and staging-specific smoke validation
 3. Domain-hook refactor and independent per-section loading/error ownership beyond current `Promise.allSettled` bootstrap
 4. Pagination/limits for user-owned watchlist, history, and progress lists
@@ -358,7 +358,7 @@ A feature is complete only when all applicable conditions are met:
 
 | Resource              | Current status                                                                                                          |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| GitHub implementation | Core MVP, reliability hardening, privacy/account deletion, URL routing, expanded automated tests, and production smoke tooling implemented through `3272ab5`; architecture polish, pagination, compliance review, and ops hardening remain |
+| GitHub implementation | Core MVP, reliability hardening, privacy/account deletion, URL routing, expanded automated tests, and production smoke tooling implemented through `031cb35`; architecture polish, pagination, compliance review, and ops hardening remain |
 | Notion planning       | Parent and child pages synchronized on 2026-07-13; historical sections below current baselines should not override top status blocks |
 | Figma design          | Responsive screen system documented; direct latest-file verification pending when connector access allows |
 | Canva reporting       | Should distinguish implemented code, recorded smoke evidence, and beta-ready status; refresh after hosted smoke reruns |
@@ -377,10 +377,10 @@ These limitations affect resource synchronization only. They do not change produ
 
 ### 2026-07-13
 
-* Synchronized with Notion alignment review through commit `3272ab5`.
+* Synchronized with Notion alignment review through commit `031cb35`.
 * Marked privacy policy, account deletion, URL routing, expanded Playwright coverage, production smoke, negative deployed checks, and coverage enforcement as implemented.
 * Updated remaining priorities to focus on hosted smoke reruns, staging separation, domain hooks, pagination, WCAG depth, compliance review, dependency decisions, and observability.
-* Recorded runtime smoke evidence for commits `2e8e6c3`, `a5205f6`, `a8537b0`, and `df849b2`.
+* Recorded runtime smoke evidence for commits `2e8e6c3`, `a5205f6`, `a8537b0`, `df849b2`, and local `031cb35` (`npm run smoke:prod:local` PASS with negative checks).
 
 ### 2026-07-11
 
