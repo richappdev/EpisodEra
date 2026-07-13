@@ -1,8 +1,57 @@
+import fs from "node:fs";
+import path from "node:path";
+
+const normalizeEnv = (value) => {
+  if (!value) {
+    return value;
+  }
+
+  const trimmed = value.trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+
+  return trimmed;
+};
+
+const loadEnvFile = (filePath, {override = false} = {}) => {
+  const resolved = path.resolve(process.cwd(), filePath);
+  if (!fs.existsSync(resolved)) {
+    throw new Error(`Smoke env file not found: ${resolved}`);
+  }
+
+  for (const line of fs.readFileSync(resolved, "utf8").split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
+
+    const index = trimmed.indexOf("=");
+    if (index <= 0) {
+      continue;
+    }
+
+    const key = trimmed.slice(0, index).trim();
+    const value = normalizeEnv(trimmed.slice(index + 1));
+    if (override || process.env[key] === undefined) {
+      process.env[key] = value;
+    }
+  }
+};
+
+const smokeEnvFile = process.env.EPISODERA_SMOKE_ENV_FILE;
+if (smokeEnvFile) {
+  loadEnvFile(smokeEnvFile, {override: true});
+}
+
 const defaultApiBaseUrl = "https://api-m74gmd4u4a-uc.a.run.app";
-const firebaseApiKey = process.env.EPISODERA_FIREBASE_API_KEY ?? process.env.VITE_FIREBASE_API_KEY;
-const email = process.env.EPISODERA_SMOKE_EMAIL;
-const password = process.env.EPISODERA_SMOKE_PASSWORD;
-const apiBaseUrl = (process.env.EPISODERA_PROD_API_BASE_URL ?? defaultApiBaseUrl).replace(/\/$/, "");
+const firebaseApiKey = normalizeEnv(process.env.EPISODERA_FIREBASE_API_KEY ?? process.env.VITE_FIREBASE_API_KEY);
+const email = normalizeEnv(process.env.EPISODERA_SMOKE_EMAIL);
+const password = normalizeEnv(process.env.EPISODERA_SMOKE_PASSWORD);
+const apiBaseUrl = normalizeEnv(process.env.EPISODERA_PROD_API_BASE_URL ?? defaultApiBaseUrl).replace(/\/$/, "");
 const showId = Number(process.env.EPISODERA_SMOKE_SHOW_ID ?? "125988");
 const timeoutMs = Number(process.env.EPISODERA_SMOKE_TIMEOUT_MS ?? "30000");
 
@@ -159,8 +208,7 @@ try {
   token = await signIn();
 
   const profile = await request("/me/profile", {token});
-  assert(profile.payload?.profile, "Signed-in profile endpoint did not return a profile.");
-  originalProfile = profile.payload.profile;
+  originalProfile = profile.payload?.profile ?? null;
 
   const displayName = `Episodera Smoke ${new Date().toISOString()}`;
   const updatedProfile = await request("/me/profile", {
@@ -216,11 +264,11 @@ try {
   );
 
   const stats = await request("/me/stats", {token});
-  assert(Number(stats.payload?.watchedEpisodes) >= 1, "Stats did not include the watched episode.");
+  assert(Number(stats.payload?.totalWatchedEpisodes) >= 1, "Stats did not include the watched episode.");
 
   const history = await request("/me/history", {token});
   assert(
-    history.payload?.items?.some((item) => item.itemId === `tv_${showId}_s01e01`),
+    history.payload?.items?.some((item) => item.historyId === `tv_${showId}_s01e01`),
     "History did not include the watched episode.",
   );
 
