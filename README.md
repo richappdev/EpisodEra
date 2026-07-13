@@ -175,12 +175,15 @@ npm run test:components
 npm run test:coverage
 npm run test:e2e
 npm run smoke:prod
+npm run smoke:prod:local
 npm run preview
 ```
 
 `npm run test:coverage` runs the Vitest component/page suite with V8 coverage and enforced thresholds for the currently covered UI surfaces. `npm run test:e2e` runs the signed-in critical flow plus deterministic Playwright coverage for responsive shell accessibility, Continue Watching gap resolution, season batch progress writes, failed/offline progress-write recovery, duplicate-action prevention during pending writes, and concurrent browser progress consistency.
 
 `npm run smoke:prod` runs an opt-in deployed runtime validation against Firebase Auth and the deployed API. It requires `EPISODERA_FIREBASE_API_KEY` or `VITE_FIREBASE_API_KEY`, `EPISODERA_SMOKE_EMAIL`, and `EPISODERA_SMOKE_PASSWORD`; optionally set `EPISODERA_PROD_API_BASE_URL` and `EPISODERA_SMOKE_SHOW_ID`. Use a dedicated automation account because the script updates profile data, adds/removes one watchlist item, and marks/unmarks S1 E1 for the smoke show.
+
+Copy `web/.env.smoke.example` to `web/.env.smoke`, replace the placeholder values, then run `npm run smoke:prod:local`.
 
 ## Deployment
 

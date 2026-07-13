@@ -97,6 +97,15 @@ After deployment, run the opt-in signed-in smoke test with a dedicated automatio
 
 ```plain text
 cd web
+cp .env.smoke.example .env.smoke
+# Replace placeholder values in .env.smoke, then:
+npm run smoke:prod:local
+```
+
+Alternatively, export the variables directly:
+
+```plain text
+cd web
 EPISODERA_FIREBASE_API_KEY=...
 EPISODERA_SMOKE_EMAIL=...
 EPISODERA_SMOKE_PASSWORD=...
