@@ -7,6 +7,7 @@
     "dev": "vite --host 127.0.0.1",
     "dev:e2e": "vite --host 127.0.0.1 --mode e2e",
     "build": "tsc && vite build",
+    "build:prod": "node scripts/validate-production-env.mjs && npm run build",
     "preview": "vite preview --host 127.0.0.1",
     "test:components": "vitest run --config vitest.config.ts",
     "test:coverage": "vitest run --config vitest.config.ts --coverage",

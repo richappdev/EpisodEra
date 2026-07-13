@@ -50,12 +50,16 @@ VITE_FIREBASE_APP_ID=...
 VITE_FIREBASE_MEASUREMENT_ID=...
 ```
 
-Then build:
+Then build with production env values:
 
 ```plain text
 cd web
-npm run build
+cp .env.production.example .env.production
+# Fill Firebase web app config and deployed API URL, then:
+npm run build:prod
 ```
+
+`npm run build:prod` validates `web/.env.production` before building. A plain `npm run build` without `.env.production` will produce a bundle missing Firebase client config.
 
 ## Web hosting deployment
 
@@ -66,6 +70,8 @@ Deploy the web app with:
 ```plain text
 firebase deploy --only hosting
 ```
+
+Use `npm run build:prod` (not plain `npm run build`) before hosting deploy so `VITE_FIREBASE_*` and `VITE_API_BASE_URL` are embedded in the bundle.
 
 The app is an SPA, so all routes rewrite to `index.html`.
 
