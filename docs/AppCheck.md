@@ -141,10 +141,10 @@ requireAppCheck  -> 401/403 only after Phase 3 flip
 
 ### Web (`web/`)
 
-- [ ] `initializeAppCheck` with reCAPTCHA v3 site key
-- [ ] Debug provider when `VITE_USE_FIREBASE_EMULATORS=true`
-- [ ] API client sends `X-Firebase-AppCheck`
-- [ ] `web/.env.production.example` documents new vars
+- [x] `initializeAppCheck` with reCAPTCHA v3 site key
+- [x] Debug provider when `VITE_USE_FIREBASE_EMULATORS=true`
+- [x] API client sends `X-Firebase-AppCheck`
+- [x] `web/.env.production.example` documents new vars
 - [ ] `npm run build:prod` validation includes site key before Phase 3
 
 ### Functions (`functions/`)

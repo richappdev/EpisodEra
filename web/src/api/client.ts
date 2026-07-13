@@ -12,6 +12,7 @@ import {
 import {SupportedLanguage, UserSettings} from "../types/settings";
 import {UserStats} from "../types/stats";
 import {AddWatchlistItemInput, WatchlistItem, WatchlistResponse, WatchlistStatus} from "../types/watchlist";
+import {getAppCheckToken} from "../firebase";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:5001/episodera/us-central1/api";
 
@@ -38,6 +39,11 @@ const request = async <T>(path: string, options: RequestOptions = {}): Promise<T
 
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const appCheckToken = await getAppCheckToken();
+  if (appCheckToken) {
+    headers.set("X-Firebase-AppCheck", appCheckToken);
   }
 
   if (options.body !== undefined) {

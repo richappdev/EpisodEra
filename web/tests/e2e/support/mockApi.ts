@@ -46,8 +46,11 @@ type EpisodeWriteBody = {
   episodes: Array<{seasonNumber: number; episodeNumber: number}>;
 };
 
+type FailOnceEndpoint = "watchlist" | "stats" | "history";
+
 interface MockApiOptions {
   autoMarkPreviousEpisodesWatched?: boolean;
+  failOnceEndpoints?: FailOnceEndpoint[];
   initialWatchedEpisodes?: number[];
   initialWatchlistStatus?: "planned" | "watching" | "completed" | "dropped";
   state?: MockApiState;
@@ -61,6 +64,7 @@ interface MockApiStateOptions {
 export interface MockApiState {
   abortNextProgressWrite: boolean;
   failNextProgressWrite: boolean;
+  failOnceEndpoints: Set<FailOnceEndpoint>;
   progressBatchBodies: EpisodeWriteBody[];
   releaseProgressWrite: (() => void) | null;
   watchlistItem: Record<string, unknown> | null;
@@ -70,6 +74,7 @@ export interface MockApiState {
 export const createMockApiState = (options: MockApiStateOptions = {}): MockApiState => ({
   abortNextProgressWrite: false,
   failNextProgressWrite: false,
+  failOnceEndpoints: new Set(),
   progressBatchBodies: [],
   releaseProgressWrite: null,
   watchlistItem: options.initialWatchlistStatus ? watchlistItemFor(options.initialWatchlistStatus) : null,
@@ -86,9 +91,21 @@ export const installMockApi = async (page: Page, options: MockApiOptions = {}) =
     : state.watchlistItem;
   state.watchedEpisodeNumbers =
     options.initialWatchedEpisodes !== undefined ? new Set(options.initialWatchedEpisodes) : state.watchedEpisodeNumbers;
+  for (const endpoint of options.failOnceEndpoints ?? []) {
+    state.failOnceEndpoints.add(endpoint);
+  }
 
   const currentProgress = () => progressFromWatchedEpisodes([...state.watchedEpisodeNumbers]);
   const currentHistory = () => historyFromWatchedEpisodes([...state.watchedEpisodeNumbers]);
+
+  const consumeFailOnce = (endpoint: FailOnceEndpoint) => {
+    if (!state.failOnceEndpoints.has(endpoint)) {
+      return false;
+    }
+
+    state.failOnceEndpoints.delete(endpoint);
+    return true;
+  };
 
   await page.route("**/e2e-api/**", async (route) => {
     const request = route.request();
@@ -126,20 +143,33 @@ export const installMockApi = async (page: Page, options: MockApiOptions = {}) =
     }
 
     if (method === "GET" && path === "/watchlist") {
-      return json(route, {items: state.watchlistItem ? [state.watchlistItem] : []});
+      if (consumeFailOnce("watchlist")) {
+        return json(route, {error: {message: "Temporary watchlist outage."}}, 503);
+      }
+
+      const items = state.watchlistItem ? [state.watchlistItem] : [];
+      return json(route, listPage(items));
     }
 
     if (method === "GET" && path === "/progress") {
       const progress = currentProgress();
-      return json(route, {items: progress ? [summaryFromProgress(progress)] : []});
+      return json(route, listPage(progress ? [summaryFromProgress(progress)] : []));
     }
 
     if (method === "GET" && path === "/me/stats") {
+      if (consumeFailOnce("stats")) {
+        return json(route, {error: {message: "Temporary stats outage."}}, 503);
+      }
+
       return json(route, statsFromState(state.watchlistItem, currentProgress()));
     }
 
     if (method === "GET" && path === "/me/history") {
-      return json(route, {items: currentHistory()});
+      if (consumeFailOnce("history")) {
+        return json(route, {error: {message: "Temporary history outage."}}, 503);
+      }
+
+      return json(route, listPage(currentHistory()));
     }
 
     if (method === "GET" && path === "/trending/tv") {
@@ -355,6 +385,14 @@ const paged = (results: Array<Record<string, unknown>>) => ({
   totalPages: 1,
   totalResults: results.length,
   results,
+});
+
+const listPage = <T,>(items: T[]) => ({
+  items,
+  page: 1,
+  pageSize: 25,
+  totalCount: items.length,
+  hasMore: false,
 });
 
 const json = (route: Route, body: unknown, status = 200) =>

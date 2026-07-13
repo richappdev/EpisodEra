@@ -69,6 +69,8 @@ The currently implemented or substantially implemented product areas include:
 * Public privacy policy (`/privacy`) with bilingual disclosures
 * Account deletion (`DELETE /me/account` and Settings confirmation UI)
 * Responsive navigation and layouts
+* Domain hooks (`useWatchlist`, `useProgress`, `useProfile`, `useProfileStats`, `useSettings`) with independent section loading, error, and retry
+* Paginated list APIs and load-more UI for watchlist, profile history, and discovery trending/search
 
 ## Reliability Work Implemented
 
@@ -103,17 +105,15 @@ The implementation must remain the final authority for whether each capability i
 
 The highest-priority remaining work is:
 
-1. Repeat hosted `Production Smoke` on future release candidates and retain workflow evidence (latest recorded: `031cb35` — [workflow run](https://github.com/richappdev/EpisodEra/actions/runs/29232556051); alignment docs through `2480170`)
-2. Staging Firebase environment separation and staging-specific smoke validation
-3. Domain-hook refactor and independent per-section loading/error ownership beyond current `Promise.allSettled` bootstrap
-4. Pagination/limits for user-owned watchlist, history, and progress lists
-5. Broader WCAG-focused accessibility audit beyond current Playwright smoke assertions
-6. Real-auth deployed E2E cases (signup, token refresh/expiry, deleted-account session, sign-out during write)
-7. Legal review of privacy policy copy and formal TMDb terms/image compliance checklist
-8. Dependency major-upgrade and production-risk decision (`firebase-admin`, `firebase-functions`, Vite)
-9. Evaluate Firebase App Check or distributed rate limiting (current limits are per-Functions-instance)
-10. Observability dashboards, release monitoring, and rollback procedures
-11. Final beta-readiness acceptance review
+1. Repeat hosted `Production Smoke` on future release candidates and retain workflow evidence (latest local: `d125bda` post–Phase D deploy; latest hosted: `031cb35` — [workflow run](https://github.com/richappdev/EpisodEra/actions/runs/29232556051))
+2. Staging Firebase environment separation and staging-specific smoke validation (optional)
+3. Broader WCAG-focused accessibility audit beyond current Playwright smoke assertions
+4. Real-auth deployed E2E cases (signup, token refresh/expiry, deleted-account session, sign-out during write)
+5. Legal review of privacy policy copy and formal TMDb terms/image compliance checklist
+6. Dependency major-upgrade and production-risk decision (`firebase-admin`, `firebase-functions`, Vite)
+7. App Check Phase 2+ backend monitor/enforcement and distributed quota evaluation beyond per-Functions-instance rate limits
+8. Observability dashboards, release monitoring, and rollback procedures
+9. Final beta-readiness acceptance review
 
 Account lifecycle implementation is complete (`DELETE /me/account`, Settings UI, emulator test). Manual throwaway-account deletion validation passed on 2026-07-13. Do not delete the smoke automation account during smoke runs.
 
@@ -358,8 +358,8 @@ A feature is complete only when all applicable conditions are met:
 
 | Resource              | Current status                                                                                                          |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| GitHub implementation | Core MVP, reliability hardening, privacy/account deletion, URL routing, expanded automated tests, and production smoke tooling implemented through `2480170`; architecture polish, pagination, compliance review, and ops hardening remain |
-| Notion planning       | Parent and child pages synchronized on 2026-07-13 through `2480170`; contradictory smoke callouts and Phase D overstatement corrected |
+| GitHub implementation | Core MVP, Phase D domain hooks/pagination/section retries (`b16cf7f`), privacy/account deletion, URL routing, expanded automated tests, and production smoke tooling through `be7a6d4`; App Check client integration, compliance review, and ops hardening remain |
+| Notion planning       | Parent baseline at `d125bda` (Phase D deploy); Reliability Plan child checklist may lag — use parent baseline and this file for implementation status |
 | Figma design          | Responsive screen system documented; direct latest-file verification pending when connector access allows |
 | Canva reporting       | Should distinguish implemented code, recorded smoke evidence, and beta-ready status; refresh after hosted smoke reruns |
 
@@ -374,6 +374,13 @@ At the time of this update:
 These limitations affect resource synchronization only. They do not change product scope or implementation status.
 
 ## Change Log
+
+### 2026-07-13 (Phase E proceed — App Check + section-failure tests)
+
+* Marked Phase D complete: domain hooks, pagination, independent section loading/error/retry (`b16cf7f` / `d125bda`).
+* Bumped canonical baseline to `be7a6d4`; hosted smoke rerun for Phase D+ SHAs remains the top release gate.
+* Started App Check Phase 0–1 client integration per `docs/AppCheck.md`.
+* Added Playwright per-section failure/recovery coverage for watchlist vs profile and history vs stats independence.
 
 ### 2026-07-13 (alignment drift correction)
 

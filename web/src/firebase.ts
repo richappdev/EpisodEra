@@ -1,5 +1,6 @@
 import {FirebaseApp, FirebaseOptions, initializeApp} from "firebase/app";
 import {Analytics, getAnalytics, isSupported as isAnalyticsSupported, logEvent, setUserId} from "firebase/analytics";
+import {AppCheck, getToken, initializeAppCheck, ReCaptchaV3Provider} from "firebase/app-check";
 import {connectAuthEmulator, getAuth} from "firebase/auth";
 import {FirebasePerformance, getPerformance} from "firebase/performance";
 
@@ -23,8 +24,11 @@ const app: FirebaseApp | null = firebaseConfigError ? null : initializeApp(fireb
 const useFirebaseEmulators = import.meta.env.VITE_USE_FIREBASE_EMULATORS === "true";
 const authEmulatorHost = (import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_HOST as string | undefined)
   ?? "http://127.0.0.1:9099";
+const appCheckSiteKey = (import.meta.env.VITE_FIREBASE_APP_CHECK_RECAPTCHA_SITE_KEY as string | undefined)?.trim();
+const appCheckDebugToken = (import.meta.env.VITE_FIREBASE_APP_CHECK_DEBUG_TOKEN as string | undefined)?.trim();
 
 let connectedAuthEmulator = false;
+let appCheck: AppCheck | null = null;
 
 export const auth = app ? getAuth(app) : null;
 
@@ -32,6 +36,31 @@ if (auth && useFirebaseEmulators && !connectedAuthEmulator) {
   connectAuthEmulator(auth, authEmulatorHost, {disableWarnings: true});
   connectedAuthEmulator = true;
 }
+
+if (app && appCheckSiteKey) {
+  if (useFirebaseEmulators && appCheckDebugToken) {
+    (globalThis as typeof globalThis & {FIREBASE_APPCHECK_DEBUG_TOKEN?: string}).FIREBASE_APPCHECK_DEBUG_TOKEN =
+      appCheckDebugToken;
+  }
+
+  appCheck = initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider(appCheckSiteKey),
+    isTokenAutoRefreshEnabled: true,
+  });
+}
+
+export const getAppCheckToken = async (): Promise<string | null> => {
+  if (!appCheck) {
+    return null;
+  }
+
+  try {
+    const result = await getToken(appCheck, false);
+    return result.token;
+  } catch {
+    return null;
+  }
+};
 
 let analyticsPromise: Promise<Analytics | null> | null = null;
 let performancePromise: Promise<FirebasePerformance | null> | null = null;

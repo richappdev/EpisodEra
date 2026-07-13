@@ -75,6 +75,8 @@ npm run build:prod
 
 `npm run build:prod` validates `web/.env.production` before building. A plain `npm run build` without `.env.production` will produce a bundle missing Firebase client config.
 
+Optional App Check Phase 1: set `VITE_FIREBASE_APP_CHECK_RECAPTCHA_SITE_KEY` in `web/.env.production` after registering reCAPTCHA v3 in Firebase Console. The client attaches `X-Firebase-AppCheck` on API requests; backend enforcement is not active until Phase 2+ (`docs/AppCheck.md`).
+
 ## Web hosting deployment
 
 Firebase Hosting serves the built Vite app from `web/dist`.
