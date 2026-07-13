@@ -17,7 +17,8 @@ The MVP uses **React Router 6** (`react-router-dom`) with browser history and sh
 | `/watchlist` | Watchlist + Continue Watching section | Required for data | |
 | `/continue-watching` | Redirect to `/watchlist#continue-watching` | Required for data | Alias for the embedded section |
 | `/profile` | Profile, statistics, history | Required for data | |
-| `/settings` | Settings | Optional | Language + preferences |
+| `/settings` | Settings | Optional | Language, preferences, privacy link, account deletion |
+| `/privacy` | Privacy policy | Public | Static legal content |
 | `/login` | Sign in | Public | Returns to prior route after success when available |
 | `/signup` | Sign up | Public | Returns to prior route after success when available |
 
@@ -37,7 +38,8 @@ Unknown paths redirect to `/`.
 | Watchlist | `/watchlist` | `WatchlistPage` | `GET /watchlist`, `GET /progress` |
 | Continue Watching | `/watchlist#continue-watching`, `/continue-watching` | Section within `WatchlistPage` | `GET /progress` |
 | Profile | `/profile` | `ProfilePage` | `GET /me/profile`, `GET /me/stats`, `GET /me/history` |
-| Settings | `/settings` | `SettingsPage` | `localStorage` + `GET/PATCH /me/settings` when signed in |
+| Settings | `/settings` | `SettingsPage` | `localStorage` + `GET/PATCH /me/settings`, `DELETE /me/account` when signed in |
+| Privacy policy | `/privacy` | `PrivacyPage` | Static copy in `web/src/types/legal.ts` |
 
 ## State rules
 

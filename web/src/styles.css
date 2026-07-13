@@ -177,12 +177,26 @@ select:focus-visible {
   color: var(--color-muted);
   font-size: 13px;
   line-height: 1.5;
+  margin: 0;
+}
+
+.site-footer {
   margin: 0 auto;
   max-width: var(--content-max);
   padding: 0 var(--page-pad) 28px;
 }
 
-.tmdb-attribution a {
+.site-footer-links {
+  font-size: 13px;
+  margin: 0 0 8px;
+}
+
+.site-footer-links a {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.site-footer .tmdb-attribution a {
   color: var(--color-primary);
   font-weight: 700;
 }
@@ -626,6 +640,148 @@ select:focus-visible {
   color: var(--color-muted);
   line-height: 1.5;
   margin: 0;
+}
+
+.settings-inline-link {
+  justify-self: start;
+}
+
+.settings-danger-zone {
+  border-color: color-mix(in srgb, var(--color-danger, #c0392b) 25%, var(--color-border));
+}
+
+.danger-button {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-danger, #c0392b) 12%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-danger, #c0392b) 45%, var(--color-border));
+  border-radius: var(--radius-sm);
+  color: var(--color-danger, #c0392b);
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 700;
+  gap: 8px;
+  justify-content: center;
+  min-height: var(--tap-target);
+  padding: 0 16px;
+}
+
+.danger-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.dialog-backdrop {
+  align-items: center;
+  background: rgb(8 12 20 / 55%);
+  display: grid;
+  inset: 0;
+  justify-items: center;
+  padding: var(--page-pad);
+  position: fixed;
+  z-index: 40;
+}
+
+.confirm-dialog {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 14px;
+  max-width: 440px;
+  padding: 22px;
+  width: min(100%, 440px);
+}
+
+.confirm-dialog h3 {
+  font-size: 22px;
+  margin: 0;
+}
+
+.confirm-dialog p {
+  color: var(--color-text-soft);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.confirm-dialog-form {
+  display: grid;
+  gap: 14px;
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.legal-page {
+  padding-bottom: 40px;
+}
+
+.legal-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 18px;
+  max-width: 720px;
+  padding: clamp(20px, 4vw, 30px);
+}
+
+.legal-header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.legal-header h2 {
+  font-size: 28px;
+  margin: 2px 0 0;
+}
+
+.legal-updated {
+  color: var(--color-muted);
+  font-size: 14px;
+  margin: 6px 0 0;
+}
+
+.legal-section {
+  border-top: 1px solid var(--color-border);
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+}
+
+.legal-section h3 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.legal-section p {
+  color: var(--color-text-soft);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.legal-contact {
+  margin: 0;
+}
+
+.legal-contact a {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.auth-legal-notice {
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.auth-legal-notice a {
+  color: var(--color-primary);
+  font-weight: 700;
 }
 
 .watchlist-header h2 {

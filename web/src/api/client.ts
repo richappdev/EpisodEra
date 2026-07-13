@@ -92,4 +92,5 @@ export const api = {
   updateWatchlistStatus: (itemId: string, status: WatchlistStatus) =>
     request<WatchlistItem>(`/watchlist/${itemId}/status`, {method: "PATCH", body: {status}}),
   removeWatchlistItem: (itemId: string) => request<null>(`/watchlist/${itemId}`, {method: "DELETE"}),
+  deleteAccount: () => request<null>("/me/account", {method: "DELETE"}),
 };

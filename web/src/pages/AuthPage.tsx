@@ -1,11 +1,13 @@
 import {FormEvent, useEffect, useState} from "react";
-import {useLocation, useNavigate} from "react-router-dom";
+import {Link, useLocation, useNavigate} from "react-router-dom";
 import {createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile} from "firebase/auth";
 import {LogIn, UserPlus} from "lucide-react";
 import {api} from "../api/client";
 import {useAuth} from "../auth/AuthContext";
+import {useAppContext} from "../AppContext";
 import {auth} from "../firebase";
 import {paths} from "../routes/paths";
+import {legalCopy} from "../types/legal";
 import {UserProfile} from "../types/profile";
 
 type AuthMode = "signin" | "signup";
@@ -18,6 +20,7 @@ interface AuthPageProps {
 
 export const AuthPage = ({initialMode = "signin", onDone, onProfileLoaded}: AuthPageProps) => {
   const {configError} = useAuth();
+  const {language} = useAppContext();
   const navigate = useNavigate();
   const location = useLocation();
   const [mode, setMode] = useState<AuthMode>(initialMode);
@@ -73,6 +76,7 @@ export const AuthPage = ({initialMode = "signin", onDone, onProfileLoaded}: Auth
   };
 
   const isSignup = mode === "signup";
+  const authLegal = legalCopy[language].auth;
 
   return (
     <main className="auth-page">
@@ -153,6 +157,13 @@ export const AuthPage = ({initialMode = "signin", onDone, onProfileLoaded}: Auth
         >
           {isSignup ? "Already have an account? Sign in" : "Need an account? Sign up"}
         </button>
+
+        {isSignup && (
+          <p className="auth-legal-notice">
+            {authLegal.privacyNotice}{" "}
+            <Link to={paths.privacy}>{authLegal.privacyLink}</Link>.
+          </p>
+        )}
       </section>
     </main>
   );

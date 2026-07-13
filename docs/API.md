@@ -12,7 +12,7 @@ The deployed Cloud Functions URL normally has this form:
 https://us-central1-<firebase-project-id>.cloudfunctions.net/api
 ```
 
-Responses are JSON except for successful `DELETE /watchlist/:itemId`, which returns an empty `204 No Content` response. Send JSON request bodies with `Content-Type: application/json`; the request body limit is 64 KiB.
+Responses are JSON except for successful `DELETE /watchlist/:itemId` and `DELETE /me/account`, which return an empty `204 No Content` response. Send JSON request bodies with `Content-Type: application/json`; the request body limit is 64 KiB.
 
 Read-only discovery endpoints can be called without authentication. User-owned endpoints require a Firebase ID token in the `Authorization` header:
 
@@ -56,6 +56,7 @@ TMDb detail and TV season reads use a 24-hour per-Functions-instance in-memory T
 | `PATCH` | `/me/profile` | Firebase ID token | `200` |
 | `GET` | `/me/settings` | Firebase ID token | `200` |
 | `PATCH` | `/me/settings` | Firebase ID token | `200` |
+| `DELETE` | `/me/account` | Firebase ID token | `204` |
 
 ## Rate limiting
 
@@ -64,7 +65,7 @@ The API applies per-Functions-instance rate limits before route handlers run:
 | Bucket | Scope | Default |
 | --- | --- | --- |
 | Public reads | Client IP for `GET /search`, `GET /trending*`, `GET /movie/:id`, `GET /tv/:id`, and `GET /tv/:id/season/:seasonNumber` | 120 requests per 60 seconds |
-| Authenticated writes | Firebase UID for `POST`, `PATCH`, and `DELETE` requests under `/watchlist`, `/progress`, `/me/profile`, and `/me/settings` | 60 requests per 60 seconds |
+| Authenticated writes | Firebase UID for `POST`, `PATCH`, and `DELETE` requests under `/watchlist`, `/progress`, `/me/profile`, `/me/settings`, and `/me/account` | 60 requests per 60 seconds |
 
 Configure defaults with:
 
@@ -684,6 +685,12 @@ Request:
 ```
 
 Response: updated settings. Supported language values are `en-US` and `zh-TW`. The API stores `autoMarkPreviousEpisodesWatched`, but does not itself expand a single-episode progress request. The current web client implements the behavior by sending previous unwatched episodes through the batch endpoint.
+
+```http
+DELETE /me/account
+```
+
+Permanently deletes the signed-in user's Firestore data under `users/{uid}` (profile, watchlist, progress, history, settings, ratings) and removes the Firebase Authentication user. Returns `204 No Content` on success. This action is irreversible.
 
 ## Errors
 

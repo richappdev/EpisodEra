@@ -1,9 +1,10 @@
+import {Link, useLocation} from "react-router-dom";
 import {useAuth} from "./auth/AuthContext";
-import {AppProvider} from "./AppContext";
+import {AppProvider, useAppContext} from "./AppContext";
 import {TopBar} from "./components/TopBar";
 import {AppRoutes} from "./routes/AppRoutes";
-import {isDetailPath, navFromPath, type NavView} from "./routes/paths";
-import {useLocation} from "react-router-dom";
+import {isDetailPath, navFromPath, paths, type NavView} from "./routes/paths";
+import {legalCopy} from "./types/legal";
 
 const resolveActiveView = (pathname: string, state: unknown): NavView => {
   if (isDetailPath(pathname)) {
@@ -17,6 +18,26 @@ const resolveActiveView = (pathname: string, state: unknown): NavView => {
   }
 
   return navFromPath(pathname);
+};
+
+const SiteFooter = () => {
+  const {language} = useAppContext();
+  const footer = legalCopy[language].footer;
+
+  return (
+    <footer className="site-footer">
+      <p className="site-footer-links">
+        <Link to={paths.privacy}>{footer.privacy}</Link>
+      </p>
+      <p className="tmdb-attribution">
+        {footer.tmdbPrefix}{" "}
+        <a href="https://www.themoviedb.org/about/logos-attribution" rel="noreferrer" target="_blank">
+          {footer.tmdbLinkLabel}
+        </a>
+        {footer.tmdbSuffix}
+      </p>
+    </footer>
+  );
 };
 
 const AppShell = () => {
@@ -39,13 +60,7 @@ const AppShell = () => {
     <>
       <TopBar activeView={activeView} />
       <AppRoutes />
-      <footer className="tmdb-attribution">
-        This product uses the TMDb API and TMDb images/data but is not endorsed or certified by{" "}
-        <a href="https://www.themoviedb.org/about/logos-attribution" rel="noreferrer" target="_blank">
-          TMDb
-        </a>
-        .
-      </footer>
+      <SiteFooter />
     </>
   );
 };

@@ -1,5 +1,6 @@
 import {Router} from "express";
 import {AuthenticatedRequest, requireAuth} from "../middleware/auth";
+import {accountDeletionService} from "../services/accountDeletionService";
 import {historyService} from "../services/historyService";
 import {parseProfileInput, profileService} from "../services/profileService";
 import {parseSettingsInput, settingsService} from "../services/settingsService";
@@ -52,6 +53,15 @@ meRouter.get("/me/settings", async (req: AuthenticatedRequest, res, next) => {
 meRouter.patch("/me/settings", async (req: AuthenticatedRequest, res, next) => {
   try {
     res.json(await settingsService.update(req.user!.uid, parseSettingsInput(req.body)));
+  } catch (error) {
+    next(error);
+  }
+});
+
+meRouter.delete("/me/account", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    await accountDeletionService.deleteAccount(req.user!.uid);
+    res.status(204).send();
   } catch (error) {
     next(error);
   }

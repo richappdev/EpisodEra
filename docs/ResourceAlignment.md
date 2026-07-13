@@ -97,8 +97,8 @@ The highest-priority remaining work is:
 2. Runtime validation against a staging Firebase environment
 3. Accessibility validation, including keyboard flow, focus states, contrast, and touch-target checks
 4. Offline and reconnect testing
-5. Account lifecycle validation, including deletion and related user-data handling
-6. Privacy and data-retention review
+5. Account lifecycle validation, including deletion and related user-data handling — implemented via `DELETE /me/account` and Settings UI; staging verification remains
+6. Privacy and data-retention review — privacy policy page and in-app disclosures added; legal review remains
 7. TMDb attribution and API-compliance verification
 8. Observability, release monitoring, and rollback procedures
 9. Final beta-readiness acceptance review

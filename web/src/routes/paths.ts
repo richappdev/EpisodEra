@@ -13,6 +13,7 @@ export const paths = {
   continueWatching: "/continue-watching",
   profile: "/profile",
   settings: "/settings",
+  privacy: "/privacy",
   login: "/login",
   signup: "/signup",
 } as const;

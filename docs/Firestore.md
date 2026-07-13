@@ -214,6 +214,8 @@ cd functions
 npm run test:emulator
 ```
 
+Account deletion uses the Admin SDK `recursiveDelete` operation on `users/{uid}` from `DELETE /me/account`. This removes the profile document and all owner-scoped subcollections (watchlist, progress, history, settings, ratings) before deleting the Firebase Authentication user.
+
 Java is required by the Firebase Emulator Suite.
 
 ## Indexes

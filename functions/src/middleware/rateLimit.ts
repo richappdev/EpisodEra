@@ -27,6 +27,7 @@ const writePaths = [
   /^\/progress(?:\/|$)/,
   /^\/me\/profile(?:\?|$)/,
   /^\/me\/settings(?:\?|$)/,
+  /^\/me\/account(?:\?|$)/,
 ];
 
 export const resetRateLimitBucketsForTests = () => {

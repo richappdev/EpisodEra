@@ -121,6 +121,10 @@ export const installMockApi = async (page: Page, options: MockApiOptions = {}) =
       });
     }
 
+    if (method === "DELETE" && path === "/me/account") {
+      return route.fulfill({status: 204, body: ""});
+    }
+
     if (method === "GET" && path === "/watchlist") {
       return json(route, {items: state.watchlistItem ? [state.watchlistItem] : []});
     }
