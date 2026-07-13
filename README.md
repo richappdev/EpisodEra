@@ -43,11 +43,12 @@ The project is in MVP hardening. Core web features are implemented, progress-tra
 - Firebase Analytics and Performance Monitoring for the web app.
 - GitHub Actions CI for backend build, backend lint, backend unit tests with coverage enforcement, Java-backed Firestore emulator tests, frontend build, frontend component coverage enforcement, and Playwright critical-flow, progress edge-case, and responsive/accessibility smoke coverage.
 - GitHub Actions `Production Smoke` workflow for manual-dispatch or scheduled deployed signed-in validation using protected repository secrets.
+- URL routing and shareable deep links with React Router (`/`, `/search`, `/movie/:id`, `/tv/:id`, `/watchlist`, `/profile`, `/settings`, `/login`, `/signup`).
 - Project documentation for architecture, API contracts, Firestore schema, auth, navigation, deployment, coding standards, and dependency audit posture.
 
 ## Tech Stack
 
-- Frontend: React 18, Vite, TypeScript, Firebase Web SDK
+- Frontend: React 18, Vite, TypeScript, React Router, Firebase Web SDK
 - Backend: Firebase Cloud Functions, Express, TypeScript
 - Auth: Firebase Authentication
 - Database: Firestore
@@ -147,7 +148,8 @@ npm install
 Configure local environment values:
 
 - Root `.env` from `.env.example` for backend/Firebase emulator values.
-- `web/.env` from `web/.env.example` for Vite and Firebase web values.
+- `web/.env` from `web/.env.example` for local Vite and Firebase web values.
+- `web/.env.production` from `web/.env.production.example` for production hosting builds. This file is gitignored; create it on the machine that builds and deploys Firebase Hosting.
 - Firebase secret `TMDB_API_KEY` for deployed functions.
 - Optional `CORS_ORIGINS` comma-separated allowlist for deployed API origins. Leave unset only for local development.
 - Optional rate-limit overrides: `PUBLIC_READ_RATE_LIMIT_MAX`, `PUBLIC_READ_RATE_LIMIT_WINDOW_MS`, `AUTH_WRITE_RATE_LIMIT_MAX`, and `AUTH_WRITE_RATE_LIMIT_WINDOW_MS`.
@@ -176,6 +178,7 @@ Frontend:
 cd web
 npm run dev
 npm run build
+npm run build:prod
 npm run test:components
 npm run test:coverage
 npm run test:e2e
@@ -183,6 +186,8 @@ npm run smoke:prod
 npm run smoke:prod:local
 npm run preview
 ```
+
+`npm run build` is fine for local checks and CI, but it does not load `web/.env.production`. Use `npm run build:prod` before Firebase Hosting deploy so `VITE_FIREBASE_*` and `VITE_API_BASE_URL` are embedded in the bundle. A hosting release built without production env values will load the app shell but show `Missing Firebase config` on `/login`.
 
 `npm run test:coverage` runs the Vitest component/page suite with V8 coverage and enforced thresholds for the currently covered UI surfaces. `npm run test:e2e` runs the signed-in critical flow plus deterministic Playwright coverage for responsive shell accessibility, Continue Watching gap resolution, season batch progress writes, failed/offline progress-write recovery, duplicate-action prevention during pending writes, and concurrent browser progress consistency.
 
@@ -213,6 +218,29 @@ firebase deploy --only functions
 firebase deploy --only firestore
 ```
 
+Deploy Firebase Hosting:
+
+```bash
+cd web
+cp .env.production.example .env.production
+# Fill Firebase web app config and the deployed API URL once on this machine.
+npm run build:prod
+cd ..
+firebase deploy --only hosting
+```
+
+`npm run build:prod` validates `web/.env.production` before building. Required production values:
+
+- `VITE_API_BASE_URL`
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_APP_ID`
+
+Optional but recommended:
+
+- `VITE_FIREBASE_MEASUREMENT_ID`
+
 See `docs/Deployment.md` for the full pre-deploy checklist.
 
 ## Known Gaps
@@ -236,7 +264,7 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 - `docs/API.md` defines backend contracts.
 - `docs/Firestore.md` defines Firestore documents and ownership rules.
 - `docs/Authentication.md` explains auth flow.
-- `docs/Navigation.md` describes screen structure.
+- `docs/Navigation.md` describes screen structure and URL routes.
 - `docs/CodingStandard.md` records implementation conventions.
 - `docs/DependencyAudit.md` records current audit findings and upgrade plan.
 - `docs/Deployment.md` covers deployment and CI.
