@@ -1,27 +1,36 @@
-import {FormEvent, useState} from "react";
+import {FormEvent, useEffect, useState} from "react";
+import {useLocation, useNavigate} from "react-router-dom";
 import {createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile} from "firebase/auth";
 import {LogIn, UserPlus} from "lucide-react";
 import {api} from "../api/client";
 import {useAuth} from "../auth/AuthContext";
 import {auth} from "../firebase";
+import {paths} from "../routes/paths";
 import {UserProfile} from "../types/profile";
 
 type AuthMode = "signin" | "signup";
 
 interface AuthPageProps {
+  initialMode?: AuthMode;
   onDone: () => void;
   onProfileLoaded: (profile: UserProfile) => void;
 }
 
-export const AuthPage = ({onDone, onProfileLoaded}: AuthPageProps) => {
+export const AuthPage = ({initialMode = "signin", onDone, onProfileLoaded}: AuthPageProps) => {
   const {configError} = useAuth();
-  const [mode, setMode] = useState<AuthMode>("signin");
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -136,7 +145,7 @@ export const AuthPage = ({onDone, onProfileLoaded}: AuthPageProps) => {
           className="text-button"
           type="button"
           onClick={() => {
-            setMode(isSignup ? "signin" : "signup");
+            navigate(isSignup ? paths.login : paths.signup, {replace: true, state: location.state});
             setError(null);
             setFirstName("");
             setLastName("");

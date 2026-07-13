@@ -8,11 +8,13 @@ export default defineConfig({
       all: true,
       exclude: [
         "src/App.tsx",
+        "src/AppContext.tsx",
         "src/api/**",
         "src/auth/**",
         "src/firebase.ts",
         "src/main.tsx",
         "src/pages/AuthPage.tsx",
+        "src/routes/**",
         "src/test/**",
         "src/vite-env.d.ts",
         "src/**/*.test.{ts,tsx}",

@@ -1,21 +1,33 @@
-import {User} from "firebase/auth";
+import {NavLink} from "react-router-dom";
 import {BarChart3, Bookmark, LogIn, LogOut, Search, Settings, TrendingUp} from "lucide-react";
-import {UserProfile} from "../types/profile";
-import {SupportedLanguage, uiCopy} from "../types/settings";
+import {useAuth} from "../auth/AuthContext";
+import {useAppContext} from "../AppContext";
+import {paths, type NavView} from "../routes/paths";
+import {uiCopy} from "../types/settings";
 
 interface TopBarProps {
-  activeView: "trending" | "search" | "watchlist" | "profile" | "settings";
-  language: SupportedLanguage;
-  profile: UserProfile | null;
-  user: User | null;
-  onAuthOpen: () => void;
-  onSignOut: () => void;
-  onViewChange: (view: "trending" | "search" | "watchlist" | "profile" | "settings") => void;
+  activeView: NavView;
 }
 
-export const TopBar = ({activeView, language, profile, user, onAuthOpen, onSignOut, onViewChange}: TopBarProps) => {
+const navClassName =
+  (view: NavView, activeView: NavView) =>
+  ({isActive}: {isActive: boolean}) =>
+    activeView === view || isActive ? "active" : "";
+
+export const TopBar = ({activeView}: TopBarProps) => {
+  const {user} = useAuth();
+  const {openAuth, profile, signOutAndReset, language} = useAppContext();
   const copy = uiCopy[language].topBar;
   const accountLabel = profile?.firstName || user?.displayName || user?.email;
+
+  const handleAccountClick = () => {
+    if (user) {
+      void signOutAndReset();
+      return;
+    }
+
+    openAuth();
+  };
 
   return (
     <header className="top-bar">
@@ -26,58 +38,33 @@ export const TopBar = ({activeView, language, profile, user, onAuthOpen, onSignO
       <div className="top-actions">
         {user && accountLabel && <span className="user-chip">Welcome, {accountLabel}</span>}
         <nav aria-label="Primary">
-          <button
-            className={activeView === "trending" ? "active" : ""}
+          <NavLink
+            className={navClassName("trending", activeView)}
             data-testid="nav-trending"
-            type="button"
-            onClick={() => onViewChange("trending")}
             title={copy.trending}
+            to={paths.home}
           >
             <TrendingUp size={18} aria-hidden="true" />
             <span>{copy.trending}</span>
-          </button>
-          <button
-            className={activeView === "search" ? "active" : ""}
-            data-testid="nav-search"
-            type="button"
-            onClick={() => onViewChange("search")}
-            title={copy.search}
-          >
+          </NavLink>
+          <NavLink className={navClassName("search", activeView)} data-testid="nav-search" title={copy.search} to={paths.search}>
             <Search size={18} aria-hidden="true" />
             <span>{copy.search}</span>
-          </button>
-          <button
-            className={activeView === "watchlist" ? "active" : ""}
-            data-testid="nav-watchlist"
-            type="button"
-            onClick={() => onViewChange("watchlist")}
-            title={copy.watchlist}
-          >
+          </NavLink>
+          <NavLink className={navClassName("watchlist", activeView)} data-testid="nav-watchlist" title={copy.watchlist} to={paths.watchlist}>
             <Bookmark size={18} aria-hidden="true" />
             <span>{copy.watchlist}</span>
-          </button>
-          <button
-            className={activeView === "profile" ? "active" : ""}
-            data-testid="nav-profile"
-            type="button"
-            onClick={() => onViewChange("profile")}
-            title={copy.profile}
-          >
+          </NavLink>
+          <NavLink className={navClassName("profile", activeView)} data-testid="nav-profile" title={copy.profile} to={paths.profile}>
             <BarChart3 size={18} aria-hidden="true" />
             <span>{copy.profile}</span>
-          </button>
-          <button
-            className={activeView === "settings" ? "active" : ""}
-            data-testid="nav-settings"
-            type="button"
-            onClick={() => onViewChange("settings")}
-            title={copy.settings}
-          >
+          </NavLink>
+          <NavLink className={navClassName("settings", activeView)} data-testid="nav-settings" title={copy.settings} to={paths.settings}>
             <Settings size={18} aria-hidden="true" />
             <span>{copy.settings}</span>
-          </button>
+          </NavLink>
         </nav>
-        <button className="account-button" data-testid="account-button" type="button" onClick={user ? onSignOut : onAuthOpen}>
+        <button className="account-button" data-testid="account-button" type="button" onClick={handleAccountClick}>
           {user ? <LogOut size={18} aria-hidden="true" /> : <LogIn size={18} aria-hidden="true" />}
           {user ? copy.signOut : copy.signIn}
         </button>

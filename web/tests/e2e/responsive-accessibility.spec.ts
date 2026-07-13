@@ -23,7 +23,7 @@ test("signed-in shell keeps critical controls accessible on desktop and mobile",
     }
 
     for (const label of criticalNavLabels) {
-      await expect(page.getByRole("button", {name: label})).toBeVisible();
+      await expect(page.getByRole("link", {name: label})).toBeVisible();
     }
 
     await expect(page.getByTestId("account-button")).toHaveAccessibleName("Sign out");

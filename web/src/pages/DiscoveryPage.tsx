@@ -8,12 +8,20 @@ import {SupportedLanguage, uiCopy} from "../types/settings";
 interface DiscoveryPageProps {
   view: "trending" | "search";
   language: SupportedLanguage;
+  initialSearchQuery?: string | null;
+  onSearchQueryChange?: (query: string) => void;
   onSelect: (item: MediaSummary) => void;
 }
 
 type TrendingTab = Extract<MediaType, "movie" | "tv">;
 
-export const DiscoveryPage = ({view, language, onSelect}: DiscoveryPageProps) => {
+export const DiscoveryPage = ({
+  view,
+  language,
+  initialSearchQuery = null,
+  onSearchQueryChange,
+  onSelect,
+}: DiscoveryPageProps) => {
   const copy = uiCopy[language].search;
   const [query, setQuery] = useState("");
   const [searchData, setSearchData] = useState<DiscoveryResponse | null>(null);
@@ -37,6 +45,29 @@ export const DiscoveryPage = ({view, language, onSelect}: DiscoveryPageProps) =>
       .finally(() => setLoading(false));
   }, [language, trendingTab, view]);
 
+  useEffect(() => {
+    if (view !== "search") {
+      return;
+    }
+
+    const nextQuery = initialSearchQuery?.trim() ?? "";
+    setQuery(nextQuery);
+    if (!nextQuery) {
+      setSearchData(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSearchData(null);
+    api.search(nextQuery, language)
+      .then(setSearchData)
+      .catch((err: Error) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [initialSearchQuery, language, view]);
+
   const submitSearch = (event: FormEvent) => {
     event.preventDefault();
     const nextQuery = query.trim();
@@ -47,6 +78,7 @@ export const DiscoveryPage = ({view, language, onSelect}: DiscoveryPageProps) =>
     setLoading(true);
     setError(null);
     setSearchData(null);
+    onSearchQueryChange?.(nextQuery);
     api.search(nextQuery, language)
       .then(setSearchData)
       .catch((err: Error) => setError(err.message))

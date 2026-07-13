@@ -81,7 +81,7 @@ export const WatchlistPage = ({
       )}
 
       {continueWatchingItems.length > 0 && (
-        <section className="continue-panel">
+        <section className="continue-panel" id="continue-watching">
           <div className="section-header">
             <h2>Continue watching</h2>
             <span>{continueWatchingItems.length} active</span>
