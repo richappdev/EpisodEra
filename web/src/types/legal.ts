@@ -98,9 +98,9 @@ export const legalCopy: Record<SupportedLanguage, LegalCopy> = {
     },
     footer: {
       privacy: "Privacy",
-      tmdbPrefix: "Movie and TV metadata and images from",
-      tmdbLinkLabel: "TMDb",
-      tmdbSuffix: ". Episodera is not endorsed or certified by TMDb. We send TMDb only public metadata requests, not your account data.",
+      tmdbPrefix: "This product uses the",
+      tmdbLinkLabel: "TMDb API",
+      tmdbSuffix: " and TMDb images/data but is not endorsed or certified by TMDb.",
     },
     settings: {
       privacyTitle: "Privacy & data",
@@ -179,9 +179,9 @@ export const legalCopy: Record<SupportedLanguage, LegalCopy> = {
     },
     footer: {
       privacy: "隱私權",
-      tmdbPrefix: "電影與影集中繼資料及圖片來自",
-      tmdbLinkLabel: "TMDb",
-      tmdbSuffix: "。Episodera 未獲 TMDb 背書或認證。我們僅向 TMDb 傳送公開中繼資料請求，不會傳送您的帳戶資料。",
+      tmdbPrefix: "本產品使用",
+      tmdbLinkLabel: "TMDb API",
+      tmdbSuffix: " 與 TMDb 圖片/資料，但未獲 TMDb 背書或認證。",
     },
     settings: {
       privacyTitle: "隱私與資料",
