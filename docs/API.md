@@ -312,8 +312,13 @@ watched
 ### List Watchlist
 
 ```http
-GET /watchlist
+GET /watchlist?page={page}&pageSize={pageSize}
 ```
+
+Query parameters:
+
+- `page` — optional positive integer, default `1`
+- `pageSize` — optional positive integer, default `25`, maximum `100`
 
 Response:
 
@@ -331,7 +336,11 @@ Response:
       "addedAt": "2026-07-10T04:00:00.000Z",
       "updatedAt": "2026-07-10T04:00:00.000Z"
     }
-  ]
+  ],
+  "page": 1,
+  "pageSize": 25,
+  "totalCount": 12,
+  "hasMore": false
 }
 ```
 
@@ -396,10 +405,15 @@ users/{uid}/progress/{showId}/episodes/{episodeKey}
 ### List Show Progress
 
 ```http
-GET /progress
+GET /progress?page={page}&pageSize={pageSize}
 ```
 
 Lists summary-only show progress documents for the signed-in user, sorted by most recently updated. This endpoint does not read each show's `episodes` subcollection.
+
+Query parameters:
+
+- `page` — optional positive integer, default `1`
+- `pageSize` — optional positive integer, default `25`, maximum `100`
 
 Response:
 
@@ -423,7 +437,11 @@ Response:
       },
       "updatedAt": "2026-07-10T07:00:00.000Z"
     }
-  ]
+  ],
+  "page": 1,
+  "pageSize": 25,
+  "totalCount": 5,
+  "hasMore": false
 }
 ```
 
@@ -581,11 +599,16 @@ Response:
 
 ## Profile History
 
-History endpoints require authentication and return up to the 25 most recent watched movie and episode events for the signed-in user, ordered by `watchedAt` descending. This endpoint has no pagination parameters.
+History endpoints require authentication and return watched movie and episode events for the signed-in user, ordered by `watchedAt` descending.
 
 ```http
-GET /me/history
+GET /me/history?page={page}&pageSize={pageSize}
 ```
+
+Query parameters:
+
+- `page` — optional positive integer, default `1`
+- `pageSize` — optional positive integer, default `25`, maximum `100`
 
 Response:
 
@@ -603,7 +626,11 @@ Response:
       "watchedAt": "2026-07-10T07:00:00.000Z",
       "updatedAt": "2026-07-10T07:00:00.000Z"
     }
-  ]
+  ],
+  "page": 1,
+  "pageSize": 25,
+  "totalCount": 18,
+  "hasMore": false
 }
 ```
 

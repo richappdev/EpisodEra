@@ -1,4 +1,5 @@
 import {Bookmark, CheckCircle2, Film, ListChecks, Loader2, Trash2} from "lucide-react";
+import {SectionError} from "../components/SectionError";
 import {ShowProgressSummary} from "../types/progress";
 import {WatchlistItem, WatchlistStatus, movieWatchlistStatuses, tvWatchlistStatuses} from "../types/watchlist";
 
@@ -13,11 +14,16 @@ const statusLabels: Record<WatchlistStatus, string> = {
 
 interface WatchlistPageProps {
   error: string | null;
+  hasMore: boolean;
   items: WatchlistItem[];
   loading: boolean;
+  loadingMore: boolean;
   progressItems: ShowProgressSummary[];
   signedIn: boolean;
+  totalCount: number;
+  onLoadMore: () => void;
   onRemove: (item: WatchlistItem) => void;
+  onRetry: () => void;
   onSelect: (item: WatchlistItem) => void;
   onNextEpisodeWatched: (item: WatchlistItem, progress: ShowProgressSummary) => void;
   onStatusChange: (item: WatchlistItem, status: WatchlistStatus) => void;
@@ -33,11 +39,16 @@ const nextEpisodeLabelFor = (progress: ShowProgressSummary) => {
 
 export const WatchlistPage = ({
   error,
+  hasMore,
   items,
   loading,
+  loadingMore,
   progressItems,
   signedIn,
+  totalCount,
+  onLoadMore,
   onRemove,
+  onRetry,
   onSelect,
   onNextEpisodeWatched,
   onStatusChange,
@@ -63,7 +74,7 @@ export const WatchlistPage = ({
           <span className="media-kind">Library</span>
           <h2>Watchlist</h2>
         </div>
-        <span>{items.length} saved</span>
+        <span>{totalCount || items.length} saved</span>
       </section>
 
       {loading && (
@@ -72,7 +83,7 @@ export const WatchlistPage = ({
           Loading watchlist...
         </div>
       )}
-      {error && <div className="state-panel error">{error}</div>}
+      {error && !loading && <SectionError message={error} onRetry={onRetry} />}
       {!loading && !error && items.length === 0 && (
         <div className="state-panel empty-watchlist">
           <Bookmark size={24} aria-hidden="true" />
@@ -162,6 +173,14 @@ export const WatchlistPage = ({
           );
         })}
       </div>
+
+      {hasMore && !loading && !error && (
+        <div className="section-actions">
+          <button className="text-button" disabled={loadingMore} type="button" onClick={onLoadMore}>
+            {loadingMore ? "Loading more..." : "Load more titles"}
+          </button>
+        </div>
+      )}
     </main>
   );
 };

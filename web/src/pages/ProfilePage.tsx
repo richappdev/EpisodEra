@@ -1,16 +1,25 @@
 import {BarChart3, CheckCircle2, Clapperboard, Film, ListChecks, Loader2, PlayCircle, Tv} from "lucide-react";
+import {SectionError} from "../components/SectionError";
 import {HistoryEntry} from "../types/history";
 import {UserProfile} from "../types/profile";
 import {UserStats} from "../types/stats";
 
 interface ProfilePageProps {
-  error: string | null;
   history: HistoryEntry[];
-  loading: boolean;
+  historyError: string | null;
+  historyHasMore: boolean;
+  historyLoading: boolean;
+  historyLoadingMore: boolean;
+  historyTotalCount: number;
   profile: UserProfile | null;
   signedIn: boolean;
   stats: UserStats | null;
+  statsError: string | null;
+  statsLoading: boolean;
   userEmail: string | null;
+  onLoadMoreHistory: () => void;
+  onRetryHistory: () => void;
+  onRetryStats: () => void;
 }
 
 const formatWatchedAt = (value: string | null) => {
@@ -21,7 +30,23 @@ const formatWatchedAt = (value: string | null) => {
   return new Intl.DateTimeFormat(undefined, {dateStyle: "medium"}).format(new Date(value));
 };
 
-export const ProfilePage = ({error, history, loading, profile, signedIn, stats, userEmail}: ProfilePageProps) => {
+export const ProfilePage = ({
+  history,
+  historyError,
+  historyHasMore,
+  historyLoading,
+  historyLoadingMore,
+  historyTotalCount,
+  profile,
+  signedIn,
+  stats,
+  statsError,
+  statsLoading,
+  userEmail,
+  onLoadMoreHistory,
+  onRetryHistory,
+  onRetryStats,
+}: ProfilePageProps) => {
   if (!signedIn) {
     return (
       <main className="page-shell">
@@ -45,14 +70,15 @@ export const ProfilePage = ({error, history, loading, profile, signedIn, stats, 
         <BarChart3 size={28} aria-hidden="true" />
       </section>
 
-      {loading && (
+      {statsLoading && (
         <div className="state-panel inline-state">
           <Loader2 size={18} aria-hidden="true" />
           Loading stats...
         </div>
       )}
-      {error && <div className="state-panel error">{error}</div>}
-      {!loading && !error && stats && (
+      {statsError && !statsLoading && <SectionError message={statsError} onRetry={onRetryStats} />}
+
+      {!statsLoading && !statsError && stats && (
         <>
           <section className="stats-grid" aria-label="Viewing stats">
             <article className="stat-card">
@@ -89,35 +115,54 @@ export const ProfilePage = ({error, history, loading, profile, signedIn, stats, 
               <span>tracked shows</span>
             </div>
           </section>
-
-          <section className="history-panel">
-            <div className="section-header">
-              <h2>Recent history</h2>
-              <span>{history.length} items</span>
-            </div>
-            {history.length === 0 ? (
-              <div className="state-panel">Watched movies and episodes will appear here.</div>
-            ) : (
-              <div className="history-list">
-                {history.map((entry) => (
-                  <article className="history-row" data-testid={`history-row-${entry.historyId}`} key={entry.historyId}>
-                    {entry.mediaType === "movie" ? <Film size={18} aria-hidden="true" /> : <Tv size={18} aria-hidden="true" />}
-                    <div>
-                      <strong>{entry.title}</strong>
-                      <span>
-                      {entry.mediaType === "movie"
-                          ? "Movie watched"
-                          : `S${entry.seasonNumber} E${entry.episodeNumber} · ${entry.episodeTitle ?? "Episode watched"}`}
-                      </span>
-                    </div>
-                    <time dateTime={entry.watchedAt ?? undefined}>{formatWatchedAt(entry.watchedAt)}</time>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
         </>
       )}
+
+      <section className="history-panel">
+        <div className="section-header">
+          <h2>Recent history</h2>
+          <span>{historyTotalCount || history.length} items</span>
+        </div>
+
+        {historyLoading && (
+          <div className="state-panel inline-state">
+            <Loader2 size={18} aria-hidden="true" />
+            Loading history...
+          </div>
+        )}
+        {historyError && !historyLoading && <SectionError message={historyError} onRetry={onRetryHistory} />}
+
+        {!historyLoading && !historyError && history.length === 0 && (
+          <div className="state-panel">Watched movies and episodes will appear here.</div>
+        )}
+
+        {!historyLoading && !historyError && history.length > 0 && (
+          <div className="history-list">
+            {history.map((entry) => (
+              <article className="history-row" data-testid={`history-row-${entry.historyId}`} key={entry.historyId}>
+                {entry.mediaType === "movie" ? <Film size={18} aria-hidden="true" /> : <Tv size={18} aria-hidden="true" />}
+                <div>
+                  <strong>{entry.title}</strong>
+                  <span>
+                    {entry.mediaType === "movie"
+                      ? "Movie watched"
+                      : `S${entry.seasonNumber} E${entry.episodeNumber} · ${entry.episodeTitle ?? "Episode watched"}`}
+                  </span>
+                </div>
+                <time dateTime={entry.watchedAt ?? undefined}>{formatWatchedAt(entry.watchedAt)}</time>
+              </article>
+            ))}
+          </div>
+        )}
+
+        {historyHasMore && !historyLoading && !historyError && (
+          <div className="section-actions">
+            <button className="text-button" disabled={historyLoadingMore} type="button" onClick={onLoadMoreHistory}>
+              {historyLoadingMore ? "Loading more..." : "Load more history"}
+            </button>
+          </div>
+        )}
+      </section>
     </main>
   );
 };

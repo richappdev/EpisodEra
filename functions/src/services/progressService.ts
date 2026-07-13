@@ -1,5 +1,6 @@
 import {FieldValue, Timestamp, getFirestore} from "firebase-admin/firestore";
 import {HttpError} from "../lib/httpError";
+import {listPaginated, PaginatedResult, PaginationQuery} from "../lib/pagination";
 import {
   BatchEpisodeProgressInput,
   EpisodeProgress,
@@ -134,9 +135,12 @@ class ProgressService {
     return getFirestore().collection("users").doc(userId).collection("history");
   }
 
-  async list(userId: string): Promise<ShowProgressSummary[]> {
-    const snapshot = await this.collection(userId).orderBy("updatedAt", "desc").get();
-    return snapshot.docs.map((doc) => this.mapProgressSummary(doc.id, doc.data() as ProgressDocument));
+  async list(userId: string, pagination: PaginationQuery): Promise<PaginatedResult<ShowProgressSummary>> {
+    const baseQuery = this.collection(userId).orderBy("updatedAt", "desc");
+
+    return listPaginated(baseQuery, pagination, (doc) =>
+      this.mapProgressSummary(doc.id, doc.data() as ProgressDocument),
+    );
   }
 
   async get(userId: string, showId: string): Promise<ShowProgress | null> {

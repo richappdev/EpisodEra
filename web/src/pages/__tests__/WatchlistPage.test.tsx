@@ -7,12 +7,17 @@ import {progressSummary, watchlistItem} from "../../test/fixtures";
 const renderWatchlist = (overrides: Partial<Parameters<typeof WatchlistPage>[0]> = {}) => {
   const props = {
     error: null,
+    hasMore: false,
     items: [watchlistItem],
     loading: false,
+    loadingMore: false,
     progressItems: [progressSummary],
     signedIn: true,
+    totalCount: 1,
+    onLoadMore: vi.fn(),
     onNextEpisodeWatched: vi.fn(),
     onRemove: vi.fn(),
+    onRetry: vi.fn(),
     onSelect: vi.fn(),
     onStatusChange: vi.fn(),
     ...overrides,
@@ -32,9 +37,9 @@ describe("WatchlistPage", () => {
     expect(screen.getByTestId("continue-next-1001")).toHaveTextContent("Next up S1 E2");
   });
 
-  it("calls control callbacks for status, next episode, remove, and select", async () => {
+  it("calls control callbacks for status, next episode, remove, select, retry, and load more", async () => {
     const user = userEvent.setup();
-    const props = renderWatchlist();
+    const props = renderWatchlist({hasMore: true});
 
     await user.selectOptions(screen.getByTestId("watchlist-status-1001"), "completed");
     expect(props.onStatusChange).toHaveBeenCalledWith(watchlistItem, "completed");
@@ -47,18 +52,26 @@ describe("WatchlistPage", () => {
 
     await user.click(screen.getByRole("button", {name: "Remove Critical Flow Show"}));
     expect(props.onRemove).toHaveBeenCalledWith(watchlistItem);
+
+    await user.click(screen.getByRole("button", {name: "Load more titles"}));
+    expect(props.onLoadMore).toHaveBeenCalled();
   });
 
   it("renders signed-out, loading, empty, and error states", () => {
     const {rerender} = render(
       <WatchlistPage
         error={null}
+        hasMore={false}
         items={[]}
         loading={false}
+        loadingMore={false}
         progressItems={[]}
         signedIn={false}
+        totalCount={0}
+        onLoadMore={vi.fn()}
         onNextEpisodeWatched={vi.fn()}
         onRemove={vi.fn()}
+        onRetry={vi.fn()}
         onSelect={vi.fn()}
         onStatusChange={vi.fn()}
       />,
@@ -68,12 +81,17 @@ describe("WatchlistPage", () => {
     rerender(
       <WatchlistPage
         error={null}
+        hasMore={false}
         items={[]}
         loading
+        loadingMore={false}
         progressItems={[]}
         signedIn
+        totalCount={0}
+        onLoadMore={vi.fn()}
         onNextEpisodeWatched={vi.fn()}
         onRemove={vi.fn()}
+        onRetry={vi.fn()}
         onSelect={vi.fn()}
         onStatusChange={vi.fn()}
       />,
@@ -83,12 +101,17 @@ describe("WatchlistPage", () => {
     rerender(
       <WatchlistPage
         error={null}
+        hasMore={false}
         items={[]}
         loading={false}
+        loadingMore={false}
         progressItems={[]}
         signedIn
+        totalCount={0}
+        onLoadMore={vi.fn()}
         onNextEpisodeWatched={vi.fn()}
         onRemove={vi.fn()}
+        onRetry={vi.fn()}
         onSelect={vi.fn()}
         onStatusChange={vi.fn()}
       />,
@@ -98,16 +121,30 @@ describe("WatchlistPage", () => {
     rerender(
       <WatchlistPage
         error="Could not load watchlist."
+        hasMore={false}
         items={[]}
         loading={false}
+        loadingMore={false}
         progressItems={[]}
         signedIn
+        totalCount={0}
+        onLoadMore={vi.fn()}
         onNextEpisodeWatched={vi.fn()}
         onRemove={vi.fn()}
+        onRetry={vi.fn()}
         onSelect={vi.fn()}
         onStatusChange={vi.fn()}
       />,
     );
     expect(screen.getByText("Could not load watchlist.")).toBeVisible();
+  });
+
+  it("retries watchlist loading from the section error", async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+    renderWatchlist({error: "Could not load watchlist.", items: [], onRetry});
+
+    await user.click(screen.getByRole("button", {name: "Retry"}));
+    expect(onRetry).toHaveBeenCalled();
   });
 });

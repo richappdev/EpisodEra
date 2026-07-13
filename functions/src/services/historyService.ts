@@ -1,4 +1,5 @@
 import {FieldValue, Timestamp, getFirestore} from "firebase-admin/firestore";
+import {listPaginated, PaginatedResult, PaginationQuery} from "../lib/pagination";
 import {MediaType} from "../models/media";
 import {HistoryEntry} from "../models/history";
 
@@ -47,9 +48,12 @@ class HistoryService {
     return getFirestore().collection("users").doc(userId).collection("history");
   }
 
-  async list(userId: string, limit = 25): Promise<HistoryEntry[]> {
-    const snapshot = await this.collection(userId).orderBy("watchedAt", "desc").limit(limit).get();
-    return snapshot.docs.map((doc) => mapDocument(doc.id, doc.data() as HistoryDocument));
+  async list(userId: string, pagination: PaginationQuery): Promise<PaginatedResult<HistoryEntry>> {
+    const baseQuery = this.collection(userId).orderBy("watchedAt", "desc");
+
+    return listPaginated(baseQuery, pagination, (doc) =>
+      mapDocument(doc.id, doc.data() as HistoryDocument),
+    );
   }
 
   async recordMovie(userId: string, input: MovieHistoryInput): Promise<void> {

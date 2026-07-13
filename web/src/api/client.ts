@@ -1,4 +1,5 @@
 import {DiscoveryResponse, MediaDetail, MediaType, TvSeasonDetail} from "../types/media";
+import {PaginationParams, withPagination} from "../types/pagination";
 import {HistoryResponse} from "../types/history";
 import {ProfileResponse, UpdateUserProfileInput, UserProfile} from "../types/profile";
 import {
@@ -58,19 +59,29 @@ const request = async <T>(path: string, options: RequestOptions = {}): Promise<T
   return payload as T;
 };
 
+const withLanguageAndPagination = (
+  path: string,
+  language: SupportedLanguage,
+  pagination?: PaginationParams,
+) => withPagination(withLanguage(path, language), pagination);
+
 export const api = {
-  trending: (language: SupportedLanguage) => request<DiscoveryResponse>(withLanguage("/trending", language)),
-  trendingMovies: (language: SupportedLanguage) =>
-    request<DiscoveryResponse["movies"]>(withLanguage("/trending/movie", language)),
-  trendingShows: (language: SupportedLanguage) =>
-    request<DiscoveryResponse["tv"]>(withLanguage("/trending/tv", language)),
-  search: (query: string, language: SupportedLanguage) =>
-    request<DiscoveryResponse>(withLanguage(`/search?q=${encodeURIComponent(query)}`, language)),
+  trending: (language: SupportedLanguage, pagination?: PaginationParams) =>
+    request<DiscoveryResponse>(withLanguageAndPagination("/trending", language, pagination)),
+  trendingMovies: (language: SupportedLanguage, pagination?: PaginationParams) =>
+    request<DiscoveryResponse["movies"]>(withLanguageAndPagination("/trending/movie", language, pagination)),
+  trendingShows: (language: SupportedLanguage, pagination?: PaginationParams) =>
+    request<DiscoveryResponse["tv"]>(withLanguageAndPagination("/trending/tv", language, pagination)),
+  search: (query: string, language: SupportedLanguage, pagination?: PaginationParams) =>
+    request<DiscoveryResponse>(
+      withLanguageAndPagination(`/search?q=${encodeURIComponent(query)}`, language, pagination),
+    ),
   detail: (mediaType: MediaType, id: number, language: SupportedLanguage) =>
     request<MediaDetail>(withLanguage(`/${mediaType}/${id}`, language)),
   tvSeason: (id: number, seasonNumber: number, language: SupportedLanguage) =>
     request<TvSeasonDetail>(withLanguage(`/tv/${id}/season/${seasonNumber}`, language)),
-  listProgress: () => request<ProgressListResponse>("/progress"),
+  listProgress: (pagination?: PaginationParams) =>
+    request<ProgressListResponse>(withPagination("/progress", pagination)),
   getProgress: (showId: number) => request<ProgressResponse>(`/progress/${showId}`),
   markEpisodeWatched: (showId: number, input: MarkEpisodeWatchedInput) =>
     request<ShowProgress>(`/progress/${showId}/episode`, {method: "POST", body: input}),
@@ -78,7 +89,8 @@ export const api = {
     request<ShowProgress>(`/progress/${showId}/episodes/batch`, {method: "POST", body: input}),
   markEpisodeUnwatched: (showId: number, episodeKey: string) =>
     request<ProgressResponse>(`/progress/${showId}/episode/${episodeKey}`, {method: "DELETE"}),
-  meHistory: () => request<HistoryResponse>("/me/history"),
+  meHistory: (pagination?: PaginationParams) =>
+    request<HistoryResponse>(withPagination("/me/history", pagination)),
   meProfile: () => request<ProfileResponse>("/me/profile"),
   updateMeProfile: (profile: UpdateUserProfileInput, token?: string | null) =>
     request<UserProfile>("/me/profile", {method: "PATCH", body: profile, token}),
@@ -86,7 +98,8 @@ export const api = {
   updateMeSettings: (settings: Partial<Pick<UserSettings, "autoMarkPreviousEpisodesWatched" | "language">>) =>
     request<UserSettings>("/me/settings", {method: "PATCH", body: settings}),
   meStats: () => request<UserStats>("/me/stats"),
-  listWatchlist: () => request<WatchlistResponse>("/watchlist"),
+  listWatchlist: (pagination?: PaginationParams) =>
+    request<WatchlistResponse>(withPagination("/watchlist", pagination)),
   addWatchlistItem: (input: AddWatchlistItemInput) =>
     request<WatchlistItem>("/watchlist", {method: "POST", body: input}),
   updateWatchlistStatus: (itemId: string, status: WatchlistStatus) =>

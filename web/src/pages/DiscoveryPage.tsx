@@ -1,6 +1,7 @@
-import {FormEvent, useEffect, useState} from "react";
+import {FormEvent, useCallback, useEffect, useState} from "react";
 import {Search} from "lucide-react";
 import {api} from "../api/client";
+import {SectionError} from "../components/SectionError";
 import {MediaSection} from "../components/MediaSection";
 import {DiscoveryResponse, MediaSummary, MediaType, PagedResult} from "../types/media";
 import {SupportedLanguage, uiCopy} from "../types/settings";
@@ -15,6 +16,9 @@ interface DiscoveryPageProps {
 
 type TrendingTab = Extract<MediaType, "movie" | "tv">;
 
+const hasMorePages = (result: PagedResult<MediaSummary> | null) =>
+  Boolean(result && result.page < result.totalPages);
+
 export const DiscoveryPage = ({
   view,
   language,
@@ -25,10 +29,86 @@ export const DiscoveryPage = ({
   const copy = uiCopy[language].search;
   const [query, setQuery] = useState("");
   const [searchData, setSearchData] = useState<DiscoveryResponse | null>(null);
+  const [searchPage, setSearchPage] = useState(1);
   const [trendingData, setTrendingData] = useState<PagedResult<MediaSummary> | null>(null);
+  const [trendingPage, setTrendingPage] = useState(1);
   const [trendingTab, setTrendingTab] = useState<TrendingTab>("tv");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const loadTrending = useCallback(
+    async (page: number, append: boolean) => {
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+        setError(null);
+      }
+
+      try {
+        const request =
+          trendingTab === "tv" ? api.trendingShows(language, {page}) : api.trendingMovies(language, {page});
+        const nextPage = await request;
+        setTrendingData((current) =>
+          append && current
+            ? {...nextPage, results: [...current.results, ...nextPage.results]}
+            : nextPage,
+        );
+        setTrendingPage(nextPage.page);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not load trending titles.");
+      } finally {
+        if (append) {
+          setLoadingMore(false);
+        } else {
+          setLoading(false);
+        }
+      }
+    },
+    [language, trendingTab],
+  );
+
+  const loadSearch = useCallback(
+    async (searchQuery: string, page: number, append: boolean) => {
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+        setError(null);
+      }
+
+      try {
+        const nextPage = await api.search(searchQuery, language, {page});
+        setSearchData((current) => {
+          if (!append || !current) {
+            return nextPage;
+          }
+
+          return {
+            movies: {
+              ...nextPage.movies,
+              results: [...current.movies.results, ...nextPage.movies.results],
+            },
+            tv: {
+              ...nextPage.tv,
+              results: [...current.tv.results, ...nextPage.tv.results],
+            },
+          };
+        });
+        setSearchPage(nextPage.movies.page);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Search failed.");
+      } finally {
+        if (append) {
+          setLoadingMore(false);
+        } else {
+          setLoading(false);
+        }
+      }
+    },
+    [language],
+  );
 
   useEffect(() => {
     if (view !== "trending") {
@@ -36,14 +116,8 @@ export const DiscoveryPage = ({
       return;
     }
 
-    setLoading(true);
-    setError(null);
-    const request = trendingTab === "tv" ? api.trendingShows(language) : api.trendingMovies(language);
-    request
-      .then(setTrendingData)
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [language, trendingTab, view]);
+    void loadTrending(1, false);
+  }, [loadTrending, view]);
 
   useEffect(() => {
     if (view !== "search") {
@@ -59,14 +133,8 @@ export const DiscoveryPage = ({
       return;
     }
 
-    setLoading(true);
-    setError(null);
-    setSearchData(null);
-    api.search(nextQuery, language)
-      .then(setSearchData)
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [initialSearchQuery, language, view]);
+    void loadSearch(nextQuery, 1, false);
+  }, [initialSearchQuery, loadSearch, view]);
 
   const submitSearch = (event: FormEvent) => {
     event.preventDefault();
@@ -75,15 +143,39 @@ export const DiscoveryPage = ({
       return;
     }
 
-    setLoading(true);
-    setError(null);
     setSearchData(null);
     onSearchQueryChange?.(nextQuery);
-    api.search(nextQuery, language)
-      .then(setSearchData)
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false));
+    void loadSearch(nextQuery, 1, false);
   };
+
+  const retry = () => {
+    if (view === "trending") {
+      void loadTrending(trendingPage, false);
+      return;
+    }
+
+    const nextQuery = (initialSearchQuery ?? query).trim();
+    if (nextQuery) {
+      void loadSearch(nextQuery, searchPage, false);
+    }
+  };
+
+  const loadMore = () => {
+    if (view === "trending") {
+      void loadTrending(trendingPage + 1, true);
+      return;
+    }
+
+    const nextQuery = (initialSearchQuery ?? query).trim();
+    if (nextQuery) {
+      void loadSearch(nextQuery, searchPage + 1, true);
+    }
+  };
+
+  const trendingHasMore = hasMorePages(trendingData);
+  const searchHasMore = Boolean(
+    searchData && (searchData.movies.page < searchData.movies.totalPages || searchData.tv.page < searchData.tv.totalPages),
+  );
 
   return (
     <main className="page-shell">
@@ -97,7 +189,9 @@ export const DiscoveryPage = ({
             placeholder="Search movies and TV"
             aria-label="Search movies and TV"
           />
-          <button data-testid="search-submit" type="submit">Search</button>
+          <button data-testid="search-submit" type="submit">
+            Search
+          </button>
         </form>
       )}
 
@@ -125,7 +219,7 @@ export const DiscoveryPage = ({
       )}
 
       {loading && <div className="state-panel">Loading...</div>}
-      {error && <div className="state-panel error">{error}</div>}
+      {error && !loading && <SectionError message={error} onRetry={retry} />}
 
       {view === "trending" && trendingData && !loading && (
         <MediaSection
@@ -147,6 +241,14 @@ export const DiscoveryPage = ({
 
       {!searchData && !loading && !error && view === "search" && (
         <div className="state-panel">Enter a title to search.</div>
+      )}
+
+      {((view === "trending" && trendingHasMore) || (view === "search" && searchHasMore)) && !loading && !error && (
+        <div className="section-actions">
+          <button className="text-button" disabled={loadingMore} type="button" onClick={loadMore}>
+            {loadingMore ? "Loading more..." : "Load more results"}
+          </button>
+        </div>
       )}
     </main>
   );

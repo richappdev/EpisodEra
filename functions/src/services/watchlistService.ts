@@ -9,7 +9,7 @@ import {
   tvWatchlistStatuses,
   watchlistStatuses,
 } from "../models/watchlist";
-import {historyService} from "./historyService";
+import {listPaginated, PaginatedResult, PaginationQuery} from "../lib/pagination";
 
 interface WatchlistDocument {
   tmdbId: number;
@@ -143,9 +143,12 @@ class WatchlistService {
     return getFirestore().collection("users").doc(userId).collection("watchlist");
   }
 
-  async list(userId: string): Promise<WatchlistItem[]> {
-    const snapshot = await this.collection(userId).orderBy("updatedAt", "desc").get();
-    return snapshot.docs.map((doc) => mapDocument(doc.id, doc.data() as WatchlistDocument));
+  async list(userId: string, pagination: PaginationQuery): Promise<PaginatedResult<WatchlistItem>> {
+    const baseQuery = this.collection(userId).orderBy("updatedAt", "desc");
+
+    return listPaginated(baseQuery, pagination, (doc) =>
+      mapDocument(doc.id, doc.data() as WatchlistDocument),
+    );
   }
 
   async add(userId: string, input: AddWatchlistItemInput): Promise<WatchlistItem> {

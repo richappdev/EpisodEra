@@ -1,3 +1,5 @@
+import {PaginatedResponse} from "./pagination";
+
 export interface EpisodeProgress {
   episodeKey: string;
   seasonNumber: number;
@@ -36,9 +38,7 @@ export interface ProgressResponse {
   progress: ShowProgress | null;
 }
 
-export interface ProgressListResponse {
-  items: ShowProgressSummary[];
-}
+export interface ProgressListResponse extends PaginatedResponse<ShowProgressSummary> {}
 
 export interface MarkEpisodeWatchedInput {
   seasonNumber: number;

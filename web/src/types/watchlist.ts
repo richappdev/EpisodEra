@@ -1,4 +1,5 @@
 import {MediaType} from "./media";
+import {PaginatedResponse} from "./pagination";
 
 export const tvWatchlistStatuses = ["planned", "watching", "completed", "dropped"] as const;
 export const movieWatchlistStatuses = ["unwatched", "watched"] as const;
@@ -18,9 +19,7 @@ export interface WatchlistItem {
   updatedAt: string | null;
 }
 
-export interface WatchlistResponse {
-  items: WatchlistItem[];
-}
+export interface WatchlistResponse extends PaginatedResponse<WatchlistItem> {}
 
 export interface AddWatchlistItemInput {
   tmdbId: number;

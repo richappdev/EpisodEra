@@ -49,7 +49,7 @@ describe("DiscoveryPage", () => {
     expect(screen.getByText("Enter a title to search.")).toBeVisible();
     await user.type(screen.getByTestId("search-input"), "Unknown title{Enter}");
 
-    await waitFor(() => expect(api.search).toHaveBeenCalledWith("Unknown title", "en-US"));
+    await waitFor(() => expect(api.search).toHaveBeenCalledWith("Unknown title", "en-US", {page: 1}));
     expect(await screen.findByText("No results found.")).toBeVisible();
   });
 

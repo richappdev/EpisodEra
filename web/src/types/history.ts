@@ -1,4 +1,5 @@
 import {MediaType} from "./media";
+import {PaginatedResponse} from "./pagination";
 
 export interface HistoryEntry {
   historyId: string;
@@ -12,6 +13,4 @@ export interface HistoryEntry {
   updatedAt: string | null;
 }
 
-export interface HistoryResponse {
-  items: HistoryEntry[];
-}
+export interface HistoryResponse extends PaginatedResponse<HistoryEntry> {}

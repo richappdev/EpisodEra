@@ -1,4 +1,5 @@
 import {Router} from "express";
+import {parsePaginationQuery} from "../lib/pagination";
 import {AuthenticatedRequest, requireAuth} from "../middleware/auth";
 import {accountDeletionService} from "../services/accountDeletionService";
 import {historyService} from "../services/historyService";
@@ -20,7 +21,7 @@ meRouter.get("/me/stats", async (req: AuthenticatedRequest, res, next) => {
 
 meRouter.get("/me/history", async (req: AuthenticatedRequest, res, next) => {
   try {
-    res.json({items: await historyService.list(req.user!.uid)});
+    res.json(await historyService.list(req.user!.uid, parsePaginationQuery(req.query)));
   } catch (error) {
     next(error);
   }

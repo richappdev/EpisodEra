@@ -1,4 +1,5 @@
 import {Router} from "express";
+import {parsePaginationQuery} from "../lib/pagination";
 import {AuthenticatedRequest, requireAuth} from "../middleware/auth";
 import {
   parseAddWatchlistItemInput,
@@ -12,7 +13,7 @@ watchlistRouter.use(requireAuth);
 
 watchlistRouter.get("/watchlist", async (req: AuthenticatedRequest, res, next) => {
   try {
-    res.json({items: await watchlistService.list(req.user!.uid)});
+    res.json(await watchlistService.list(req.user!.uid, parsePaginationQuery(req.query)));
   } catch (error) {
     next(error);
   }

@@ -47,8 +47,13 @@ const WatchlistRoute = () => {
     removeWatchlistItem,
     updateWatchlistStatus,
     watchlistError,
+    watchlistHasMore,
     watchlistItems,
     watchlistLoading,
+    watchlistLoadingMore,
+    watchlistTotalCount,
+    loadMoreWatchlist,
+    reloadWatchlist,
   } = useAppContext();
 
   useEffect(() => {
@@ -60,13 +65,18 @@ const WatchlistRoute = () => {
   return (
     <WatchlistPage
       error={watchlistError}
+      hasMore={watchlistHasMore}
       items={watchlistItems}
       loading={watchlistLoading}
+      loadingMore={watchlistLoadingMore}
       progressItems={progressItems}
       signedIn={Boolean(user)}
-      onNextEpisodeWatched={markNextWatchlistEpisodeWatched}
+      totalCount={watchlistTotalCount}
+      onLoadMore={loadMoreWatchlist}
       onRemove={removeWatchlistItem}
+      onRetry={reloadWatchlist}
       onSelect={(item) => openMediaDetail(item, "watchlist")}
+      onNextEpisodeWatched={markNextWatchlistEpisodeWatched}
       onStatusChange={updateWatchlistStatus}
     />
   );
@@ -74,17 +84,39 @@ const WatchlistRoute = () => {
 
 const ProfileRoute = () => {
   const {user} = useAuth();
-  const {historyItems, profile, stats, statsError, statsLoading} = useAppContext();
+  const {
+    historyError,
+    historyHasMore,
+    historyItems,
+    historyLoading,
+    historyLoadingMore,
+    historyTotalCount,
+    loadMoreHistory,
+    profile,
+    reloadHistory,
+    reloadStats,
+    stats,
+    statsError,
+    statsLoading,
+  } = useAppContext();
 
   return (
     <ProfilePage
-      error={statsError}
       history={historyItems}
-      loading={statsLoading}
+      historyError={historyError}
+      historyHasMore={historyHasMore}
+      historyLoading={historyLoading}
+      historyLoadingMore={historyLoadingMore}
+      historyTotalCount={historyTotalCount}
       profile={profile}
       signedIn={Boolean(user)}
       stats={stats}
+      statsError={statsError}
+      statsLoading={statsLoading}
       userEmail={user?.email ?? null}
+      onLoadMoreHistory={loadMoreHistory}
+      onRetryHistory={reloadHistory}
+      onRetryStats={reloadStats}
     />
   );
 };

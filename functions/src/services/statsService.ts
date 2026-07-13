@@ -1,12 +1,13 @@
 import {UserStats} from "../models/stats";
+import {fetchAllPages} from "../lib/pagination";
 import {progressService} from "./progressService";
 import {watchlistService} from "./watchlistService";
 
 class StatsService {
   async get(userId: string): Promise<UserStats> {
     const [watchlistItems, progressItems] = await Promise.all([
-      watchlistService.list(userId),
-      progressService.list(userId),
+      fetchAllPages((pagination) => watchlistService.list(userId, pagination)),
+      fetchAllPages((pagination) => progressService.list(userId, pagination)),
     ]);
     const fullyWatchedShowIds = new Set(
       progressItems

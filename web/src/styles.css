@@ -425,6 +425,20 @@ select:focus-visible {
   color: var(--color-danger);
 }
 
+.section-error {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.section-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
 .floating-error {
   margin: 18px auto 0;
   max-width: 1084px;

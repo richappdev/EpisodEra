@@ -1,4 +1,5 @@
 import {Router} from "express";
+import {parsePaginationQuery} from "../lib/pagination";
 import {AuthenticatedRequest, requireAuth} from "../middleware/auth";
 import {
   parseBatchEpisodeProgressInput,
@@ -14,7 +15,7 @@ progressRouter.use(requireAuth);
 
 progressRouter.get("/progress", async (req: AuthenticatedRequest, res, next) => {
   try {
-    res.json({items: await progressService.list(req.user!.uid)});
+    res.json(await progressService.list(req.user!.uid, parsePaginationQuery(req.query)));
   } catch (error) {
     next(error);
   }
