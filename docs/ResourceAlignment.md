@@ -1,6 +1,6 @@
 # Episodera Resource Alignment
 
-Last updated: 2026-07-13
+Last updated: 2026-07-14
 
 ## Purpose
 
@@ -358,8 +358,8 @@ A feature is complete only when all applicable conditions are met:
 
 | Resource              | Current status                                                                                                          |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| GitHub implementation | Core MVP, Phase D domain hooks/pagination/section retries (`b16cf7f`), privacy/account deletion, URL routing, expanded automated tests, and production smoke tooling through `be7a6d4`; App Check client integration, compliance review, and ops hardening remain |
-| Notion planning       | Parent baseline at `d125bda` (Phase D deploy); Reliability Plan child checklist may lag — use parent baseline and this file for implementation status |
+| GitHub implementation | Core MVP through tip `d4c4402`: Phase D hooks/pagination/section retries, privacy/account deletion, URL routing, expanded automated tests, production smoke tooling, App Check **client** (`c97b0c3`). Remaining: App Check Phase 2+, compliance review, dependency decision, ops hardening |
+| Notion planning       | Parent + child baselines bumped to `d4c4402` (2026-07-14); latest hosted smoke evidence is `c97b0c3` (not `031cb35`) |
 | Figma design          | Responsive screen system documented; direct latest-file verification pending when connector access allows |
 | Canva reporting       | Should distinguish implemented code, recorded smoke evidence, and beta-ready status; refresh after hosted smoke reruns |
 
@@ -374,6 +374,13 @@ At the time of this update:
 These limitations affect resource synchronization only. They do not change product scope or implementation status.
 
 ## Change Log
+
+### 2026-07-14 (baseline bump to d4c4402)
+
+* Canonical GitHub/Notion baseline set to tip `d4c4402` (records hosted smoke pass for `c97b0c3`).
+* Clarified that latest hosted Production Smoke is `c97b0c3` ([workflow run 29303301272](https://github.com/richappdev/EpisodEra/actions/runs/29303301272)); `031cb35` is prior evidence only.
+* Marked App Check client (Phase 0–1) as shipped; Phase 2+ backend enforce remains open.
+* Refreshed AI Implementation Plan as non-blocking with matching SHA.
 
 ### 2026-07-14 (hosted smoke for c97b0c3)
 
