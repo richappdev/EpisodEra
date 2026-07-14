@@ -105,7 +105,7 @@ The implementation must remain the final authority for whether each capability i
 
 The highest-priority remaining work is:
 
-1. Repeat hosted `Production Smoke` on future release candidates and retain workflow evidence (latest local: `d125bda` post–Phase D deploy; latest hosted: `031cb35` — [workflow run](https://github.com/richappdev/EpisodEra/actions/runs/29232556051))
+1. Repeat hosted `Production Smoke` on future release candidates and retain workflow evidence (latest hosted: `c97b0c3` — [workflow run 29303301272](https://github.com/richappdev/EpisodEra/actions/runs/29303301272); prior: `031cb35` — [workflow run 29232556051](https://github.com/richappdev/EpisodEra/actions/runs/29232556051))
 2. Staging Firebase environment separation and staging-specific smoke validation (optional)
 3. Broader WCAG-focused accessibility audit beyond current Playwright smoke assertions
 4. Real-auth deployed E2E cases (signup, token refresh/expiry, deleted-account session, sign-out during write)
@@ -374,6 +374,11 @@ At the time of this update:
 These limitations affect resource synchronization only. They do not change product scope or implementation status.
 
 ## Change Log
+
+### 2026-07-14 (hosted smoke for c97b0c3)
+
+* Hosted `Production Smoke` **PASS** at `c97b0c3` via [workflow run 29303301272](https://github.com/richappdev/EpisodEra/actions/runs/29303301272) (`workflow_dispatch` on tag `smoke-c97b0c3`).
+* Archived workflow URL on Notion parent plan, UI Testing Plan, Reliability Plan, and Alignment Report.
 
 ### 2026-07-13 (Phase E proceed — App Check + section-failure tests)
 
