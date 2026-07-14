@@ -20,9 +20,9 @@ export const TopBar = ({activeView}: TopBarProps) => {
   const copy = uiCopy[language].topBar;
   const accountLabel = profile?.firstName || user?.displayName || user?.email;
 
-  const handleAccountClick = () => {
+  const handleAccountClick = async () => {
     if (user) {
-      void signOutAndReset();
+      await signOutAndReset();
       return;
     }
 
