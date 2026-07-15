@@ -116,6 +116,7 @@ export const DetailPage = ({
   const [dismissedNextKey, setDismissedNextKey] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set());
+  const [expandedSeason, setExpandedSeason] = useState<number | null>(selectedSeason);
   const seasonCardRefs = useRef(new Map<number, HTMLElement>());
   const hasMountedSelectedSeason = useRef(false);
   const showNextPrompt =
@@ -131,12 +132,22 @@ export const DetailPage = ({
   }, [selectedSeason, detail.id]);
 
   useEffect(() => {
+    setExpandedSeason(selectedSeason);
+  }, [selectedSeason, detail.id]);
+
+  useEffect(() => {
     if (!hasMountedSelectedSeason.current) {
       hasMountedSelectedSeason.current = true;
       return;
     }
-    seasonCardRefs.current.get(selectedSeason)?.scrollIntoView({behavior: "smooth", block: "nearest"});
-  }, [selectedSeason]);
+    if (expandedSeason == null) {
+      return;
+    }
+    const node = seasonCardRefs.current.get(expandedSeason);
+    if (typeof node?.scrollIntoView === "function") {
+      node.scrollIntoView({behavior: "smooth", block: "nearest"});
+    }
+  }, [expandedSeason]);
 
   const toggleSelected = (episodeKey: string) => {
     setSelectedKeys((current) => {
@@ -153,6 +164,11 @@ export const DetailPage = ({
   const selectedEpisodes = (seasonDetail?.episodes ?? []).filter((episode) => selectedKeys.has(episode.episodeKey));
 
   const handleSeasonCardActivate = (season: SeasonProgressSnapshot) => {
+    if (expandedSeason === season.seasonNumber) {
+      setExpandedSeason(null);
+      return;
+    }
+    setExpandedSeason(season.seasonNumber);
     if (season.seasonNumber !== selectedSeason) {
       onSeasonChange(season.seasonNumber);
     }
@@ -470,7 +486,8 @@ export const DetailPage = ({
           {seasonSnapshots.length > 0 ? (
             <div className="season-card-list" data-testid="season-card-list">
               {seasonSnapshots.map((season) => {
-                const expanded = season.seasonNumber === selectedSeason;
+                const expanded = season.seasonNumber === expandedSeason;
+                const showEpisodes = expanded && season.seasonNumber === selectedSeason;
                 return (
                   <article
                     className={expanded ? "season-card expanded" : "season-card"}
@@ -517,7 +534,12 @@ export const DetailPage = ({
                     >
                       <span style={{width: `${Math.min(season.progressPercent, 100)}%`}} />
                     </div>
-                    {expanded && episodeContent}
+                    {showEpisodes && episodeContent}
+                    {expanded && !showEpisodes && (
+                      <div className="season-episode-panel">
+                        <div className="state-panel">Loading episodes...</div>
+                      </div>
+                    )}
                   </article>
                 );
               })}

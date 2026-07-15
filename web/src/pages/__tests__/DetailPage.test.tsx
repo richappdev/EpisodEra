@@ -68,6 +68,24 @@ describe("DetailPage", () => {
     expect(within(selectedSeason).getByTestId("mark-season-watched")).toBeVisible();
   });
 
+  it("toggles season episode panel open and closed from the season card", async () => {
+    const user = userEvent.setup();
+    renderDetail();
+
+    const seasonCard = screen.getByTestId("season-card-1");
+    const toggle = within(seasonCard).getByRole("button", {expanded: true});
+
+    expect(within(seasonCard).getByTestId("season-episode-panel")).toBeVisible();
+
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(within(seasonCard).queryByTestId("season-episode-panel")).not.toBeInTheDocument();
+
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(within(seasonCard).getByTestId("season-episode-panel")).toBeVisible();
+  });
+
   it("calls watchlist and episode callbacks from controls", async () => {
     const user = userEvent.setup();
     const props = renderDetail();
