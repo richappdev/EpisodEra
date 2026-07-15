@@ -70,6 +70,9 @@ export const useAppContext = () => {
 
 export const AppProvider = ({children}: {children: ReactNode}) => {
   const {getIdToken, signOutUser, user} = useAuth();
+  // Register before child/hook effects so /me/* fetches always see a provider.
+  setApiTokenProvider(getIdToken);
+
   const navigate = useNavigate();
   const location = useLocation();
   const profileStats = useProfileStats(user);
@@ -81,10 +84,6 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
   const progress = useProgress(user, () => {
     void profileStats.refresh();
   });
-
-  useEffect(() => {
-    setApiTokenProvider(getIdToken);
-  }, [getIdToken]);
 
   useEffect(() => {
     setAnalyticsUserId(user?.uid ?? null);

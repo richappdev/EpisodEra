@@ -1,5 +1,5 @@
 import {User, onAuthStateChanged, signOut} from "firebase/auth";
-import {ReactNode, createContext, useContext, useEffect, useMemo, useState} from "react";
+import {ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useState} from "react";
 import {auth, firebaseConfigError} from "../firebase";
 
 interface AuthContextValue {
@@ -40,10 +40,19 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
     });
   }, []);
 
+  // Read Firebase's currentUser at call time so API requests never use a stale React closure.
+  const getIdToken = useCallback(async () => {
+    if (e2eAuthUser) {
+      return e2eAuthUser.getIdToken();
+    }
+
+    return auth?.currentUser?.getIdToken() ?? null;
+  }, []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       configError: firebaseConfigError,
-      getIdToken: async () => user?.getIdToken() ?? null,
+      getIdToken,
       loading,
       signOutUser: async () => {
         if (e2eAuthUser) {
@@ -57,7 +66,7 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
       },
       user,
     }),
-    [loading, user],
+    [getIdToken, loading, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
