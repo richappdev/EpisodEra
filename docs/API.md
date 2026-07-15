@@ -52,6 +52,15 @@ TMDb detail and TV season reads use a 24-hour per-Functions-instance in-memory T
 | `DELETE` | `/progress/:showId/episode/:episodeKey` | Firebase ID token | `200` |
 | `GET` | `/me/stats` | Firebase ID token | `200` |
 | `GET` | `/me/recap` | Firebase ID token | `200` |
+| `GET` | `/me/achievements` | Firebase ID token | `200` |
+| `GET` | `/me/friends` | Firebase ID token | `200` |
+| `POST` | `/me/friends/request` | Firebase ID token | `201` |
+| `PATCH` | `/me/friends/:friendUserId` | Firebase ID token | `200` |
+| `GET` | `/me/feed` | Firebase ID token | `200` |
+| `GET` | `/me/friends/:friendUserId/compatibility` | Firebase ID token | `200` |
+| `GET` | `/me/challenges` | Firebase ID token | `200` |
+| `GET` | `/discussions/:mediaType/:id` | Optional | `200` |
+| `POST` | `/discussions/:mediaType/:id` | Firebase ID token | `201` |
 | `GET` | `/me/franchises/:slug/progress` | Firebase ID token | `200` |
 | `GET` | `/franchises` | Optional | `200` |
 | `GET` | `/franchises/:slug` | Optional | `200` |
@@ -70,7 +79,7 @@ The API applies per-Functions-instance rate limits before route handlers run:
 | Bucket | Scope | Default |
 | --- | --- | --- |
 | Public reads | Client IP for `GET /search`, `GET /trending*`, `GET /movie/:id`, `GET /tv/:id`, `GET /tv/:id/season/:seasonNumber`, `GET /franchises*`, and `GET /discover*` | 120 requests per 60 seconds |
-| Authenticated writes | Firebase UID for `POST`, `PATCH`, and `DELETE` requests under `/watchlist`, `/progress`, `/me/profile`, `/me/settings`, and `/me/account` | 60 requests per 60 seconds |
+| Authenticated writes | Firebase UID for `POST`, `PATCH`, and `DELETE` requests under `/watchlist`, `/progress`, `/me/profile`, `/me/settings`, `/me/account`, `/me/friends`, and `/discussions` | 60 requests per 60 seconds |
 
 Configure defaults with:
 
@@ -636,6 +645,46 @@ Response:
 
 `newlyDiscovered` titles are those whose first watched event falls in the requested year.
 
+## Social and Achievements
+
+Friend connections, activity feed, taste compatibility, shared challenges, and opt-in achievements require authentication. Discussions are optionally authenticated so spoiler filtering can use watch history when signed in.
+
+```http
+GET /me/achievements
+GET /me/friends
+POST /me/friends/request
+PATCH /me/friends/:friendUserId
+GET /me/feed
+GET /me/friends/:friendUserId/compatibility
+GET /me/challenges?friendUserId={optionalFriendUserId}
+GET /discussions/:mediaType/:id
+POST /discussions/:mediaType/:id
+```
+
+`POST /me/friends/request` body:
+
+```json
+{"friendCode": "ABC123"}
+```
+
+Friend codes are six alphanumeric characters. `PATCH /me/friends/:friendUserId` accepts `status` of `accepted`, `declined`, or `removed`.
+
+Discussion posts require the caller to have watched the title (movie or scoped episode) when they have spoiler protection enabled. List responses may set `spoilerHidden: true` and omit `body` until the viewer has watched the same scope.
+
+Privacy-related settings fields:
+
+```json
+{
+  "achievementsEnabled": true,
+  "showAchievementsOnProfile": true,
+  "shareActivityWithFriends": false,
+  "allowFriendRequests": true,
+  "hideSpoilersUntilWatched": true
+}
+```
+
+Profile responses may include generated `friendCode` used for friend requests.
+
 ## Franchises and Smart Discovery
 
 Curated franchise catalogs are public. Personal completion requires authentication.
@@ -718,6 +767,7 @@ Response:
     "bio": null,
     "country": null,
     "timezone": "Asia/Taipei",
+    "friendCode": "ABC123",
     "createdAt": "2026-07-11T07:00:00.000Z",
     "updatedAt": "2026-07-11T07:00:00.000Z"
   }
@@ -755,6 +805,13 @@ Response:
 {
   "autoMarkPreviousEpisodesWatched": false,
   "language": "en-US",
+  "preferredProviderIds": [8],
+  "watchRegion": "US",
+  "achievementsEnabled": true,
+  "showAchievementsOnProfile": true,
+  "shareActivityWithFriends": false,
+  "allowFriendRequests": true,
+  "hideSpoilersUntilWatched": true,
   "updatedAt": "2026-07-11T07:00:00.000Z"
 }
 ```
@@ -768,7 +825,8 @@ Request:
 ```json
 {
   "autoMarkPreviousEpisodesWatched": true,
-  "language": "zh-TW"
+  "language": "zh-TW",
+  "shareActivityWithFriends": true
 }
 ```
 

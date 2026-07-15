@@ -7,6 +7,11 @@ export interface UserSettings {
   language: SupportedLanguage;
   preferredProviderIds: number[];
   watchRegion: string;
+  achievementsEnabled: boolean;
+  showAchievementsOnProfile: boolean;
+  shareActivityWithFriends: boolean;
+  allowFriendRequests: boolean;
+  hideSpoilersUntilWatched: boolean;
   updatedAt: string | null;
 }
 
@@ -36,6 +41,7 @@ export const uiCopy = {
       watchlist: "Watchlist",
       timeline: "Timeline",
       franchises: "Franchises",
+      social: "Social",
       profile: "Profile",
       settings: "Settings",
       signIn: "Sign in",
@@ -54,6 +60,13 @@ export const uiCopy = {
       providersTitle: "Streaming providers",
       providersNote: "Suggestions prefer titles available on your selected services when provider data is available.",
       regionLabel: "Watch region",
+      privacyTitle: "Privacy and social",
+      achievementsEnabledLabel: "Enable achievements",
+      achievementsEnabledNote: "Turn off to hide achievement progress and stop calculating badges.",
+      showAchievementsLabel: "Show achievements on profile",
+      shareActivityLabel: "Share recent watching with friends",
+      allowFriendRequestsLabel: "Allow friend requests",
+      hideSpoilersLabel: "Hide spoilers until I have watched the title",
       signedOutNote: "Sign in to sync these preferences across sessions. This device still uses them now.",
       saving: "Saving settings...",
     },
@@ -69,6 +82,7 @@ export const uiCopy = {
       watchlist: "片單",
       timeline: "時間軸",
       franchises: "系列宇宙",
+      social: "社交",
       profile: "個人檔案",
       settings: "設定",
       signIn: "登入",
@@ -86,6 +100,13 @@ export const uiCopy = {
       providersTitle: "串流平台",
       providersNote: "有平台資料時，推薦會優先顯示你所選服務上的片單。",
       regionLabel: "觀看地區",
+      privacyTitle: "隱私與社交",
+      achievementsEnabledLabel: "啟用成就",
+      achievementsEnabledNote: "關閉後將隱藏成就進度並停止計算徽章。",
+      showAchievementsLabel: "在個人檔案顯示成就",
+      shareActivityLabel: "與好友分享近期觀看",
+      allowFriendRequestsLabel: "允許好友邀請",
+      hideSpoilersLabel: "觀看前隱藏劇透",
       signedOutNote: "登入後可跨工作階段同步這些偏好。此裝置現在仍會套用這些設定。",
       saving: "正在儲存設定...",
     },

@@ -7,6 +7,7 @@ import {setAnalyticsUserId, trackEvent} from "../firebase";
 import {PrivacyPage} from "../pages/PrivacyPage";
 import {ProfilePage} from "../pages/ProfilePage";
 import {SettingsPage} from "../pages/SettingsPage";
+import {SocialPage} from "../pages/SocialPage";
 import {TimelinePage} from "../pages/TimelinePage";
 import {WatchlistPage} from "../pages/WatchlistPage";
 import {HistoryEntry} from "../types/history";
@@ -213,19 +214,34 @@ const ProfileRoute = () => {
   );
 };
 
+const SocialRoute = () => {
+  const {user} = useAuth();
+  return <SocialPage signedIn={Boolean(user)} />;
+};
+
 const SettingsRoute = () => {
   const navigate = useNavigate();
   const {signOutUser, user} = useAuth();
   const {
+    achievementsEnabled,
+    allowFriendRequests,
     autoMarkPreviousEpisodesWatched,
+    changeAchievementsEnabled,
+    changeAllowFriendRequests,
     changeAutoMarkPreviousEpisodesWatched,
+    changeHideSpoilersUntilWatched,
     changeLanguage,
     changePreferredProviderIds,
+    changeShareActivityWithFriends,
+    changeShowAchievementsOnProfile,
     changeWatchRegion,
+    hideSpoilersUntilWatched,
     language,
     preferredProviderIds,
     settingsError,
     settingsLoading,
+    shareActivityWithFriends,
+    showAchievementsOnProfile,
     watchRegion,
   } = useAppContext();
   const [accountDeleting, setAccountDeleting] = useState(false);
@@ -253,17 +269,27 @@ const SettingsRoute = () => {
     <SettingsPage
       accountDeletionError={accountDeletionError}
       accountDeleting={accountDeleting}
+      achievementsEnabled={achievementsEnabled}
+      allowFriendRequests={allowFriendRequests}
       autoMarkPreviousEpisodesWatched={autoMarkPreviousEpisodesWatched}
       error={settingsError}
+      hideSpoilersUntilWatched={hideSpoilersUntilWatched}
       language={language}
       loading={settingsLoading}
       preferredProviderIds={preferredProviderIds}
+      shareActivityWithFriends={shareActivityWithFriends}
+      showAchievementsOnProfile={showAchievementsOnProfile}
       signedIn={Boolean(user)}
       watchRegion={watchRegion}
+      onAchievementsEnabledChange={changeAchievementsEnabled}
+      onAllowFriendRequestsChange={changeAllowFriendRequests}
       onAutoMarkPreviousEpisodesWatchedChange={changeAutoMarkPreviousEpisodesWatched}
       onDeleteAccount={handleDeleteAccount}
+      onHideSpoilersUntilWatchedChange={changeHideSpoilersUntilWatched}
       onLanguageChange={changeLanguage}
       onPreferredProviderIdsChange={changePreferredProviderIds}
+      onShareActivityWithFriendsChange={changeShareActivityWithFriends}
+      onShowAchievementsOnProfileChange={changeShowAchievementsOnProfile}
       onWatchRegionChange={changeWatchRegion}
     />
   );
@@ -289,6 +315,7 @@ export const AppRoutes = () => (
       <Route element={<FranchiseListRoute />} path={paths.franchises} />
       <Route element={<FranchiseDetailRoute />} path="/franchises/:slug" />
       <Route element={<ProfileRoute />} path={paths.profile} />
+      <Route element={<SocialRoute />} path={paths.social} />
       <Route element={<SettingsRoute />} path={paths.settings} />
       <Route element={<PrivacyRoute />} path={paths.privacy} />
       <Route element={<AuthRoute mode="signin" />} path={paths.login} />

@@ -7,5 +7,10 @@ export interface UserSettings {
   language: SupportedLanguage;
   preferredProviderIds: number[];
   watchRegion: string;
+  achievementsEnabled: boolean;
+  showAchievementsOnProfile: boolean;
+  shareActivityWithFriends: boolean;
+  allowFriendRequests: boolean;
+  hideSpoilersUntilWatched: boolean;
   updatedAt: string | null;
 }

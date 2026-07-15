@@ -16,6 +16,19 @@ vi.mock("../../firebase", () => ({
   trackEvent: vi.fn(),
 }));
 
+const defaultSettings = {
+  language: "en-US" as const,
+  autoMarkPreviousEpisodesWatched: false,
+  preferredProviderIds: [] as number[],
+  watchRegion: "US",
+  achievementsEnabled: true,
+  showAchievementsOnProfile: true,
+  shareActivityWithFriends: false,
+  allowFriendRequests: true,
+  hideSpoilersUntilWatched: true,
+  updatedAt: null,
+};
+
 describe("useSettings", () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -28,11 +41,12 @@ describe("useSettings", () => {
 
   it("hydrates settings from the API for signed-in users", async () => {
     vi.mocked(api.meSettings).mockResolvedValue({
+      ...defaultSettings,
       language: "zh-TW",
       autoMarkPreviousEpisodesWatched: true,
       preferredProviderIds: [8],
       watchRegion: "TW",
-      updatedAt: null,
+      shareActivityWithFriends: true,
     });
 
     const {result} = renderHook(() => useSettings(mockUser));
@@ -43,6 +57,7 @@ describe("useSettings", () => {
     expect(result.current.autoMarkPreviousEpisodesWatched).toBe(true);
     expect(result.current.preferredProviderIds).toEqual([8]);
     expect(result.current.watchRegion).toBe("TW");
+    expect(result.current.shareActivityWithFriends).toBe(true);
     expect(window.localStorage.getItem("episodera.language")).toBe("zh-TW");
   });
 
@@ -54,6 +69,8 @@ describe("useSettings", () => {
       result.current.changeAutoMarkPreviousEpisodesWatched(true);
       result.current.changePreferredProviderIds([337]);
       result.current.changeWatchRegion("gb");
+      result.current.changeShareActivityWithFriends(true);
+      result.current.changeAchievementsEnabled(false);
     });
 
     expect(api.updateMeSettings).not.toHaveBeenCalled();
@@ -65,23 +82,16 @@ describe("useSettings", () => {
     expect(result.current.autoMarkPreviousEpisodesWatched).toBe(true);
     expect(result.current.preferredProviderIds).toEqual([337]);
     expect(result.current.watchRegion).toBe("GB");
+    expect(result.current.shareActivityWithFriends).toBe(true);
+    expect(result.current.achievementsEnabled).toBe(false);
     expect(window.localStorage.getItem("episodera.autoMarkPreviousEpisodesWatched")).toBe("true");
   });
 
   it("persists language changes for signed-in users", async () => {
-    vi.mocked(api.meSettings).mockResolvedValue({
-      language: "en-US",
-      autoMarkPreviousEpisodesWatched: false,
-      preferredProviderIds: [],
-      watchRegion: "US",
-      updatedAt: null,
-    });
+    vi.mocked(api.meSettings).mockResolvedValue(defaultSettings);
     vi.mocked(api.updateMeSettings).mockResolvedValue({
+      ...defaultSettings,
       language: "zh-TW",
-      autoMarkPreviousEpisodesWatched: false,
-      preferredProviderIds: [],
-      watchRegion: "US",
-      updatedAt: null,
     });
 
     const {result} = renderHook(() => useSettings(mockUser));

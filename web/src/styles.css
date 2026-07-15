@@ -1255,6 +1255,19 @@ select:focus-visible {
   margin-top: 24px;
 }
 
+.social-inline-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: 8px;
+}
+
+.discussion-panel {
+  display: grid;
+  gap: 14px;
+  margin-top: 28px;
+}
+
 .history-panel .section-header > div {
   display: grid;
   gap: 6px;

@@ -7,6 +7,11 @@ interface SettingsDocument {
   language?: SupportedLanguage;
   preferredProviderIds?: number[];
   watchRegion?: string;
+  achievementsEnabled?: boolean;
+  showAchievementsOnProfile?: boolean;
+  shareActivityWithFriends?: boolean;
+  allowFriendRequests?: boolean;
+  hideSpoilersUntilWatched?: boolean;
   updatedAt?: Timestamp;
 }
 
@@ -42,8 +47,26 @@ const parseWatchRegion = (value: unknown): string => {
   return value.toUpperCase();
 };
 
+const parseBoolean = (value: unknown, field: string) => {
+  if (typeof value !== "boolean") {
+    throw new HttpError(400, `${field} must be a boolean.`, `invalid_${field}`);
+  }
+  return value;
+};
+
 type SettingsUpdateInput = Partial<
-  Pick<UserSettings, "autoMarkPreviousEpisodesWatched" | "language" | "preferredProviderIds" | "watchRegion">
+  Pick<
+    UserSettings,
+    | "autoMarkPreviousEpisodesWatched"
+    | "language"
+    | "preferredProviderIds"
+    | "watchRegion"
+    | "achievementsEnabled"
+    | "showAchievementsOnProfile"
+    | "shareActivityWithFriends"
+    | "allowFriendRequests"
+    | "hideSpoilersUntilWatched"
+  >
 >;
 
 export const parseSettingsInput = (body: unknown): SettingsUpdateInput => {
@@ -57,20 +80,14 @@ export const parseSettingsInput = (body: unknown): SettingsUpdateInput => {
     if (!isSupportedLanguage(body.language)) {
       throw new HttpError(400, "language must be en-US or zh-TW.", "unsupported_language");
     }
-
     input.language = body.language;
   }
 
   if ("autoMarkPreviousEpisodesWatched" in body) {
-    if (typeof body.autoMarkPreviousEpisodesWatched !== "boolean") {
-      throw new HttpError(
-        400,
-        "autoMarkPreviousEpisodesWatched must be a boolean.",
-        "invalid_auto_mark_previous_episodes_watched",
-      );
-    }
-
-    input.autoMarkPreviousEpisodesWatched = body.autoMarkPreviousEpisodesWatched;
+    input.autoMarkPreviousEpisodesWatched = parseBoolean(
+      body.autoMarkPreviousEpisodesWatched,
+      "autoMarkPreviousEpisodesWatched",
+    );
   }
 
   if ("preferredProviderIds" in body) {
@@ -81,12 +98,27 @@ export const parseSettingsInput = (body: unknown): SettingsUpdateInput => {
     input.watchRegion = parseWatchRegion(body.watchRegion);
   }
 
-  if (
-    !("language" in input) &&
-    !("autoMarkPreviousEpisodesWatched" in input) &&
-    !("preferredProviderIds" in input) &&
-    !("watchRegion" in input)
-  ) {
+  if ("achievementsEnabled" in body) {
+    input.achievementsEnabled = parseBoolean(body.achievementsEnabled, "achievementsEnabled");
+  }
+
+  if ("showAchievementsOnProfile" in body) {
+    input.showAchievementsOnProfile = parseBoolean(body.showAchievementsOnProfile, "showAchievementsOnProfile");
+  }
+
+  if ("shareActivityWithFriends" in body) {
+    input.shareActivityWithFriends = parseBoolean(body.shareActivityWithFriends, "shareActivityWithFriends");
+  }
+
+  if ("allowFriendRequests" in body) {
+    input.allowFriendRequests = parseBoolean(body.allowFriendRequests, "allowFriendRequests");
+  }
+
+  if ("hideSpoilersUntilWatched" in body) {
+    input.hideSpoilersUntilWatched = parseBoolean(body.hideSpoilersUntilWatched, "hideSpoilersUntilWatched");
+  }
+
+  if (Object.keys(input).length === 0) {
     throw new HttpError(400, "At least one supported setting is required.", "missing_settings");
   }
 
@@ -112,6 +144,11 @@ class SettingsService {
         typeof data.watchRegion === "string" && /^[A-Za-z]{2}$/.test(data.watchRegion)
           ? data.watchRegion.toUpperCase()
           : "US",
+      achievementsEnabled: data.achievementsEnabled ?? true,
+      showAchievementsOnProfile: data.showAchievementsOnProfile ?? true,
+      shareActivityWithFriends: data.shareActivityWithFriends ?? false,
+      allowFriendRequests: data.allowFriendRequests ?? true,
+      hideSpoilersUntilWatched: data.hideSpoilersUntilWatched ?? true,
       updatedAt: timestampToJson(data.updatedAt),
     };
   }

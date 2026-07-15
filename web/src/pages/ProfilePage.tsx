@@ -1,5 +1,7 @@
 import {Link} from "react-router-dom";
+import {useEffect, useState} from "react";
 import {
+  Award,
   BarChart3,
   CheckCircle2,
   Clapperboard,
@@ -11,10 +13,12 @@ import {
   PlayCircle,
   Tv,
 } from "lucide-react";
+import {api} from "../api/client";
 import {SectionError} from "../components/SectionError";
 import {YearRecapCard} from "../components/YearRecapCard";
 import {formatWatchTime} from "../lib/seasonProgress";
 import {paths} from "../routes/paths";
+import {AchievementProgress, AchievementsResponse} from "../types/achievement";
 import {HistoryEntry} from "../types/history";
 import {UserProfile} from "../types/profile";
 import {UserStats, YearRecap} from "../types/stats";
@@ -83,6 +87,23 @@ export const ProfilePage = ({
   onRetryRecap,
   onRetryStats,
 }: ProfilePageProps) => {
+  const [achievements, setAchievements] = useState<AchievementsResponse | null>(null);
+  const [achievementsError, setAchievementsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!signedIn) {
+      setAchievements(null);
+      return;
+    }
+
+    void api
+      .meAchievements()
+      .then(setAchievements)
+      .catch((reason: unknown) => {
+        setAchievementsError(reason instanceof Error ? reason.message : "Could not load achievements.");
+      });
+  }, [signedIn]);
+
   if (!signedIn) {
     return (
       <main className="page-shell">
@@ -231,6 +252,34 @@ export const ProfilePage = ({
       {recapError && !recapLoading && <SectionError message={recapError} onRetry={onRetryRecap} />}
       {!recapLoading && !recapError && recap && (
         <YearRecapCard recap={recap} onYearChange={onRecapYearChange} />
+      )}
+
+      {achievementsError && <SectionError message={achievementsError} onRetry={() => window.location.reload()} />}
+      {achievements?.enabled && achievements.showOnProfile && (
+        <section className="stats-breakdown" data-testid="achievements-panel">
+          <div>
+            <h3>
+              <Award size={16} aria-hidden="true" /> Achievements
+            </h3>
+            <p className="muted-copy">
+              {achievements.unlockedCount}/{achievements.items.length} unlocked
+            </p>
+            <ol data-testid="achievements-list">
+              {achievements.items.map((item: AchievementProgress) => (
+                <li key={item.id}>
+                  <span>
+                    {item.title}
+                    {item.unlocked ? " · unlocked" : ` · ${item.current}/${item.target}`}
+                  </span>
+                  <strong>{item.progressPercent}%</strong>
+                </li>
+              ))}
+            </ol>
+            <Link className="text-button" data-testid="profile-open-social" to={paths.social}>
+              Open social
+            </Link>
+          </div>
+        </section>
       )}
 
       <section className="history-panel">

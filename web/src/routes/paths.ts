@@ -6,6 +6,7 @@ export type NavView =
   | "watchlist"
   | "timeline"
   | "franchises"
+  | "social"
   | "profile"
   | "settings";
 
@@ -21,6 +22,7 @@ export const paths = {
   timeline: "/timeline",
   franchises: "/franchises",
   franchise: (slug: string) => `/franchises/${encodeURIComponent(slug)}`,
+  social: "/social",
   profile: "/profile",
   settings: "/settings",
   privacy: "/privacy",
@@ -43,6 +45,9 @@ export const navFromPath = (pathname: string): NavView => {
   }
   if (pathname.startsWith("/franchises")) {
     return "franchises";
+  }
+  if (pathname.startsWith("/social")) {
+    return "social";
   }
   if (pathname.startsWith("/profile")) {
     return "profile";

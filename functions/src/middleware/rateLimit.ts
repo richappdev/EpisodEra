@@ -22,6 +22,7 @@ const publicReadPaths = [
   /^\/tv\/\d+(?:\/season\/\d+)?(?:\?|$)/,
   /^\/franchises(?:\/|$|\?)/,
   /^\/discover(?:\/|$|\?)/,
+  /^\/discussions(?:\/|$|\?)/,
 ];
 
 const writePaths = [
@@ -30,6 +31,8 @@ const writePaths = [
   /^\/me\/profile(?:\?|$)/,
   /^\/me\/settings(?:\?|$)/,
   /^\/me\/account(?:\?|$)/,
+  /^\/me\/friends(?:\/|$)/,
+  /^\/discussions(?:\/|$)/,
 ];
 
 export const resetRateLimitBucketsForTests = () => {

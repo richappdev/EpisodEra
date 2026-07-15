@@ -7,6 +7,7 @@ export interface UserProfile {
   bio: string | null;
   country: string | null;
   timezone: string | null;
+  friendCode: string | null;
   createdAt: string | null;
   updatedAt: string | null;
 }

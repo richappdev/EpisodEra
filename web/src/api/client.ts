@@ -13,6 +13,14 @@ import {
 } from "../types/progress";
 import {SupportedLanguage, UserSettings} from "../types/settings";
 import {UserStats, YearRecap} from "../types/stats";
+import {AchievementsResponse} from "../types/achievement";
+import {
+  ActivityFeedItem,
+  ChallengeProgress,
+  CompatibilityResult,
+  DiscussionComment,
+  FriendsResponse,
+} from "../types/social";
 import {AddWatchlistItemInput, WatchlistItem, WatchlistResponse, WatchlistStatus} from "../types/watchlist";
 import {getAppCheckToken} from "../firebase";
 
@@ -107,14 +115,36 @@ export const api = {
   updateMeProfile: (profile: UpdateUserProfileInput, token?: string | null) =>
     request<UserProfile>("/me/profile", {method: "PATCH", body: profile, token}),
   meSettings: () => request<UserSettings>("/me/settings"),
-  updateMeSettings: (
-    settings: Partial<
-      Pick<UserSettings, "autoMarkPreviousEpisodesWatched" | "language" | "preferredProviderIds" | "watchRegion">
-    >,
-  ) => request<UserSettings>("/me/settings", {method: "PATCH", body: settings}),
+  updateMeSettings: (settings: Partial<UserSettings>) =>
+    request<UserSettings>("/me/settings", {method: "PATCH", body: settings}),
   meStats: () => request<UserStats>("/me/stats"),
   meRecap: (year?: number) =>
     request<YearRecap>(year == null ? "/me/recap" : `/me/recap?year=${encodeURIComponent(String(year))}`),
+  meAchievements: () => request<AchievementsResponse>("/me/achievements"),
+  meFriends: () => request<FriendsResponse>("/me/friends"),
+  requestFriend: (friendCode: string) =>
+    request<FriendsResponse>("/me/friends/request", {method: "POST", body: {friendCode}}),
+  updateFriendStatus: (friendUserId: string, status: "accepted" | "declined" | "removed") =>
+    request<FriendsResponse>(`/me/friends/${encodeURIComponent(friendUserId)}`, {
+      method: "PATCH",
+      body: {status},
+    }),
+  meFeed: () => request<{items: ActivityFeedItem[]}>("/me/feed"),
+  meCompatibility: (friendUserId: string) =>
+    request<CompatibilityResult>(`/me/friends/${encodeURIComponent(friendUserId)}/compatibility`),
+  meChallenges: (friendUserId?: string) =>
+    request<{items: ChallengeProgress[]}>(
+      friendUserId
+        ? `/me/challenges?friendUserId=${encodeURIComponent(friendUserId)}`
+        : "/me/challenges",
+    ),
+  listDiscussions: (mediaType: MediaType, id: number) =>
+    request<{items: DiscussionComment[]}>(`/discussions/${mediaType}/${id}`),
+  createDiscussion: (
+    mediaType: MediaType,
+    id: number,
+    input: {body: string; seasonNumber?: number | null; episodeNumber?: number | null},
+  ) => request<DiscussionComment>(`/discussions/${mediaType}/${id}`, {method: "POST", body: input}),
   listFranchises: () => request<{items: FranchiseSummary[]}>("/franchises"),
   getFranchise: (slug: string) => request<FranchiseCatalog>(`/franchises/${encodeURIComponent(slug)}`),
   meFranchiseProgress: (slug: string, order: FranchiseOrder = "release") =>

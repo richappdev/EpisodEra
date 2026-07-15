@@ -6,8 +6,12 @@ import {historyService, parseUpdateHistoryInput} from "../services/historyServic
 import {progressService} from "../services/progressService";
 import {parseProfileInput, profileService} from "../services/profileService";
 import {parseSettingsInput, settingsService} from "../services/settingsService";
+import {achievementService} from "../services/achievementService";
+import {challengeService} from "../services/challengeService";
+import {friendService} from "../services/friendService";
 import {statsService} from "../services/statsService";
 import {franchiseService} from "../services/franchiseService";
+import {HttpError} from "../lib/httpError";
 
 export const meRouter = Router();
 
@@ -37,6 +41,68 @@ meRouter.get("/me/recap", async (req: AuthenticatedRequest, res, next) => {
 meRouter.get("/me/franchises/:slug/progress", async (req: AuthenticatedRequest, res, next) => {
   try {
     res.json(await franchiseService.getProgress(req.user!.uid, req.params.slug, req.query.order));
+  } catch (error) {
+    next(error);
+  }
+});
+
+meRouter.get("/me/achievements", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    res.json(await achievementService.list(req.user!.uid));
+  } catch (error) {
+    next(error);
+  }
+});
+
+meRouter.get("/me/friends", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    res.json(await friendService.list(req.user!.uid));
+  } catch (error) {
+    next(error);
+  }
+});
+
+meRouter.post("/me/friends/request", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const friendCode = typeof req.body?.friendCode === "string" ? req.body.friendCode : "";
+    res.status(201).json(await friendService.requestByCode(req.user!.uid, friendCode));
+  } catch (error) {
+    next(error);
+  }
+});
+
+meRouter.patch("/me/friends/:friendUserId", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const status = req.body?.status;
+    if (status !== "accepted" && status !== "declined" && status !== "removed") {
+      throw new HttpError(400, "status must be accepted, declined, or removed.", "invalid_friend_status");
+    }
+    res.json(await friendService.updateStatus(req.user!.uid, req.params.friendUserId, status));
+  } catch (error) {
+    next(error);
+  }
+});
+
+meRouter.get("/me/feed", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    res.json(await friendService.feed(req.user!.uid));
+  } catch (error) {
+    next(error);
+  }
+});
+
+meRouter.get("/me/friends/:friendUserId/compatibility", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    res.json(await friendService.compatibility(req.user!.uid, req.params.friendUserId));
+  } catch (error) {
+    next(error);
+  }
+});
+
+meRouter.get("/me/challenges", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const friendUserId = typeof req.query.friendUserId === "string" ? req.query.friendUserId : undefined;
+    res.json(await challengeService.list(req.user!.uid, friendUserId));
   } catch (error) {
     next(error);
   }

@@ -2,7 +2,7 @@ import {useCallback, useEffect, useState} from "react";
 import type {User} from "firebase/auth";
 import {api} from "../api/client";
 import {trackEvent} from "../firebase";
-import {SupportedLanguage, isSupportedLanguage} from "../types/settings";
+import {SupportedLanguage, UserSettings, isSupportedLanguage} from "../types/settings";
 import {toErrorMessage} from "./errorMessage";
 
 const languageStorageKey = "episodera.language";
@@ -34,6 +34,31 @@ const initialWatchRegion = () => {
   return stored && /^[A-Za-z]{2}$/.test(stored) ? stored.toUpperCase() : "US";
 };
 
+const applySettingsState = (
+  settings: UserSettings,
+  setters: {
+    setLanguage: (value: SupportedLanguage) => void;
+    setAutoMarkPreviousEpisodesWatched: (value: boolean) => void;
+    setPreferredProviderIds: (value: number[]) => void;
+    setWatchRegion: (value: string) => void;
+    setAchievementsEnabled: (value: boolean) => void;
+    setShowAchievementsOnProfile: (value: boolean) => void;
+    setShareActivityWithFriends: (value: boolean) => void;
+    setAllowFriendRequests: (value: boolean) => void;
+    setHideSpoilersUntilWatched: (value: boolean) => void;
+  },
+) => {
+  setters.setLanguage(settings.language);
+  setters.setAutoMarkPreviousEpisodesWatched(settings.autoMarkPreviousEpisodesWatched);
+  setters.setPreferredProviderIds(settings.preferredProviderIds ?? []);
+  setters.setWatchRegion(settings.watchRegion ?? "US");
+  setters.setAchievementsEnabled(settings.achievementsEnabled ?? true);
+  setters.setShowAchievementsOnProfile(settings.showAchievementsOnProfile ?? true);
+  setters.setShareActivityWithFriends(settings.shareActivityWithFriends ?? false);
+  setters.setAllowFriendRequests(settings.allowFriendRequests ?? true);
+  setters.setHideSpoilersUntilWatched(settings.hideSpoilersUntilWatched ?? true);
+};
+
 export const useSettings = (user: User | null) => {
   const [language, setLanguage] = useState<SupportedLanguage>(initialLanguage);
   const [autoMarkPreviousEpisodesWatched, setAutoMarkPreviousEpisodesWatched] = useState(
@@ -41,8 +66,25 @@ export const useSettings = (user: User | null) => {
   );
   const [preferredProviderIds, setPreferredProviderIds] = useState<number[]>(initialPreferredProviderIds);
   const [watchRegion, setWatchRegion] = useState(initialWatchRegion);
+  const [achievementsEnabled, setAchievementsEnabled] = useState(true);
+  const [showAchievementsOnProfile, setShowAchievementsOnProfile] = useState(true);
+  const [shareActivityWithFriends, setShareActivityWithFriends] = useState(false);
+  const [allowFriendRequests, setAllowFriendRequests] = useState(true);
+  const [hideSpoilersUntilWatched, setHideSpoilersUntilWatched] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const setters = {
+    setLanguage,
+    setAutoMarkPreviousEpisodesWatched,
+    setPreferredProviderIds,
+    setWatchRegion,
+    setAchievementsEnabled,
+    setShowAchievementsOnProfile,
+    setShareActivityWithFriends,
+    setAllowFriendRequests,
+    setHideSpoilersUntilWatched,
+  };
 
   useEffect(() => {
     window.localStorage.setItem(languageStorageKey, language);
@@ -75,11 +117,7 @@ export const useSettings = (user: User | null) => {
     setError(null);
 
     try {
-      const settings = await api.meSettings();
-      setLanguage(settings.language);
-      setAutoMarkPreviousEpisodesWatched(settings.autoMarkPreviousEpisodesWatched);
-      setPreferredProviderIds(settings.preferredProviderIds ?? []);
-      setWatchRegion(settings.watchRegion ?? "US");
+      applySettingsState(await api.meSettings(), setters);
     } catch (reason) {
       setError(toErrorMessage(reason, "Could not load settings."));
     } finally {
@@ -97,14 +135,7 @@ export const useSettings = (user: User | null) => {
   }, [reload, reset, user]);
 
   const persistSettings = useCallback(
-    (
-      patch: Partial<{
-        language: SupportedLanguage;
-        autoMarkPreviousEpisodesWatched: boolean;
-        preferredProviderIds: number[];
-        watchRegion: string;
-      }>,
-    ) => {
+    (patch: Partial<UserSettings>) => {
       if (!user) {
         return Promise.resolve();
       }
@@ -115,10 +146,7 @@ export const useSettings = (user: User | null) => {
       return api
         .updateMeSettings(patch)
         .then((settings) => {
-          setLanguage(settings.language);
-          setAutoMarkPreviousEpisodesWatched(settings.autoMarkPreviousEpisodesWatched);
-          setPreferredProviderIds(settings.preferredProviderIds ?? []);
-          setWatchRegion(settings.watchRegion ?? "US");
+          applySettingsState(settings, setters);
         })
         .catch((reason: unknown) => {
           setError(toErrorMessage(reason, "Could not save settings."));
@@ -129,75 +157,15 @@ export const useSettings = (user: User | null) => {
     [user],
   );
 
-  const changeLanguage = useCallback(
-    (nextLanguage: SupportedLanguage) => {
-      setLanguage(nextLanguage);
-      trackEvent("select_content", {
-        content_type: "language",
-        item_id: nextLanguage,
-      });
+  const trackAndPersist = useCallback(
+    (contentType: string, itemId: string, patch: Partial<UserSettings>, localApply: () => void) => {
+      localApply();
+      trackEvent("select_content", {content_type: contentType, item_id: itemId});
       setError(null);
-
       if (!user) {
         return;
       }
-
-      void persistSettings({language: nextLanguage});
-    },
-    [persistSettings, user],
-  );
-
-  const changeAutoMarkPreviousEpisodesWatched = useCallback(
-    (enabled: boolean) => {
-      setAutoMarkPreviousEpisodesWatched(enabled);
-      trackEvent("select_content", {
-        content_type: "auto_mark_previous_episodes_watched",
-        item_id: String(enabled),
-      });
-      setError(null);
-
-      if (!user) {
-        return;
-      }
-
-      void persistSettings({autoMarkPreviousEpisodesWatched: enabled});
-    },
-    [persistSettings, user],
-  );
-
-  const changePreferredProviderIds = useCallback(
-    (providerIds: number[]) => {
-      setPreferredProviderIds(providerIds);
-      trackEvent("select_content", {
-        content_type: "preferred_providers",
-        item_id: providerIds.join(","),
-      });
-      setError(null);
-
-      if (!user) {
-        return;
-      }
-
-      void persistSettings({preferredProviderIds: providerIds});
-    },
-    [persistSettings, user],
-  );
-
-  const changeWatchRegion = useCallback(
-    (region: string) => {
-      const normalized = region.toUpperCase();
-      setWatchRegion(normalized);
-      trackEvent("select_content", {
-        content_type: "watch_region",
-        item_id: normalized,
-      });
-      setError(null);
-
-      if (!user) {
-        return;
-      }
-
-      void persistSettings({watchRegion: normalized});
+      void persistSettings(patch);
     },
     [persistSettings, user],
   );
@@ -207,12 +175,47 @@ export const useSettings = (user: User | null) => {
     autoMarkPreviousEpisodesWatched,
     preferredProviderIds,
     watchRegion,
+    achievementsEnabled,
+    showAchievementsOnProfile,
+    shareActivityWithFriends,
+    allowFriendRequests,
+    hideSpoilersUntilWatched,
     loading,
     error,
     reload,
-    changeLanguage,
-    changeAutoMarkPreviousEpisodesWatched,
-    changePreferredProviderIds,
-    changeWatchRegion,
+    changeLanguage: (nextLanguage: SupportedLanguage) =>
+      trackAndPersist("language", nextLanguage, {language: nextLanguage}, () => setLanguage(nextLanguage)),
+    changeAutoMarkPreviousEpisodesWatched: (enabled: boolean) =>
+      trackAndPersist("auto_mark_previous_episodes_watched", String(enabled), {autoMarkPreviousEpisodesWatched: enabled}, () =>
+        setAutoMarkPreviousEpisodesWatched(enabled),
+      ),
+    changePreferredProviderIds: (providerIds: number[]) =>
+      trackAndPersist("preferred_providers", providerIds.join(","), {preferredProviderIds: providerIds}, () =>
+        setPreferredProviderIds(providerIds),
+      ),
+    changeWatchRegion: (region: string) => {
+      const normalized = region.toUpperCase();
+      trackAndPersist("watch_region", normalized, {watchRegion: normalized}, () => setWatchRegion(normalized));
+    },
+    changeAchievementsEnabled: (enabled: boolean) =>
+      trackAndPersist("achievements_enabled", String(enabled), {achievementsEnabled: enabled}, () =>
+        setAchievementsEnabled(enabled),
+      ),
+    changeShowAchievementsOnProfile: (enabled: boolean) =>
+      trackAndPersist("show_achievements_on_profile", String(enabled), {showAchievementsOnProfile: enabled}, () =>
+        setShowAchievementsOnProfile(enabled),
+      ),
+    changeShareActivityWithFriends: (enabled: boolean) =>
+      trackAndPersist("share_activity_with_friends", String(enabled), {shareActivityWithFriends: enabled}, () =>
+        setShareActivityWithFriends(enabled),
+      ),
+    changeAllowFriendRequests: (enabled: boolean) =>
+      trackAndPersist("allow_friend_requests", String(enabled), {allowFriendRequests: enabled}, () =>
+        setAllowFriendRequests(enabled),
+      ),
+    changeHideSpoilersUntilWatched: (enabled: boolean) =>
+      trackAndPersist("hide_spoilers_until_watched", String(enabled), {hideSpoilersUntilWatched: enabled}, () =>
+        setHideSpoilersUntilWatched(enabled),
+      ),
   };
 };

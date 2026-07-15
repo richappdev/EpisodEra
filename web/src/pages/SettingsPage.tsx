@@ -21,11 +21,21 @@ interface SettingsPageProps {
   preferredProviderIds: number[];
   signedIn: boolean;
   watchRegion: string;
+  achievementsEnabled: boolean;
+  showAchievementsOnProfile: boolean;
+  shareActivityWithFriends: boolean;
+  allowFriendRequests: boolean;
+  hideSpoilersUntilWatched: boolean;
   onAutoMarkPreviousEpisodesWatchedChange: (enabled: boolean) => void;
   onDeleteAccount: () => Promise<void>;
   onLanguageChange: (language: SupportedLanguage) => void;
   onPreferredProviderIdsChange: (providerIds: number[]) => void;
   onWatchRegionChange: (region: string) => void;
+  onAchievementsEnabledChange: (enabled: boolean) => void;
+  onShowAchievementsOnProfileChange: (enabled: boolean) => void;
+  onShareActivityWithFriendsChange: (enabled: boolean) => void;
+  onAllowFriendRequestsChange: (enabled: boolean) => void;
+  onHideSpoilersUntilWatchedChange: (enabled: boolean) => void;
 }
 
 export const SettingsPage = ({
@@ -38,11 +48,21 @@ export const SettingsPage = ({
   preferredProviderIds,
   signedIn,
   watchRegion,
+  achievementsEnabled,
+  showAchievementsOnProfile,
+  shareActivityWithFriends,
+  allowFriendRequests,
+  hideSpoilersUntilWatched,
   onAutoMarkPreviousEpisodesWatchedChange,
   onDeleteAccount,
   onLanguageChange,
   onPreferredProviderIdsChange,
   onWatchRegionChange,
+  onAchievementsEnabledChange,
+  onShowAchievementsOnProfileChange,
+  onShareActivityWithFriendsChange,
+  onAllowFriendRequestsChange,
+  onHideSpoilersUntilWatchedChange,
 }: SettingsPageProps) => {
   const copy = uiCopy[language].settings;
   const legal = legalCopy[language].settings;
@@ -164,6 +184,59 @@ export const SettingsPage = ({
             })}
           </div>
           <p className="settings-note">{copy.providersNote}</p>
+        </section>
+
+        <section className="settings-group" aria-labelledby="privacy-social-settings-title">
+          <div className="settings-group-heading">
+            <ShieldAlert size={20} aria-hidden="true" />
+            <h3 id="privacy-social-settings-title">{copy.privacyTitle}</h3>
+          </div>
+          <label className="settings-check">
+            <input
+              checked={achievementsEnabled}
+              disabled={loading || accountDeleting}
+              type="checkbox"
+              onChange={(event) => onAchievementsEnabledChange(event.target.checked)}
+            />
+            <span>{copy.achievementsEnabledLabel}</span>
+          </label>
+          <p className="settings-note">{copy.achievementsEnabledNote}</p>
+          <label className="settings-check">
+            <input
+              checked={showAchievementsOnProfile}
+              disabled={loading || accountDeleting || !achievementsEnabled}
+              type="checkbox"
+              onChange={(event) => onShowAchievementsOnProfileChange(event.target.checked)}
+            />
+            <span>{copy.showAchievementsLabel}</span>
+          </label>
+          <label className="settings-check">
+            <input
+              checked={shareActivityWithFriends}
+              disabled={loading || accountDeleting}
+              type="checkbox"
+              onChange={(event) => onShareActivityWithFriendsChange(event.target.checked)}
+            />
+            <span>{copy.shareActivityLabel}</span>
+          </label>
+          <label className="settings-check">
+            <input
+              checked={allowFriendRequests}
+              disabled={loading || accountDeleting}
+              type="checkbox"
+              onChange={(event) => onAllowFriendRequestsChange(event.target.checked)}
+            />
+            <span>{copy.allowFriendRequestsLabel}</span>
+          </label>
+          <label className="settings-check">
+            <input
+              checked={hideSpoilersUntilWatched}
+              disabled={loading || accountDeleting}
+              type="checkbox"
+              onChange={(event) => onHideSpoilersUntilWatchedChange(event.target.checked)}
+            />
+            <span>{copy.hideSpoilersLabel}</span>
+          </label>
         </section>
 
         <section className="settings-group" aria-labelledby="privacy-settings-title">

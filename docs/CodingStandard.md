@@ -7,7 +7,7 @@ Episodera is a TypeScript/Firebase project with a React web frontend. Keep chang
 - Build MVP features before v1.5/v2 features.
 - Keep TMDb as the metadata source of truth.
 - Store only user-owned app state in Firestore.
-- Do not add Trakt, JustWatch, IMDb, notifications, or social features until the MVP tracking loop is stable. Keep Firebase Analytics and Performance Monitoring scoped to operational visibility.
+- Do not add Trakt, JustWatch, IMDb, or notifications until required. First-party friends/achievements/discussions are in scope after the MVP tracking loop is stable. Keep Firebase Analytics and Performance Monitoring scoped to operational visibility.
 - Prefer extending existing services, models, and routes over adding new architectural layers.
 
 ## Repository Layout

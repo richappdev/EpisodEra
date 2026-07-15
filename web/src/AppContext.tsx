@@ -31,6 +31,11 @@ interface AppContextValue {
   preferredProviderIds: number[];
   profile: UserProfile | null;
   progressItems: ShowProgressSummary[];
+  achievementsEnabled: boolean;
+  showAchievementsOnProfile: boolean;
+  shareActivityWithFriends: boolean;
+  allowFriendRequests: boolean;
+  hideSpoilersUntilWatched: boolean;
   recap: YearRecap | null;
   recapError: string | null;
   recapLoading: boolean;
@@ -52,6 +57,11 @@ interface AppContextValue {
   changeLanguage: (nextLanguage: SupportedLanguage) => void;
   changePreferredProviderIds: (providerIds: number[]) => void;
   changeWatchRegion: (region: string) => void;
+  changeAchievementsEnabled: (enabled: boolean) => void;
+  changeShowAchievementsOnProfile: (enabled: boolean) => void;
+  changeShareActivityWithFriends: (enabled: boolean) => void;
+  changeAllowFriendRequests: (enabled: boolean) => void;
+  changeHideSpoilersUntilWatched: (enabled: boolean) => void;
   deleteHistoryEntry: (historyId: string) => Promise<void>;
   loadMoreHistory: () => void;
   loadMoreWatchlist: () => void;
@@ -193,6 +203,11 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
       language: settings.language,
       pendingShowIds: progress.pendingShowIds,
       preferredProviderIds: settings.preferredProviderIds,
+      achievementsEnabled: settings.achievementsEnabled,
+      showAchievementsOnProfile: settings.showAchievementsOnProfile,
+      shareActivityWithFriends: settings.shareActivityWithFriends,
+      allowFriendRequests: settings.allowFriendRequests,
+      hideSpoilersUntilWatched: settings.hideSpoilersUntilWatched,
       profile: profileState.profile,
       progressItems: progress.items,
       recap: profileStats.recap,
@@ -216,6 +231,11 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
       changeLanguage: settings.changeLanguage,
       changePreferredProviderIds: settings.changePreferredProviderIds,
       changeWatchRegion: settings.changeWatchRegion,
+      changeAchievementsEnabled: settings.changeAchievementsEnabled,
+      changeShowAchievementsOnProfile: settings.changeShowAchievementsOnProfile,
+      changeShareActivityWithFriends: settings.changeShareActivityWithFriends,
+      changeAllowFriendRequests: settings.changeAllowFriendRequests,
+      changeHideSpoilersUntilWatched: settings.changeHideSpoilersUntilWatched,
       deleteHistoryEntry: profileStats.deleteHistoryEntry,
       loadMoreHistory: profileStats.loadMoreHistory,
       loadMoreWatchlist: watchlist.loadMore,

@@ -1,6 +1,8 @@
 import {Router} from "express";
 import {HttpError} from "../lib/httpError";
+import {AuthenticatedRequest, requireAuth} from "../middleware/auth";
 import {SupportedLanguage, supportedLanguages} from "../models/settings";
+import {discussionService} from "../services/discussionService";
 import {tmdbService} from "../services/tmdbService";
 
 export const mediaRouter = Router();
@@ -91,6 +93,42 @@ mediaRouter.get("/tv/:id/season/:seasonNumber", async (req, res, next) => {
         numericId(req.params.seasonNumber),
         languageParam(req.query.language),
       ),
+    );
+  } catch (error) {
+    next(error);
+  }
+});
+
+mediaRouter.get("/discussions/:mediaType/:id", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const mediaType = req.params.mediaType;
+    if (mediaType !== "movie" && mediaType !== "tv") {
+      throw new HttpError(400, "mediaType must be movie or tv.", "invalid_media_type");
+    }
+    res.json(await discussionService.list(req.user?.uid ?? null, mediaType, numericId(req.params.id)));
+  } catch (error) {
+    next(error);
+  }
+});
+
+mediaRouter.post("/discussions/:mediaType/:id", requireAuth, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const mediaType = req.params.mediaType;
+    if (mediaType !== "movie" && mediaType !== "tv") {
+      throw new HttpError(400, "mediaType must be movie or tv.", "invalid_media_type");
+    }
+    const body = typeof req.body?.body === "string" ? req.body.body : "";
+    const seasonNumber = req.body?.seasonNumber == null ? null : Number(req.body.seasonNumber);
+    const episodeNumber = req.body?.episodeNumber == null ? null : Number(req.body.episodeNumber);
+
+    res.status(201).json(
+      await discussionService.create(req.user!.uid, {
+        mediaType,
+        tmdbId: numericId(req.params.id),
+        body,
+        seasonNumber: Number.isInteger(seasonNumber) ? seasonNumber : null,
+        episodeNumber: Number.isInteger(episodeNumber) ? episodeNumber : null,
+      }),
     );
   } catch (error) {
     next(error);

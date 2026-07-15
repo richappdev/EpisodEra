@@ -10,17 +10,27 @@ const renderSettings = (props: Partial<ComponentProps<typeof SettingsPage>> = {}
       <SettingsPage
         accountDeletionError={null}
         accountDeleting={false}
+        achievementsEnabled
+        allowFriendRequests
         autoMarkPreviousEpisodesWatched={false}
         error={null}
+        hideSpoilersUntilWatched
         language="en-US"
         loading={false}
         preferredProviderIds={[8]}
+        shareActivityWithFriends={false}
+        showAchievementsOnProfile
         signedIn
         watchRegion="US"
+        onAchievementsEnabledChange={vi.fn()}
+        onAllowFriendRequestsChange={vi.fn()}
         onAutoMarkPreviousEpisodesWatchedChange={vi.fn()}
         onDeleteAccount={vi.fn().mockResolvedValue(undefined)}
+        onHideSpoilersUntilWatchedChange={vi.fn()}
         onLanguageChange={vi.fn()}
         onPreferredProviderIdsChange={vi.fn()}
+        onShareActivityWithFriendsChange={vi.fn()}
+        onShowAchievementsOnProfileChange={vi.fn()}
         onWatchRegionChange={vi.fn()}
         {...props}
       />
@@ -76,6 +86,20 @@ describe("SettingsPage", () => {
 
     await user.click(confirmButton);
     expect(onDeleteAccount).toHaveBeenCalledTimes(1);
+  });
+
+  it("toggles privacy and social preferences", async () => {
+    const user = userEvent.setup();
+    const onAchievementsEnabledChange = vi.fn();
+    const onShareActivityWithFriendsChange = vi.fn();
+
+    renderSettings({onAchievementsEnabledChange, onShareActivityWithFriendsChange});
+
+    await user.click(screen.getByLabelText("Enable achievements"));
+    expect(onAchievementsEnabledChange).toHaveBeenCalledWith(false);
+
+    await user.click(screen.getByLabelText("Share recent watching with friends"));
+    expect(onShareActivityWithFriendsChange).toHaveBeenCalledWith(true);
   });
 
   it("links to the privacy policy", () => {

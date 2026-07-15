@@ -32,7 +32,7 @@ service cloud.firestore {
 
     function validUserProfile() {
       return request.resource.data.keys().hasOnly([
-          'firstName', 'lastName', 'email', 'displayName', 'photoURL', 'bio', 'country', 'timezone', 'createdAt', 'updatedAt'
+          'firstName', 'lastName', 'email', 'displayName', 'photoURL', 'bio', 'country', 'timezone', 'friendCode', 'createdAt', 'updatedAt'
         ])
         && request.resource.data.keys().hasAll(['firstName', 'lastName', 'email'])
         && request.resource.data.firstName is string
@@ -44,7 +44,8 @@ service cloud.firestore {
         && (!('photoURL' in request.resource.data) || isNullableString(request.resource.data.photoURL))
         && (!('bio' in request.resource.data) || isNullableString(request.resource.data.bio))
         && (!('country' in request.resource.data) || isNullableString(request.resource.data.country))
-        && (!('timezone' in request.resource.data) || isNullableString(request.resource.data.timezone));
+        && (!('timezone' in request.resource.data) || isNullableString(request.resource.data.timezone))
+        && (!('friendCode' in request.resource.data) || isNullableString(request.resource.data.friendCode));
     }
 
     function validWatchlistItem(itemId) {
@@ -144,6 +145,11 @@ service cloud.firestore {
           'language',
           'preferredProviderIds',
           'watchRegion',
+          'achievementsEnabled',
+          'showAchievementsOnProfile',
+          'shareActivityWithFriends',
+          'allowFriendRequests',
+          'hideSpoilersUntilWatched',
           'updatedAt',
         ])
         && request.resource.data.keys().hasAll(['autoMarkPreviousEpisodesWatched', 'language'])
@@ -162,7 +168,12 @@ service cloud.firestore {
             request.resource.data.watchRegion is string
             && request.resource.data.watchRegion.matches('^[A-Za-z]{2}$')
           )
-        );
+        )
+        && (!('achievementsEnabled' in request.resource.data) || request.resource.data.achievementsEnabled is bool)
+        && (!('showAchievementsOnProfile' in request.resource.data) || request.resource.data.showAchievementsOnProfile is bool)
+        && (!('shareActivityWithFriends' in request.resource.data) || request.resource.data.shareActivityWithFriends is bool)
+        && (!('allowFriendRequests' in request.resource.data) || request.resource.data.allowFriendRequests is bool)
+        && (!('hideSpoilersUntilWatched' in request.resource.data) || request.resource.data.hideSpoilersUntilWatched is bool);
     }
 
     function validRating(itemId) {
@@ -212,6 +223,11 @@ service cloud.firestore {
       match /settings/{settingsId} {
         allow read, delete: if isOwner(userId);
         allow create, update: if isOwner(userId) && validSettings(settingsId);
+      }
+
+      match /friends/{friendId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if false;
       }
     }
 

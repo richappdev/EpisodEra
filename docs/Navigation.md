@@ -19,8 +19,9 @@ The MVP uses **React Router 6** (`react-router-dom`) with browser history and sh
 | `/timeline` | Personal viewing timeline | Required for data | Day/month/year diary |
 | `/franchises` | Franchise catalog | Public | Curated universes |
 | `/franchises/:slug` | Franchise progress | Public catalog; auth for progress | Release / chronological order |
-| `/profile` | Profile, statistics, history | Required for data | |
-| `/settings` | Settings | Optional | Language, preferences, privacy link, account deletion |
+| `/social` | Friends, feed, challenges | Required for data | Friend codes + compatibility |
+| `/profile` | Profile, statistics, history | Required for data | Achievements when enabled |
+| `/settings` | Settings | Optional | Language, providers, privacy/social toggles, account deletion |
 | `/privacy` | Privacy policy | Public | Static legal content |
 | `/login` | Sign in | Public | Returns to prior route after success when available |
 | `/signup` | Sign up | Public | Returns to prior route after success when available |
@@ -42,7 +43,8 @@ Unknown paths redirect to `/`.
 | Watchlist | `/watchlist` | `WatchlistPage` | `GET /watchlist`, `GET /progress` |
 | Continue Watching | `/watchlist#continue-watching`, `/continue-watching` | Section within `WatchlistPage` | `GET /progress` |
 | Timeline | `/timeline` | `TimelinePage` | `GET /me/history` |
-| Profile | `/profile` | `ProfilePage` | `GET /me/profile`, `GET /me/stats`, `GET /me/recap`, `GET /me/history` |
+| Profile | `/profile` | `ProfilePage` | `GET /me/profile`, `GET /me/stats`, `GET /me/recap`, `GET /me/achievements`, `GET /me/history` |
+| Social | `/social` | `SocialPage` | `GET /me/friends`, `GET /me/feed`, `GET /me/challenges`, compatibility |
 | Settings | `/settings` | `SettingsPage` | `localStorage` + `GET/PATCH /me/settings`, `DELETE /me/account` when signed in |
 | Privacy policy | `/privacy` | `PrivacyPage` | Static copy in `web/src/types/legal.ts` |
 

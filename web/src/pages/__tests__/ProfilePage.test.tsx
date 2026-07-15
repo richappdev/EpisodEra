@@ -1,11 +1,18 @@
-import {render, screen} from "@testing-library/react";
+import {render, screen, waitFor} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type {ReactElement} from "react";
 import {MemoryRouter} from "react-router-dom";
-import {describe, expect, it, vi} from "vitest";
+import {beforeEach, describe, expect, it, vi} from "vitest";
+import {api} from "../../api/client";
 import {ProfilePage} from "../ProfilePage";
 import {now, stats, tvDetail, yearRecap} from "../../test/fixtures";
 import {UserProfile} from "../../types/profile";
+
+vi.mock("../../api/client", () => ({
+  api: {
+    meAchievements: vi.fn(),
+  },
+}));
 
 const renderProfile = (ui: ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
 
@@ -18,6 +25,7 @@ const profile = {
   bio: null,
   country: null,
   timezone: null,
+  friendCode: null,
   createdAt: null,
   updatedAt: null,
 } satisfies UserProfile;
@@ -46,7 +54,29 @@ const baseProps = {
 };
 
 describe("ProfilePage", () => {
-  it("renders stats and recent history for a signed-in user", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(api.meAchievements).mockResolvedValue({
+      enabled: true,
+      showOnProfile: true,
+      unlockedCount: 1,
+      items: [
+        {
+          id: "detective",
+          title: "Detective",
+          description: "Watch mystery titles",
+          category: "viewing",
+          unlocked: true,
+          unlockedAt: now,
+          current: 5,
+          target: 5,
+          progressPercent: 100,
+        },
+      ],
+    });
+  });
+
+  it("renders stats and recent history for a signed-in user", async () => {
     renderProfile(
       <ProfilePage
         {...baseProps}
@@ -80,6 +110,8 @@ describe("ProfilePage", () => {
     expect(screen.getByTestId("history-row-tv_1001_s01e01")).toHaveTextContent("Critical Flow Show");
     expect(screen.getByTestId("history-row-tv_1001_s01e01")).toHaveTextContent("S1 E1");
     expect(screen.getByTestId("profile-open-timeline")).toHaveAttribute("href", "/timeline");
+    await waitFor(() => expect(screen.getByTestId("achievements-panel")).toHaveTextContent("Detective"));
+    expect(screen.getByTestId("profile-open-social")).toHaveAttribute("href", "/social");
   });
 
   it("surfaces recap loading and retry errors", async () => {

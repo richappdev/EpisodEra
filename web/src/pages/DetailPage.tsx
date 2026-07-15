@@ -27,6 +27,7 @@ import {
 import {EpisodeSummary, MediaDetail, TvSeasonDetail} from "../types/media";
 import {ShowProgress} from "../types/progress";
 import {WatchlistItem, WatchlistStatus, movieWatchlistStatuses, tvWatchlistStatuses} from "../types/watchlist";
+import {DiscussionPanel} from "../components/DiscussionPanel";
 
 const statusLabels: Record<WatchlistStatus, string> = {
   planned: "Planned",
@@ -502,6 +503,14 @@ export const DetailPage = ({
           )}
         </section>
       )}
+
+      <DiscussionPanel
+        mediaType={detail.mediaType}
+        signedIn={signedIn}
+        tmdbId={detail.id}
+        seasonNumber={detail.mediaType === "tv" ? selectedSeason : null}
+        episodeNumber={null}
+      />
     </main>
   );
 };

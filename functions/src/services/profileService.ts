@@ -11,6 +11,7 @@ interface ProfileDocument {
   bio?: string | null;
   country?: string | null;
   timezone?: string | null;
+  friendCode?: string | null;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -143,6 +144,7 @@ class ProfileService {
       bio: data.bio ?? null,
       country: data.country ?? null,
       timezone: data.timezone ?? null,
+      friendCode: data.friendCode ?? null,
       createdAt: timestampToJson(data.createdAt),
       updatedAt: timestampToJson(data.updatedAt),
     };

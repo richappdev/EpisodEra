@@ -1,5 +1,5 @@
 import {NavLink} from "react-router-dom";
-import {BarChart3, Bookmark, Clapperboard, History, LogIn, LogOut, Search, Settings, TrendingUp} from "lucide-react";
+import {BarChart3, Bookmark, Clapperboard, History, LogIn, LogOut, Search, Settings, TrendingUp, Users} from "lucide-react";
 import {useAuth} from "../auth/AuthContext";
 import {useAppContext} from "../AppContext";
 import {paths, type NavView} from "../routes/paths";
@@ -67,6 +67,10 @@ export const TopBar = ({activeView}: TopBarProps) => {
           >
             <Clapperboard size={18} aria-hidden="true" />
             <span>{copy.franchises}</span>
+          </NavLink>
+          <NavLink className={navClassName("social", activeView)} data-testid="nav-social" title={copy.social} to={paths.social}>
+            <Users size={18} aria-hidden="true" />
+            <span>{copy.social}</span>
           </NavLink>
           <NavLink className={navClassName("profile", activeView)} data-testid="nav-profile" title={copy.profile} to={paths.profile}>
             <BarChart3 size={18} aria-hidden="true" />

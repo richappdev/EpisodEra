@@ -26,6 +26,7 @@ const profile = {
   bio: null,
   country: null,
   timezone: null,
+  friendCode: null,
   createdAt: null,
   updatedAt: null,
 } satisfies UserProfile;
