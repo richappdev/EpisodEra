@@ -358,8 +358,8 @@ A feature is complete only when all applicable conditions are met:
 
 | Resource              | Current status                                                                                                          |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| GitHub implementation | Core MVP through tip `d4c4402`: Phase D hooks/pagination/section retries, privacy/account deletion, URL routing, expanded automated tests, production smoke tooling, App Check **client** (`c97b0c3`). Remaining: App Check Phase 2+, compliance review, dependency decision, ops hardening |
-| Notion planning       | Parent + child baselines bumped to `d4c4402` (2026-07-14); latest hosted smoke evidence is `c97b0c3` (not `031cb35`) |
+| GitHub implementation | Tip `1d5ca30` (2026-07-15): MVP core + UX Phases 1–6 (continuation, progress UX, timeline, stats/recap, franchises/discover, social/achievements). App Check **client** at `c97b0c3`. Remaining hardening: App Check Phase 2+, compliance review, dependency decision, ops. **Next feature track:** TV Time import |
+| Notion planning       | Parent + Firestore re-baselined to `1d5ca30` (2026-07-15); local smoke PASS same day; prior hosted smoke `c97b0c3` |
 | Figma design          | Responsive screen system documented; direct latest-file verification pending when connector access allows |
 | Canva reporting       | Should distinguish implemented code, recorded smoke evidence, and beta-ready status; refresh after hosted smoke reruns |
 
@@ -374,6 +374,14 @@ At the time of this update:
 These limitations affect resource synchronization only. They do not change product scope or implementation status.
 
 ## Change Log
+
+### 2026-07-15 (baseline bump to 1d5ca30 + import track)
+
+* Canonical tip set to `1d5ca30` after UX Phases 1–6 (`c85fdcc` … `9c866fa` + hardening).
+* Notion parent MVP + Firestore schema re-baselined; local Production Smoke **PASS** at tip against live API (core paths).
+* Hosted Production Smoke **PASS** via [workflow run 29399200238](https://github.com/richappdev/EpisodEra/actions/runs/29399200238) on `origin/main` `0518525` (~18s).
+* Product decision: next feature track is **TV Time import** (Data Schema Phase 1); UX polish deferred to optional backlog.
+* Hardening remains parallel: App Check Phase 2+, legal/deps, observability.
 
 ### 2026-07-14 (baseline bump to d4c4402)
 

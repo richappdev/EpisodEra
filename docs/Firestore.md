@@ -2,6 +2,8 @@
 
 Firestore stores user-owned application state. TMDb remains the source of truth for media metadata, so documents should reference TMDb IDs and cache only the fields needed for display or offline convenience.
 
+**Baseline:** tip `1d5ca30` (2026-07-15) after UX Phases 1–6. Franchises, achievements, challenges, year recap, and discovery suggestions are computed in Cloud Functions (or in-code catalogs) — not stored as Firestore collections. Append-only `watchEvents` and TV Time import staging are planned; see Notion *TV Time Data Schema Analysis*.
+
 ## Collections
 
 ```text
@@ -12,6 +14,8 @@ users/{userId}/progress/{showId}/episodes/{episodeKey}
 users/{userId}/history/{historyId}
 users/{userId}/settings/profile
 users/{userId}/ratings/{mediaType_id}
+users/{userId}/friends/{friendUserId}
+public/discussions/{movie|tv}_{tmdbId}/{commentId}
 public/{document}
 ```
 
@@ -29,13 +33,13 @@ User profile document. The document ID must match the Firebase Auth UID.
   "bio": "Optional short profile text.",
   "country": "TW",
   "timezone": "Asia/Taipei",
+  "friendCode": "AB12CD",
   "createdAt": "<server timestamp>",
   "updatedAt": "<server timestamp>"
 }
 ```
 
-`firstName`, `lastName`, and `email` are required for newly written profile documents. Optional personal fields may be omitted or stored as `null`.
-
+`firstName`, `lastName`, and `email` are required for newly written profile documents. Optional personal fields may be omitted or stored as `null`. `friendCode` is a server-managed 6-character uppercase code used for friend requests.
 ## users/{userId}/watchlist/{mediaType_id}
 
 Tracks saved movies and TV shows.
@@ -151,11 +155,14 @@ Shape:
   "episodeNumber": 1,
   "episodeTitle": "Good News About Hell",
   "watchedAt": "<server timestamp>",
-  "updatedAt": "<server timestamp>"
+  "updatedAt": "<server timestamp>",
+  "rewatchCount": 0,
+  "genreNames": ["Drama", "Sci-Fi"],
+  "runtimeMinutes": 57
 }
 ```
 
-For movie entries, `seasonNumber`, `episodeNumber`, and `episodeTitle` are `null`.
+For movie entries, `seasonNumber`, `episodeNumber`, and `episodeTitle` are `null`. `rewatchCount` is required for new writes (defaults to `0`). `genreNames` and `runtimeMinutes` are optional enrichment fields; older documents may omit them. History supports `PATCH` and `DELETE` via `/me/history/:historyId` (TV deletes also clear related progress).
 
 ## users/{userId}/settings/profile
 
@@ -167,6 +174,13 @@ Shape:
 {
   "autoMarkPreviousEpisodesWatched": false,
   "language": "en-US",
+  "preferredProviderIds": [8, 9],
+  "watchRegion": "TW",
+  "achievementsEnabled": true,
+  "showAchievementsOnProfile": true,
+  "shareActivityWithFriends": false,
+  "allowFriendRequests": true,
+  "hideSpoilersUntilWatched": true,
   "updatedAt": "<server timestamp>"
 }
 ```
@@ -177,6 +191,8 @@ Allowed `language` values:
 en-US
 zh-TW
 ```
+
+`preferredProviderIds` is limited to 12 TMDb provider IDs. `watchRegion` is a 2-letter region code when present.
 
 ## users/{userId}/ratings/{mediaType_id}
 
@@ -193,6 +209,31 @@ Stores private user ratings.
 }
 ```
 
+## users/{userId}/friends/{friendUserId}
+
+Friendship edges. Document IDs are the other user's Firebase Auth UID. Cloud Functions (Admin SDK) create and update these documents; clients may only read or delete their own friend docs.
+
+```json
+{
+  "status": "accepted",
+  "friendCode": "AB12CD",
+  "displayName": "Friend Name",
+  "updatedAt": "<server timestamp>"
+}
+```
+
+Allowed `status` values: `pending_outgoing`, `pending_incoming`, `accepted`.
+
+## public/discussions/{movie|tv}_{tmdbId}/{commentId}
+
+Spoiler-aware discussion comments. Written only by Cloud Functions; readable by clients under `public/**` rules. Spoiler hiding is derived from the viewer’s watch history and `hideSpoilersUntilWatched`.
+
+## Not stored in Firestore
+
+- Franchise catalogs: `functions/src/data/franchises.ts` (`star-wars`, `mcu-phase-one`)
+- Achievements, challenges, year recap, discovery suggestions: computed in Cloud Functions
+- Append-only `watchEvents` and TV Time import staging: planned (Data Schema Phase 1–2), not shipped
+
 ## Security Rules
 
 The current `firestore.rules` policy is intentionally narrow:
@@ -202,7 +243,8 @@ The current `firestore.rules` policy is intentionally narrow:
 - Users can read/write only their own `progress` documents and nested `episodes`.
 - Users can read/write only their own `history` documents.
 - Users can read/write only their own `settings` documents.
-- `public/**` is read-only for all clients.
+- Users can read/delete their own `friends` documents; client create/update is denied.
+- `public/**` is read-only for all clients (includes discussions).
 - Everything else is denied by default.
 
 Rules also validate expected document IDs, allowed field names, and basic field types for user-owned write paths. Cloud Functions remain responsible for canonical TMDb validation and cross-document consistency, because Admin SDK writes bypass security rules.
@@ -214,8 +256,7 @@ cd functions
 npm run test:emulator
 ```
 
-Account deletion uses the Admin SDK `recursiveDelete` operation on `users/{uid}` from `DELETE /me/account`. This removes the profile document and all owner-scoped subcollections (watchlist, progress, history, settings, ratings) before deleting the Firebase Authentication user.
-
+Account deletion uses the Admin SDK `recursiveDelete` operation on `users/{uid}` from `DELETE /me/account`. This removes the profile document and all owner-scoped subcollections (watchlist, progress, history, settings, ratings, friends) before deleting the Firebase Authentication user. Discussion comments under `public/discussions/**` are not part of the user tree and need a separate retention/moderation policy.
 Java is required by the Firebase Emulator Suite.
 
 ## Indexes
