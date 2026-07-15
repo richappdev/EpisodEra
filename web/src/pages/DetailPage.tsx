@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from "react";
+import {useEffect, useMemo, useRef, useState} from "react";
 import {
   ArrowLeft,
   Bookmark,
@@ -116,6 +116,8 @@ export const DetailPage = ({
   const [dismissedNextKey, setDismissedNextKey] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set());
+  const seasonCardRefs = useRef(new Map<number, HTMLElement>());
+  const hasMountedSelectedSeason = useRef(false);
   const showNextPrompt =
     signedIn && detail.mediaType === "tv" && Boolean(nextEpisode) && dismissedNextKey !== nextEpisode?.episodeKey;
 
@@ -127,6 +129,14 @@ export const DetailPage = ({
     setSelectMode(false);
     setSelectedKeys(new Set());
   }, [selectedSeason, detail.id]);
+
+  useEffect(() => {
+    if (!hasMountedSelectedSeason.current) {
+      hasMountedSelectedSeason.current = true;
+      return;
+    }
+    seasonCardRefs.current.get(selectedSeason)?.scrollIntoView({behavior: "smooth", block: "nearest"});
+  }, [selectedSeason]);
 
   const toggleSelected = (episodeKey: string) => {
     setSelectedKeys((current) => {
@@ -147,6 +157,176 @@ export const DetailPage = ({
       onSeasonChange(season.seasonNumber);
     }
   };
+
+  const episodeContent = (
+    <div className="season-episode-panel" data-testid="season-episode-panel">
+      <div className="episode-header">
+        <div>
+          <span className="media-kind">Episodes</span>
+          <h3>{seasonDetail?.title ?? `Season ${selectedSeason}`}</h3>
+        </div>
+        {seasons.length > 1 && (
+          <select
+            aria-label={`Season for ${detail.title}`}
+            value={selectedSeason}
+            onChange={(event) => onSeasonChange(Number(event.target.value))}
+          >
+            {seasons.map((season) => (
+              <option key={season.id} value={season.seasonNumber}>
+                {season.title} ({season.episodeCount})
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {signedIn ? (
+        <>
+          <div className="progress-strip">
+            <span className="progress-copy">
+              <ListChecks size={18} aria-hidden="true" />
+              {progressLoading ? (
+                <span>Loading progress...</span>
+              ) : progress ? (
+                <span>
+                  {progress.watchedEpisodeCount} of {progress.totalEpisodes} watched ({progress.progressPercent}%)
+                  {selectedSnapshot
+                    ? ` · Season ${selectedSnapshot.watchedCount}/${selectedSnapshot.totalEpisodes}`
+                    : ""}
+                </span>
+              ) : (
+                <span>No watched episodes yet.</span>
+              )}
+            </span>
+            {seasonRemainingMinutes > 0 && (
+              <span className="progress-eta" data-testid="season-remaining-time">
+                <Clock size={16} aria-hidden="true" />
+                ~{formatWatchTime(seasonRemainingMinutes)} left
+              </span>
+            )}
+          </div>
+
+          <div className="season-bulk-actions" data-testid="season-bulk-actions">
+            <button
+              className="season-watch-button"
+              data-testid="mark-season-watched"
+              type="button"
+              disabled={progressLoading || seasonLoading || unwatchedAvailableSeasonCount === 0}
+              onClick={onMarkAvailableSeasonWatched}
+            >
+              <CheckCircle2 size={18} aria-hidden="true" />
+              Mark season watched
+            </button>
+            <button
+              className="text-button"
+              data-testid="mark-previous-watched"
+              type="button"
+              disabled={progressLoading || seasonLoading || previousCount === 0}
+              onClick={onMarkPreviousEpisodesWatched}
+            >
+              Mark previous watched
+            </button>
+            <button
+              className="text-button"
+              data-testid="mark-season-unwatched"
+              type="button"
+              disabled={progressLoading || seasonLoading || watchedInSeasonCount === 0}
+              onClick={onMarkSeasonUnwatched}
+            >
+              Mark season unwatched
+            </button>
+            <button
+              className="text-button"
+              data-testid="toggle-episode-select"
+              type="button"
+              disabled={progressLoading || seasonLoading || !seasonDetail?.episodes.length}
+              onClick={() => {
+                setSelectMode((current) => !current);
+                setSelectedKeys(new Set());
+              }}
+            >
+              {selectMode ? "Cancel select" : "Select episodes"}
+            </button>
+          </div>
+
+          {selectMode && (
+            <div className="season-bulk-actions select-actions" data-testid="episode-select-actions">
+              <span>{selectedKeys.size} selected</span>
+              <button
+                className="text-button"
+                data-testid="mark-selected-watched"
+                type="button"
+                disabled={progressLoading || selectedEpisodes.length === 0}
+                onClick={() => onMarkSelectedEpisodes(selectedEpisodes, true)}
+              >
+                Mark selected watched
+              </button>
+              <button
+                className="text-button"
+                data-testid="mark-selected-unwatched"
+                type="button"
+                disabled={progressLoading || selectedEpisodes.length === 0}
+                onClick={() => onMarkSelectedEpisodes(selectedEpisodes, false)}
+              >
+                Mark selected unwatched
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="state-panel">Sign in to track watched episodes.</div>
+      )}
+
+      {progressError && <div className="state-panel error">{progressError}</div>}
+      {seasonError && <div className="state-panel error">{seasonError}</div>}
+      {seasonLoading ? (
+        <div className="state-panel">Loading episodes...</div>
+      ) : (
+        <div className="episode-list">
+          {(seasonDetail?.episodes ?? []).map((episode) => {
+            const watched = watchedKeys.has(episode.episodeKey);
+            const selected = selectedKeys.has(episode.episodeKey);
+            return (
+              <article
+                className={selectMode ? "episode-row selectable" : "episode-row"}
+                data-testid={`episode-row-${episode.episodeKey}`}
+                key={episode.episodeKey}
+              >
+                {selectMode && (
+                  <label className="episode-select">
+                    <input
+                      type="checkbox"
+                      data-testid={`episode-select-${episode.episodeKey}`}
+                      checked={selected}
+                      onChange={() => toggleSelected(episode.episodeKey)}
+                    />
+                    <span className="sr-only">Select {episode.title || `Episode ${episode.episodeNumber}`}</span>
+                  </label>
+                )}
+                <div className="episode-number">
+                  S{episode.seasonNumber} E{episode.episodeNumber}
+                </div>
+                <div className="episode-copy">
+                  <strong>{episode.title || `Episode ${episode.episodeNumber}`}</strong>
+                  <p>{episode.overview || "No episode overview available."}</p>
+                </div>
+                <button
+                  className={watched ? "episode-toggle watched" : "episode-toggle"}
+                  data-testid={`episode-toggle-${episode.episodeKey}`}
+                  type="button"
+                  disabled={!signedIn || progressLoading}
+                  onClick={() => (watched ? onEpisodeUnwatched(episode) : onEpisodeWatched(episode))}
+                >
+                  {watched ? <CheckCircle2 size={18} aria-hidden="true" /> : <Circle size={18} aria-hidden="true" />}
+                  {watched ? "Watched" : "Mark watched"}
+                </button>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <main className="detail-page">
@@ -287,7 +467,7 @@ export const DetailPage = ({
 
       {detail.mediaType === "tv" && (
         <section className="episode-panel">
-          {seasonSnapshots.length > 0 && (
+          {seasonSnapshots.length > 0 ? (
             <div className="season-card-list" data-testid="season-card-list">
               {seasonSnapshots.map((season) => {
                 const expanded = season.seasonNumber === selectedSeason;
@@ -296,6 +476,13 @@ export const DetailPage = ({
                     className={expanded ? "season-card expanded" : "season-card"}
                     data-testid={`season-card-${season.seasonNumber}`}
                     key={season.seasonNumber}
+                    ref={(node) => {
+                      if (node) {
+                        seasonCardRefs.current.set(season.seasonNumber, node);
+                      } else {
+                        seasonCardRefs.current.delete(season.seasonNumber);
+                      }
+                    }}
                   >
                     <button
                       className="season-card-toggle"
@@ -330,176 +517,13 @@ export const DetailPage = ({
                     >
                       <span style={{width: `${Math.min(season.progressPercent, 100)}%`}} />
                     </div>
+                    {expanded && episodeContent}
                   </article>
                 );
               })}
             </div>
-          )}
-
-          <div className="episode-header">
-            <div>
-              <span className="media-kind">Episodes</span>
-              <h3>{seasonDetail?.title ?? `Season ${selectedSeason}`}</h3>
-            </div>
-            {seasons.length > 1 && (
-              <select
-                aria-label={`Season for ${detail.title}`}
-                value={selectedSeason}
-                onChange={(event) => onSeasonChange(Number(event.target.value))}
-              >
-                {seasons.map((season) => (
-                  <option key={season.id} value={season.seasonNumber}>
-                    {season.title} ({season.episodeCount})
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-
-          {signedIn ? (
-            <>
-              <div className="progress-strip">
-                <span className="progress-copy">
-                  <ListChecks size={18} aria-hidden="true" />
-                  {progressLoading ? (
-                    <span>Loading progress...</span>
-                  ) : progress ? (
-                    <span>
-                      {progress.watchedEpisodeCount} of {progress.totalEpisodes} watched ({progress.progressPercent}%)
-                      {selectedSnapshot
-                        ? ` · Season ${selectedSnapshot.watchedCount}/${selectedSnapshot.totalEpisodes}`
-                        : ""}
-                    </span>
-                  ) : (
-                    <span>No watched episodes yet.</span>
-                  )}
-                </span>
-                {seasonRemainingMinutes > 0 && (
-                  <span className="progress-eta" data-testid="season-remaining-time">
-                    <Clock size={16} aria-hidden="true" />
-                    ~{formatWatchTime(seasonRemainingMinutes)} left
-                  </span>
-                )}
-              </div>
-
-              <div className="season-bulk-actions" data-testid="season-bulk-actions">
-                <button
-                  className="season-watch-button"
-                  data-testid="mark-season-watched"
-                  type="button"
-                  disabled={progressLoading || seasonLoading || unwatchedAvailableSeasonCount === 0}
-                  onClick={onMarkAvailableSeasonWatched}
-                >
-                  <CheckCircle2 size={18} aria-hidden="true" />
-                  Mark season watched
-                </button>
-                <button
-                  className="text-button"
-                  data-testid="mark-previous-watched"
-                  type="button"
-                  disabled={progressLoading || seasonLoading || previousCount === 0}
-                  onClick={onMarkPreviousEpisodesWatched}
-                >
-                  Mark previous watched
-                </button>
-                <button
-                  className="text-button"
-                  data-testid="mark-season-unwatched"
-                  type="button"
-                  disabled={progressLoading || seasonLoading || watchedInSeasonCount === 0}
-                  onClick={onMarkSeasonUnwatched}
-                >
-                  Mark season unwatched
-                </button>
-                <button
-                  className="text-button"
-                  data-testid="toggle-episode-select"
-                  type="button"
-                  disabled={progressLoading || seasonLoading || !seasonDetail?.episodes.length}
-                  onClick={() => {
-                    setSelectMode((current) => !current);
-                    setSelectedKeys(new Set());
-                  }}
-                >
-                  {selectMode ? "Cancel select" : "Select episodes"}
-                </button>
-              </div>
-
-              {selectMode && (
-                <div className="season-bulk-actions select-actions" data-testid="episode-select-actions">
-                  <span>{selectedKeys.size} selected</span>
-                  <button
-                    className="text-button"
-                    data-testid="mark-selected-watched"
-                    type="button"
-                    disabled={progressLoading || selectedEpisodes.length === 0}
-                    onClick={() => onMarkSelectedEpisodes(selectedEpisodes, true)}
-                  >
-                    Mark selected watched
-                  </button>
-                  <button
-                    className="text-button"
-                    data-testid="mark-selected-unwatched"
-                    type="button"
-                    disabled={progressLoading || selectedEpisodes.length === 0}
-                    onClick={() => onMarkSelectedEpisodes(selectedEpisodes, false)}
-                  >
-                    Mark selected unwatched
-                  </button>
-                </div>
-              )}
-            </>
           ) : (
-            <div className="state-panel">Sign in to track watched episodes.</div>
-          )}
-
-          {progressError && <div className="state-panel error">{progressError}</div>}
-          {seasonError && <div className="state-panel error">{seasonError}</div>}
-          {seasonLoading ? (
-            <div className="state-panel">Loading episodes...</div>
-          ) : (
-            <div className="episode-list">
-              {(seasonDetail?.episodes ?? []).map((episode) => {
-                const watched = watchedKeys.has(episode.episodeKey);
-                const selected = selectedKeys.has(episode.episodeKey);
-                return (
-                  <article
-                    className={selectMode ? "episode-row selectable" : "episode-row"}
-                    data-testid={`episode-row-${episode.episodeKey}`}
-                    key={episode.episodeKey}
-                  >
-                    {selectMode && (
-                      <label className="episode-select">
-                        <input
-                          type="checkbox"
-                          data-testid={`episode-select-${episode.episodeKey}`}
-                          checked={selected}
-                          onChange={() => toggleSelected(episode.episodeKey)}
-                        />
-                        <span className="sr-only">Select {episode.title || `Episode ${episode.episodeNumber}`}</span>
-                      </label>
-                    )}
-                    <div className="episode-number">
-                      S{episode.seasonNumber} E{episode.episodeNumber}
-                    </div>
-                    <div className="episode-copy">
-                      <strong>{episode.title || `Episode ${episode.episodeNumber}`}</strong>
-                      <p>{episode.overview || "No episode overview available."}</p>
-                    </div>
-                    <button
-                      className={watched ? "episode-toggle watched" : "episode-toggle"}
-                      data-testid={`episode-toggle-${episode.episodeKey}`}
-                      type="button"
-                      disabled={!signedIn || progressLoading}
-                      onClick={() => (watched ? onEpisodeUnwatched(episode) : onEpisodeWatched(episode))}
-                    >
-                      {watched ? <CheckCircle2 size={18} aria-hidden="true" /> : <Circle size={18} aria-hidden="true" />}
-                      {watched ? "Watched" : "Mark watched"}
-                    </button>
-                  </article>
-                );
-              })}
-            </div>
+            episodeContent
           )}
         </section>
       )}

@@ -1583,6 +1583,13 @@ select:focus-visible {
   border-color: var(--color-border-strong);
 }
 
+.season-episode-panel {
+  border-top: 1px solid var(--color-border);
+  display: grid;
+  gap: 14px;
+  padding-top: 14px;
+}
+
 .season-card-toggle {
   align-items: center;
   background: transparent;

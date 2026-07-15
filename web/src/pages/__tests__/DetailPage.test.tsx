@@ -59,6 +59,15 @@ describe("DetailPage", () => {
     expect(screen.getByTestId("season-remaining-time")).toHaveTextContent("1h 24m left");
   });
 
+  it("nests episode controls inside the selected season card", () => {
+    renderDetail();
+
+    const selectedSeason = screen.getByTestId("season-card-1");
+    expect(within(selectedSeason).getByTestId("season-episode-panel")).toBeVisible();
+    expect(within(selectedSeason).getByTestId("episode-row-s01e01")).toHaveTextContent("Pilot");
+    expect(within(selectedSeason).getByTestId("mark-season-watched")).toBeVisible();
+  });
+
   it("calls watchlist and episode callbacks from controls", async () => {
     const user = userEvent.setup();
     const props = renderDetail();
