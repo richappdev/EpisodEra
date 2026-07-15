@@ -31,7 +31,7 @@ test("mark season watched batches all available unwatched episodes", async ({pag
   page.on("dialog", (dialog) => dialog.accept());
   await page.getByTestId("mark-season-watched").click();
 
-  await expect(page.getByText("3 of 3 watched", {exact: true})).toBeVisible();
+  await expect(page.getByText(/3 of 3 watched \(100%\)/)).toBeVisible();
   expect(requests.progressBatchBodies.at(-1)).toEqual({
     watched: true,
     episodes: [
