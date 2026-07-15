@@ -4,7 +4,7 @@ import type {ReactElement} from "react";
 import {MemoryRouter} from "react-router-dom";
 import {describe, expect, it, vi} from "vitest";
 import {ProfilePage} from "../ProfilePage";
-import {now, stats, tvDetail} from "../../test/fixtures";
+import {now, stats, tvDetail, yearRecap} from "../../test/fixtures";
 import {UserProfile} from "../../types/profile";
 
 const renderProfile = (ui: ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
@@ -30,13 +30,18 @@ const baseProps = {
   historyLoadingMore: false,
   historyTotalCount: 0,
   profile,
+  recap: yearRecap,
+  recapError: null,
+  recapLoading: false,
   signedIn: true,
   stats,
   statsError: null,
   statsLoading: false,
   userEmail: "viewer@example.com",
   onLoadMoreHistory: vi.fn(),
+  onRecapYearChange: vi.fn(),
   onRetryHistory: vi.fn(),
+  onRetryRecap: vi.fn(),
   onRetryStats: vi.fn(),
 };
 
@@ -65,11 +70,37 @@ describe("ProfilePage", () => {
     expect(screen.getByRole("heading", {name: "Ada Viewer"})).toBeVisible();
     expect(screen.getByText("viewer@example.com")).toBeVisible();
     expect(screen.getByTestId("stat-watched-episodes")).toHaveTextContent("1");
+    expect(screen.getByTestId("stat-watch-time")).toHaveTextContent("42 min");
+    expect(screen.getByTestId("stat-longest-streak")).toHaveTextContent("1");
     expect(screen.getByTestId("stat-currently-watching")).toHaveTextContent("1");
     expect(screen.getByTestId("stat-watchlist-count")).toHaveTextContent("1");
+    expect(screen.getByTestId("top-shows-list")).toHaveTextContent("Critical Flow Show");
+    expect(screen.getByTestId("top-genres-list")).toHaveTextContent("Drama");
+    expect(screen.getByTestId("year-recap-card")).toHaveTextContent("2026 Recap");
     expect(screen.getByTestId("history-row-tv_1001_s01e01")).toHaveTextContent("Critical Flow Show");
     expect(screen.getByTestId("history-row-tv_1001_s01e01")).toHaveTextContent("S1 E1");
     expect(screen.getByTestId("profile-open-timeline")).toHaveAttribute("href", "/timeline");
+  });
+
+  it("surfaces recap loading and retry errors", async () => {
+    const user = userEvent.setup();
+    const onRetryRecap = vi.fn();
+    const {rerender} = renderProfile(<ProfilePage {...baseProps} recap={null} recapLoading />);
+    expect(screen.getByText("Loading year recap...")).toBeVisible();
+
+    rerender(
+      <MemoryRouter>
+        <ProfilePage
+          {...baseProps}
+          recap={null}
+          recapError="Could not load year recap."
+          onRetryRecap={onRetryRecap}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText("Could not load year recap.")).toBeVisible();
+    await user.click(screen.getByRole("button", {name: "Retry"}));
+    expect(onRetryRecap).toHaveBeenCalled();
   });
 
   it("keeps stats visible when only history fails", () => {

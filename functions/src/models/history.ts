@@ -11,6 +11,8 @@ export interface HistoryEntry {
   watchedAt: string | null;
   updatedAt: string | null;
   rewatchCount: number;
+  genreNames?: string[];
+  runtimeMinutes?: number | null;
 }
 
 export interface UpdateHistoryInput {

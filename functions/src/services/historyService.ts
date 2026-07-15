@@ -14,11 +14,15 @@ interface HistoryDocument {
   watchedAt?: Timestamp;
   updatedAt?: Timestamp;
   rewatchCount?: number;
+  genreNames?: string[];
+  runtimeMinutes?: number | null;
 }
 
 interface MovieHistoryInput {
   tmdbId: number;
   title: string;
+  genreNames?: string[];
+  runtimeMinutes?: number | null;
 }
 
 interface EpisodeHistoryInput {
@@ -28,6 +32,8 @@ interface EpisodeHistoryInput {
   seasonNumber: number;
   episodeNumber: number;
   episodeTitle: string;
+  genreNames?: string[];
+  runtimeMinutes?: number | null;
 }
 
 const timestampToJson = (value: Timestamp | undefined) =>
@@ -44,6 +50,11 @@ export const mapHistoryDocument = (historyId: string, data: HistoryDocument): Hi
   watchedAt: timestampToJson(data.watchedAt),
   updatedAt: timestampToJson(data.updatedAt),
   rewatchCount: typeof data.rewatchCount === "number" && data.rewatchCount > 0 ? data.rewatchCount : 0,
+  genreNames: Array.isArray(data.genreNames)
+    ? data.genreNames.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    : [],
+  runtimeMinutes:
+    typeof data.runtimeMinutes === "number" && data.runtimeMinutes > 0 ? data.runtimeMinutes : null,
 });
 
 export const parseHistoryWatchedAt = (value: unknown) => {
@@ -134,6 +145,8 @@ class HistoryService {
           : FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
         rewatchCount: isRewatch ? FieldValue.increment(1) : 0,
+        genreNames: input.genreNames ?? existing.get("genreNames") ?? [],
+        runtimeMinutes: input.runtimeMinutes ?? existing.get("runtimeMinutes") ?? null,
       },
       {merge: true},
     );
@@ -161,6 +174,8 @@ class HistoryService {
           : FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
         rewatchCount: isRewatch ? FieldValue.increment(1) : 0,
+        genreNames: input.genreNames ?? existing.get("genreNames") ?? [],
+        runtimeMinutes: input.runtimeMinutes ?? existing.get("runtimeMinutes") ?? null,
       },
       {merge: true},
     );

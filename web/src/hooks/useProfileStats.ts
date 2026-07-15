@@ -2,7 +2,7 @@ import {useCallback, useEffect, useState} from "react";
 import type {User} from "firebase/auth";
 import {api} from "../api/client";
 import {HistoryEntry} from "../types/history";
-import {UserStats} from "../types/stats";
+import {UserStats, YearRecap} from "../types/stats";
 import {toErrorMessage} from "./errorMessage";
 
 const defaultHistoryPageSize = 25;
@@ -11,6 +11,10 @@ export const useProfileStats = (user: User | null) => {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
+  const [recap, setRecap] = useState<YearRecap | null>(null);
+  const [recapYear, setRecapYear] = useState(() => new Date().getUTCFullYear());
+  const [recapLoading, setRecapLoading] = useState(false);
+  const [recapError, setRecapError] = useState<string | null>(null);
   const [historyItems, setHistoryItems] = useState<HistoryEntry[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyLoadingMore, setHistoryLoadingMore] = useState(false);
@@ -23,6 +27,9 @@ export const useProfileStats = (user: User | null) => {
     setStats(null);
     setStatsLoading(false);
     setStatsError(null);
+    setRecap(null);
+    setRecapLoading(false);
+    setRecapError(null);
     setHistoryItems([]);
     setHistoryLoading(false);
     setHistoryLoadingMore(false);
@@ -48,6 +55,27 @@ export const useProfileStats = (user: User | null) => {
       setStatsLoading(false);
     }
   }, [user]);
+
+  const loadRecap = useCallback(
+    async (year: number) => {
+      if (!user) {
+        return;
+      }
+
+      setRecapYear(year);
+      setRecapLoading(true);
+      setRecapError(null);
+
+      try {
+        setRecap(await api.meRecap(year));
+      } catch (reason) {
+        setRecapError(toErrorMessage(reason, "Could not load year recap."));
+      } finally {
+        setRecapLoading(false);
+      }
+    },
+    [user],
+  );
 
   const loadHistoryPage = useCallback(
     async (nextPage: number, append: boolean) => {
@@ -97,8 +125,8 @@ export const useProfileStats = (user: User | null) => {
       return;
     }
 
-    await Promise.allSettled([reloadStats(), reloadHistory()]);
-  }, [reloadHistory, reloadStats, reset, user]);
+    await Promise.allSettled([reloadStats(), reloadHistory(), loadRecap(recapYear)]);
+  }, [loadRecap, recapYear, reloadHistory, reloadStats, reset, user]);
 
   useEffect(() => {
     if (!user) {
@@ -157,20 +185,24 @@ export const useProfileStats = (user: User | null) => {
       try {
         await api.deleteHistoryEntry(historyId);
         removeHistoryItem(historyId);
-        await reloadStats();
+        await Promise.allSettled([reloadStats(), loadRecap(recapYear)]);
       } catch (reason) {
         const message = toErrorMessage(reason, "Could not remove history entry.");
         setHistoryError(message);
         throw reason;
       }
     },
-    [removeHistoryItem, reloadStats],
+    [loadRecap, recapYear, removeHistoryItem, reloadStats],
   );
 
   return {
     stats,
     statsLoading,
     statsError,
+    recap,
+    recapYear,
+    recapLoading,
+    recapError,
     historyItems,
     historyLoading,
     historyLoadingMore,
@@ -180,6 +212,7 @@ export const useProfileStats = (user: User | null) => {
     reloadStats,
     reloadHistory,
     loadMoreHistory,
+    loadRecap,
     refresh,
     upsertHistoryItem,
     removeHistoryItem,

@@ -13,6 +13,8 @@ export interface HistoryEntry {
   updatedAt: string | null;
   /** Present when the user has rewatched; older entries may omit this. */
   rewatchCount?: number;
+  genreNames?: string[];
+  runtimeMinutes?: number | null;
 }
 
 export interface HistoryResponse extends PaginatedResponse<HistoryEntry> {}

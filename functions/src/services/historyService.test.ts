@@ -25,6 +25,8 @@ describe("historyService helpers", () => {
         watchedAt: null,
         updatedAt: null,
         rewatchCount: 0,
+        genreNames: [],
+        runtimeMinutes: null,
       },
     );
   });

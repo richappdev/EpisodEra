@@ -1,6 +1,6 @@
 import {MediaDetail, TvSeasonDetail} from "../types/media";
 import {ShowProgress, ShowProgressSummary} from "../types/progress";
-import {UserStats} from "../types/stats";
+import {UserStats, YearRecap} from "../types/stats";
 import {WatchlistItem} from "../types/watchlist";
 
 export const now = "2026-07-12T00:00:00.000Z";
@@ -123,4 +123,24 @@ export const stats: UserStats = {
   completedShowsCount: 0,
   watchlistCount: 1,
   progressShowCount: 1,
+  totalWatchTimeMinutes: 42,
+  longestStreakDays: 1,
+  currentStreakDays: 1,
+  topShows: [{tmdbId: 1001, mediaType: "tv", title: "Critical Flow Show", count: 1}],
+  topMovies: [],
+  topGenres: [{name: "Drama", count: 1}],
+  mostActiveMonth: "2026-07",
+};
+
+export const yearRecap: YearRecap = {
+  year: 2026,
+  totalWatchedMovies: 0,
+  totalWatchedEpisodes: 1,
+  totalWatchTimeMinutes: 42,
+  longestStreakDays: 1,
+  mostActiveMonth: "2026-07",
+  topShow: {tmdbId: 1001, mediaType: "tv", title: "Critical Flow Show", count: 1},
+  topMovie: null,
+  topGenre: {name: "Drama", count: 1},
+  newlyDiscovered: [{tmdbId: 1001, mediaType: "tv", title: "Critical Flow Show", count: 1}],
 };

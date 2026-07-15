@@ -164,6 +164,23 @@ export const installMockApi = async (page: Page, options: MockApiOptions = {}) =
       return json(route, statsFromState(state.watchlistItem, currentProgress()));
     }
 
+    if (method === "GET" && path === "/me/recap") {
+      const year = Number(new URL(request.url()).searchParams.get("year") ?? new Date().getUTCFullYear());
+      const stats = statsFromState(state.watchlistItem, currentProgress());
+      return json(route, {
+        year,
+        totalWatchedMovies: stats.totalWatchedMovies,
+        totalWatchedEpisodes: stats.totalWatchedEpisodes,
+        totalWatchTimeMinutes: stats.totalWatchTimeMinutes,
+        longestStreakDays: stats.longestStreakDays,
+        mostActiveMonth: stats.mostActiveMonth,
+        topShow: stats.topShows[0] ?? null,
+        topMovie: stats.topMovies[0] ?? null,
+        topGenre: stats.topGenres[0] ?? null,
+        newlyDiscovered: stats.topShows.slice(0, 3),
+      });
+    }
+
     if (method === "GET" && path === "/me/history") {
       if (consumeFailOnce("history")) {
         return json(route, {error: {message: "Temporary history outage."}}, 503);
@@ -378,6 +395,15 @@ const statsFromState = (watchlistItem: Record<string, unknown> | null, progress:
   completedShowsCount: watchlistItem?.status === "completed" ? 1 : 0,
   watchlistCount: watchlistItem ? 1 : 0,
   progressShowCount: progress ? 1 : 0,
+  totalWatchTimeMinutes: Number(progress?.watchedEpisodeCount ?? 0) * 42,
+  longestStreakDays: progress ? 1 : 0,
+  currentStreakDays: progress ? 1 : 0,
+  topShows: progress
+    ? [{tmdbId: progress.tmdbId, mediaType: "tv", title: progress.title, count: progress.watchedEpisodeCount}]
+    : [],
+  topMovies: [],
+  topGenres: [],
+  mostActiveMonth: progress ? "2026-07" : null,
 });
 
 const paged = (results: Array<Record<string, unknown>>) => ({

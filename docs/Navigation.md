@@ -37,7 +37,7 @@ Unknown paths redirect to `/`.
 | Episode progress | TV detail routes | Embedded in `DetailPage` | Progress APIs |
 | Watchlist | `/watchlist` | `WatchlistPage` | `GET /watchlist`, `GET /progress` |
 | Continue Watching | `/watchlist#continue-watching`, `/continue-watching` | Section within `WatchlistPage` | `GET /progress` |
-| Profile | `/profile` | `ProfilePage` | `GET /me/profile`, `GET /me/stats`, `GET /me/history` |
+| Profile | `/profile` | `ProfilePage` | `GET /me/profile`, `GET /me/stats`, `GET /me/recap`, `GET /me/history` |
 | Settings | `/settings` | `SettingsPage` | `localStorage` + `GET/PATCH /me/settings`, `DELETE /me/account` when signed in |
 | Privacy policy | `/privacy` | `PrivacyPage` | Static copy in `web/src/types/legal.ts` |
 

@@ -169,7 +169,12 @@ const ProfileRoute = () => {
     historyLoadingMore,
     historyTotalCount,
     loadMoreHistory,
+    loadRecap,
     profile,
+    recap,
+    recapError,
+    recapLoading,
+    recapYear,
     reloadHistory,
     reloadStats,
     stats,
@@ -186,13 +191,22 @@ const ProfileRoute = () => {
       historyLoadingMore={historyLoadingMore}
       historyTotalCount={historyTotalCount}
       profile={profile}
+      recap={recap}
+      recapError={recapError}
+      recapLoading={recapLoading}
       signedIn={Boolean(user)}
       stats={stats}
       statsError={statsError}
       statsLoading={statsLoading}
       userEmail={user?.email ?? null}
       onLoadMoreHistory={loadMoreHistory}
+      onRecapYearChange={(year) => {
+        void loadRecap(year);
+      }}
       onRetryHistory={reloadHistory}
+      onRetryRecap={() => {
+        void loadRecap(recapYear);
+      }}
       onRetryStats={reloadStats}
     />
   );

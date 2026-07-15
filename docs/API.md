@@ -51,6 +51,7 @@ TMDb detail and TV season reads use a 24-hour per-Functions-instance in-memory T
 | `POST` | `/progress/:showId/episodes/batch` | Firebase ID token | `200` |
 | `DELETE` | `/progress/:showId/episode/:episodeKey` | Firebase ID token | `200` |
 | `GET` | `/me/stats` | Firebase ID token | `200` |
+| `GET` | `/me/recap` | Firebase ID token | `200` |
 | `GET` | `/me/history` | Firebase ID token | `200` |
 | `GET` | `/me/profile` | Firebase ID token | `200` |
 | `PATCH` | `/me/profile` | Firebase ID token | `200` |
@@ -578,7 +579,7 @@ Unlike the two progress `POST` endpoints, this response is wrapped in a `progres
 
 ## Profile Stats
 
-Stats endpoints require authentication and derive counts from the signed-in user's watchlist and progress documents.
+Stats endpoints require authentication. Aggregate counters still use watchlist and progress summaries; watch time, streaks, rankings, and genre insights are derived from history events (`genreNames` / `runtimeMinutes` when present, otherwise episode 42 min / movie 110 min defaults).
 
 ```http
 GET /me/stats
@@ -593,9 +594,43 @@ Response:
   "currentlyWatchingCount": 3,
   "completedShowsCount": 2,
   "watchlistCount": 12,
-  "progressShowCount": 5
+  "progressShowCount": 5,
+  "totalWatchTimeMinutes": 1842,
+  "longestStreakDays": 12,
+  "currentStreakDays": 3,
+  "topShows": [{"tmdbId": 95396, "mediaType": "tv", "title": "Severance", "count": 18}],
+  "topMovies": [{"tmdbId": 550, "mediaType": "movie", "title": "Fight Club", "count": 1}],
+  "topGenres": [{"name": "Drama", "count": 20}],
+  "mostActiveMonth": "2026-07"
 }
 ```
+
+```http
+GET /me/recap?year={year}
+```
+
+Query parameters:
+
+- `year` — optional UTC calendar year; defaults to the current UTC year
+
+Response:
+
+```json
+{
+  "year": 2026,
+  "totalWatchedMovies": 4,
+  "totalWatchedEpisodes": 23,
+  "totalWatchTimeMinutes": 1842,
+  "longestStreakDays": 12,
+  "mostActiveMonth": "2026-07",
+  "topShow": {"tmdbId": 95396, "mediaType": "tv", "title": "Severance", "count": 18},
+  "topMovie": {"tmdbId": 550, "mediaType": "movie", "title": "Fight Club", "count": 1},
+  "topGenre": {"name": "Drama", "count": 20},
+  "newlyDiscovered": [{"tmdbId": 95396, "mediaType": "tv", "title": "Severance", "count": 18}]
+}
+```
+
+`newlyDiscovered` titles are those whose first watched event falls in the requested year.
 
 ## Profile History
 

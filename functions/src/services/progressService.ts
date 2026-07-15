@@ -224,6 +224,13 @@ class ProgressService {
             },
             {merge: true},
           );
+          const seasonEpisode = canonical.seasons
+            .flatMap((season) => season.episodes)
+            .find(
+              (candidate) =>
+                candidate.seasonNumber === episode.seasonNumber &&
+                candidate.episodeNumber === episode.episodeNumber,
+            );
           transaction.set(
             historyRef,
             {
@@ -236,6 +243,9 @@ class ProgressService {
               watchedAt: existing?.get("watchedAt") ?? FieldValue.serverTimestamp(),
               updatedAt: FieldValue.serverTimestamp(),
               rewatchCount: wasAlreadyWatched ? FieldValue.increment(1) : 0,
+              genreNames: canonical.tvDetail.genres.map((genre) => genre.name),
+              runtimeMinutes:
+                seasonEpisode?.runtimeMinutes ?? canonical.tvDetail.runtimeMinutes ?? null,
             },
             {merge: true},
           );

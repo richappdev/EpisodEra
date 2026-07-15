@@ -120,7 +120,7 @@ service cloud.firestore {
     function validHistory(historyId) {
       return historyId.matches('^(movie_[1-9][0-9]*|tv_[1-9][0-9]*_s[0-9]{2,}e[0-9]{2,})$')
         && request.resource.data.keys().hasOnly([
-          'tmdbId', 'mediaType', 'title', 'seasonNumber', 'episodeNumber', 'episodeTitle', 'watchedAt', 'updatedAt', 'rewatchCount'
+          'tmdbId', 'mediaType', 'title', 'seasonNumber', 'episodeNumber', 'episodeTitle', 'watchedAt', 'updatedAt', 'rewatchCount', 'genreNames', 'runtimeMinutes'
         ])
         && request.resource.data.keys().hasAll([
           'tmdbId', 'mediaType', 'title', 'seasonNumber', 'episodeNumber', 'episodeTitle'
@@ -132,7 +132,9 @@ service cloud.firestore {
         && isNullablePositiveInt(request.resource.data.seasonNumber)
         && isNullablePositiveInt(request.resource.data.episodeNumber)
         && isNullableString(request.resource.data.episodeTitle)
-        && (!('rewatchCount' in request.resource.data) || (request.resource.data.rewatchCount is int && request.resource.data.rewatchCount >= 0));
+        && (!('rewatchCount' in request.resource.data) || (request.resource.data.rewatchCount is int && request.resource.data.rewatchCount >= 0))
+        && (!('genreNames' in request.resource.data) || (request.resource.data.genreNames is list && request.resource.data.genreNames.size() <= 32))
+        && (!('runtimeMinutes' in request.resource.data) || request.resource.data.runtimeMinutes == null || (request.resource.data.runtimeMinutes is int && request.resource.data.runtimeMinutes > 0));
     }
 
     function validSettings(settingsId) {

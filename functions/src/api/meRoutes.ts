@@ -20,6 +20,19 @@ meRouter.get("/me/stats", async (req: AuthenticatedRequest, res, next) => {
   }
 });
 
+meRouter.get("/me/recap", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const parsedYear = Number(req.query.year);
+    const year =
+      Number.isInteger(parsedYear) && parsedYear >= 1970 && parsedYear <= 2100
+        ? parsedYear
+        : new Date().getUTCFullYear();
+    res.json(await statsService.getYearRecap(req.user!.uid, year));
+  } catch (error) {
+    next(error);
+  }
+});
+
 meRouter.get("/me/history", async (req: AuthenticatedRequest, res, next) => {
   try {
     res.json(await historyService.list(req.user!.uid, parsePaginationQuery(req.query)));

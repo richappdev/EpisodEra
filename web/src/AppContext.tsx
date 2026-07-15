@@ -15,6 +15,7 @@ import {UserProfile} from "./types/profile";
 import {ShowProgressSummary} from "./types/progress";
 import {mediaPath, paths, type NavView} from "./routes/paths";
 import {SupportedLanguage} from "./types/settings";
+import {YearRecap} from "./types/stats";
 import {WatchlistItem, WatchlistStatus} from "./types/watchlist";
 
 interface AppContextValue {
@@ -29,6 +30,10 @@ interface AppContextValue {
   pendingShowIds: ReadonlySet<number>;
   profile: UserProfile | null;
   progressItems: ShowProgressSummary[];
+  recap: YearRecap | null;
+  recapError: string | null;
+  recapLoading: boolean;
+  recapYear: number;
   settingsError: string | null;
   settingsLoading: boolean;
   stats: ReturnType<typeof useProfileStats>["stats"];
@@ -46,6 +51,7 @@ interface AppContextValue {
   deleteHistoryEntry: (historyId: string) => Promise<void>;
   loadMoreHistory: () => void;
   loadMoreWatchlist: () => void;
+  loadRecap: (year: number) => Promise<void>;
   markContinuationEpisodeWatched: (entry: ContinuationEntry) => Promise<ShowProgressSummary | null>;
   openAuth: () => void;
   openContinuationDetail: (entry: ContinuationEntry, nav: NavView) => void;
@@ -184,6 +190,10 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
       pendingShowIds: progress.pendingShowIds,
       profile: profileState.profile,
       progressItems: progress.items,
+      recap: profileStats.recap,
+      recapError: profileStats.recapError,
+      recapLoading: profileStats.recapLoading,
+      recapYear: profileStats.recapYear,
       settingsError: settings.error,
       settingsLoading: settings.loading,
       stats: profileStats.stats,
@@ -201,6 +211,7 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
       deleteHistoryEntry: profileStats.deleteHistoryEntry,
       loadMoreHistory: profileStats.loadMoreHistory,
       loadMoreWatchlist: watchlist.loadMore,
+      loadRecap: profileStats.loadRecap,
       markContinuationEpisodeWatched,
       openAuth,
       openContinuationDetail,

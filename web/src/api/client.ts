@@ -10,7 +10,7 @@ import {
   ShowProgress,
 } from "../types/progress";
 import {SupportedLanguage, UserSettings} from "../types/settings";
-import {UserStats} from "../types/stats";
+import {UserStats, YearRecap} from "../types/stats";
 import {AddWatchlistItemInput, WatchlistItem, WatchlistResponse, WatchlistStatus} from "../types/watchlist";
 import {getAppCheckToken} from "../firebase";
 
@@ -108,6 +108,8 @@ export const api = {
   updateMeSettings: (settings: Partial<Pick<UserSettings, "autoMarkPreviousEpisodesWatched" | "language">>) =>
     request<UserSettings>("/me/settings", {method: "PATCH", body: settings}),
   meStats: () => request<UserStats>("/me/stats"),
+  meRecap: (year?: number) =>
+    request<YearRecap>(year == null ? "/me/recap" : `/me/recap?year=${encodeURIComponent(String(year))}`),
   listWatchlist: (pagination?: PaginationParams) =>
     request<WatchlistResponse>(withPagination("/watchlist", pagination)),
   addWatchlistItem: (input: AddWatchlistItemInput) =>
