@@ -7,6 +7,7 @@ import {useProfileStats} from "./hooks/useProfileStats";
 import {useProgress} from "./hooks/useProgress";
 import {useSettings} from "./hooks/useSettings";
 import {useWatchlist} from "./hooks/useWatchlist";
+import {suggestedWatchlistStatusForProgress, type ContinuationEntry} from "./lib/continuation";
 import {setAnalyticsUserId} from "./firebase";
 import {MediaDetail, MediaSummary} from "./types/media";
 import {UserProfile} from "./types/profile";
@@ -24,6 +25,7 @@ interface AppContextValue {
   historyLoadingMore: boolean;
   historyTotalCount: number;
   language: SupportedLanguage;
+  pendingShowIds: ReadonlySet<number>;
   profile: UserProfile | null;
   progressItems: ShowProgressSummary[];
   settingsError: string | null;
@@ -42,8 +44,9 @@ interface AppContextValue {
   changeLanguage: (nextLanguage: SupportedLanguage) => void;
   loadMoreHistory: () => void;
   loadMoreWatchlist: () => void;
-  markNextWatchlistEpisodeWatched: (item: WatchlistItem, itemProgress: ShowProgressSummary) => Promise<void>;
+  markContinuationEpisodeWatched: (entry: ContinuationEntry) => Promise<ShowProgressSummary | null>;
   openAuth: () => void;
+  openContinuationDetail: (entry: ContinuationEntry, nav: NavView) => void;
   openMediaDetail: (item: MediaSummary | WatchlistItem, nav: NavView) => void;
   refreshStats: () => void;
   reloadStats: () => void;
@@ -52,6 +55,7 @@ interface AppContextValue {
   removeWatchlistItem: (item: WatchlistItem) => void;
   setProfile: (profile: UserProfile | null) => void;
   signOutAndReset: () => Promise<void>;
+  syncWatchlistStatusFromProgress: (progress: ShowProgressSummary) => void;
   updateWatchlistStatus: (item: WatchlistItem, status: WatchlistStatus) => void;
   upsertWatchlistItem: (item: WatchlistItem) => void;
   upsertProgressItem: (item: ShowProgressSummary | null) => void;
@@ -95,6 +99,10 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
     navigate(mediaPath({mediaType, id}), {state: {nav}});
   };
 
+  const openContinuationDetail = (entry: ContinuationEntry, nav: NavView) => {
+    navigate(mediaPath({mediaType: "tv", id: entry.tmdbId}), {state: {nav}});
+  };
+
   const openAuth = () => {
     navigate(paths.login, {state: {from: `${location.pathname}${location.search}`}});
   };
@@ -114,22 +122,49 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
     });
   };
 
-  const markNextWatchlistEpisodeWatched = async (item: WatchlistItem, itemProgress: ShowProgressSummary) => {
-    if (item.mediaType !== "tv") {
+  const syncWatchlistStatusFromProgress = (updatedProgress: ShowProgressSummary) => {
+    const suggested = suggestedWatchlistStatusForProgress(updatedProgress);
+    if (!suggested) {
       return;
     }
 
-    watchlist.setError(null);
-
-    if (!itemProgress.nextEpisode) {
-      watchlist.setError(`No available next episode found for ${item.title}.`);
+    const item = watchlist.items.find(
+      (candidate) => candidate.mediaType === "tv" && candidate.tmdbId === updatedProgress.tmdbId,
+    );
+    if (!item || item.status === suggested || item.status === "dropped") {
       return;
+    }
+
+    // Only auto-promote planned → watching, or watching → completed.
+    if (suggested === "watching" && item.status !== "planned") {
+      return;
+    }
+    if (suggested === "completed" && item.status !== "watching" && item.status !== "planned") {
+      return;
+    }
+
+    void watchlist.updateWatchlistStatus(item, suggested);
+  };
+
+  const markContinuationEpisodeWatched = async (entry: ContinuationEntry) => {
+    watchlist.setError(null);
+    progress.setError(null);
+
+    if (!entry.progress.nextEpisode) {
+      watchlist.setError(`No available next episode found for ${entry.title}.`);
+      return null;
     }
 
     try {
-      await progress.markNextEpisodeWatched(item.tmdbId, itemProgress.nextEpisode);
+      const updated = await progress.markNextEpisodeWatched(entry.tmdbId, entry.progress.nextEpisode);
+      if (updated) {
+        syncWatchlistStatusFromProgress(updated);
+      }
+      return updated;
     } catch (err) {
-      watchlist.setError(err instanceof Error ? err.message : "Could not mark next episode watched.");
+      const message = err instanceof Error ? err.message : "Could not mark next episode watched.";
+      watchlist.setError(message);
+      return null;
     }
   };
 
@@ -143,6 +178,7 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
       historyLoadingMore: profileStats.historyLoadingMore,
       historyTotalCount: profileStats.historyTotalCount,
       language: settings.language,
+      pendingShowIds: progress.pendingShowIds,
       profile: profileState.profile,
       progressItems: progress.items,
       settingsError: settings.error,
@@ -161,8 +197,9 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
       changeLanguage: settings.changeLanguage,
       loadMoreHistory: profileStats.loadMoreHistory,
       loadMoreWatchlist: watchlist.loadMore,
-      markNextWatchlistEpisodeWatched,
+      markContinuationEpisodeWatched,
       openAuth,
+      openContinuationDetail,
       openMediaDetail,
       refreshStats: () => {
         void profileStats.refresh();
@@ -181,6 +218,7 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
       },
       setProfile: profileState.setProfile,
       signOutAndReset,
+      syncWatchlistStatusFromProgress,
       updateWatchlistStatus: (item: WatchlistItem, status: WatchlistStatus) => {
         void watchlist.updateWatchlistStatus(item, status);
       },

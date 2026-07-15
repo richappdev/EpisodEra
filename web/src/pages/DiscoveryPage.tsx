@@ -1,17 +1,27 @@
-import {FormEvent, useCallback, useEffect, useState} from "react";
+import {FormEvent, useCallback, useEffect, useMemo, useState} from "react";
 import {Search} from "lucide-react";
 import {api} from "../api/client";
+import {ContinueWatchingSection} from "../components/ContinueWatchingSection";
 import {SectionError} from "../components/SectionError";
 import {MediaSection} from "../components/MediaSection";
+import {buildContinuationGroups, type ContinuationEntry} from "../lib/continuation";
 import {DiscoveryResponse, MediaSummary, MediaType, PagedResult} from "../types/media";
+import {ShowProgressSummary} from "../types/progress";
 import {SupportedLanguage, uiCopy} from "../types/settings";
+import {WatchlistItem} from "../types/watchlist";
 
 interface DiscoveryPageProps {
   view: "trending" | "search";
   language: SupportedLanguage;
   initialSearchQuery?: string | null;
+  pendingShowIds?: ReadonlySet<number>;
+  progressItems?: ShowProgressSummary[];
+  signedIn?: boolean;
+  watchlistItems?: WatchlistItem[];
   onSearchQueryChange?: (query: string) => void;
   onSelect: (item: MediaSummary) => void;
+  onSelectContinuation?: (entry: ContinuationEntry) => void;
+  onNextEpisodeWatched?: (entry: ContinuationEntry) => void;
 }
 
 type TrendingTab = Extract<MediaType, "movie" | "tv">;
@@ -23,8 +33,14 @@ export const DiscoveryPage = ({
   view,
   language,
   initialSearchQuery = null,
+  pendingShowIds,
+  progressItems = [],
+  signedIn = false,
+  watchlistItems = [],
   onSearchQueryChange,
   onSelect,
+  onSelectContinuation,
+  onNextEpisodeWatched,
 }: DiscoveryPageProps) => {
   const copy = uiCopy[language].search;
   const [query, setQuery] = useState("");
@@ -36,6 +52,11 @@ export const DiscoveryPage = ({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  const {continueWatching, dormant} = useMemo(
+    () => buildContinuationGroups(watchlistItems, progressItems),
+    [progressItems, watchlistItems],
+  );
 
   const loadTrending = useCallback(
     async (page: number, append: boolean) => {
@@ -193,6 +214,30 @@ export const DiscoveryPage = ({
             Search
           </button>
         </form>
+      )}
+
+      {view === "trending" && signedIn && onSelectContinuation && onNextEpisodeWatched && (
+        <>
+          <ContinueWatchingSection
+            id="home-continue-watching"
+            title="Continue watching"
+            subtitle={`${continueWatching.length} active`}
+            entries={continueWatching}
+            pendingShowIds={pendingShowIds}
+            onSelect={onSelectContinuation}
+            onNextEpisodeWatched={onNextEpisodeWatched}
+          />
+          <ContinueWatchingSection
+            id="home-dormant-watching"
+            title="Haven't watched for a while"
+            subtitle={`${dormant.length} dormant`}
+            testIdPrefix="home-dormant"
+            entries={dormant}
+            pendingShowIds={pendingShowIds}
+            onSelect={onSelectContinuation}
+            onNextEpisodeWatched={onNextEpisodeWatched}
+          />
+        </>
       )}
 
       {view === "trending" && (

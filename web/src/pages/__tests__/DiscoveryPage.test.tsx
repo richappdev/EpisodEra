@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import {afterEach, describe, expect, it, vi} from "vitest";
 import {DiscoveryPage} from "../DiscoveryPage";
 import {api} from "../../api/client";
-import {movieDetail, tvDetail} from "../../test/fixtures";
+import {movieDetail, progressSummary, tvDetail, watchlistItem} from "../../test/fixtures";
 import {MediaSummary} from "../../types/media";
 
 vi.mock("../../api/client", () => ({
@@ -51,6 +51,26 @@ describe("DiscoveryPage", () => {
 
     await waitFor(() => expect(api.search).toHaveBeenCalledWith("Unknown title", "en-US", {page: 1}));
     expect(await screen.findByText("No results found.")).toBeVisible();
+  });
+
+  it("renders Continue Watching for signed-in home view", async () => {
+    vi.mocked(api.trendingShows).mockResolvedValue(paged([tvDetail]));
+
+    render(
+      <DiscoveryPage
+        view="trending"
+        language="en-US"
+        signedIn
+        watchlistItems={[watchlistItem]}
+        progressItems={[progressSummary]}
+        onSelect={vi.fn()}
+        onSelectContinuation={vi.fn()}
+        onNextEpisodeWatched={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByTestId("continue-card-1001")).toHaveTextContent("1 of 3 watched");
+    expect(screen.getByTestId("continue-next-1001")).toHaveTextContent("Next up S1 E2");
   });
 
   it("renders recoverable API error state", async () => {

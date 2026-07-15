@@ -1,5 +1,8 @@
-import {Bookmark, CheckCircle2, Film, ListChecks, Loader2, Trash2} from "lucide-react";
+import {useMemo} from "react";
+import {Bookmark, Film, Loader2, Trash2} from "lucide-react";
+import {ContinueWatchingSection} from "../components/ContinueWatchingSection";
 import {SectionError} from "../components/SectionError";
+import {buildContinuationGroups, type ContinuationEntry} from "../lib/continuation";
 import {ShowProgressSummary} from "../types/progress";
 import {WatchlistItem, WatchlistStatus, movieWatchlistStatuses, tvWatchlistStatuses} from "../types/watchlist";
 
@@ -18,6 +21,7 @@ interface WatchlistPageProps {
   items: WatchlistItem[];
   loading: boolean;
   loadingMore: boolean;
+  pendingShowIds?: ReadonlySet<number>;
   progressItems: ShowProgressSummary[];
   signedIn: boolean;
   totalCount: number;
@@ -25,17 +29,10 @@ interface WatchlistPageProps {
   onRemove: (item: WatchlistItem) => void;
   onRetry: () => void;
   onSelect: (item: WatchlistItem) => void;
-  onNextEpisodeWatched: (item: WatchlistItem, progress: ShowProgressSummary) => void;
+  onSelectContinuation: (entry: ContinuationEntry) => void;
+  onNextEpisodeWatched: (entry: ContinuationEntry) => void;
   onStatusChange: (item: WatchlistItem, status: WatchlistStatus) => void;
 }
-
-const nextEpisodeLabelFor = (progress: ShowProgressSummary) => {
-  if (!progress.nextEpisode) {
-    return "Next episode";
-  }
-
-  return `Next up S${progress.nextEpisode.seasonNumber} E${progress.nextEpisode.episodeNumber}`;
-};
 
 export const WatchlistPage = ({
   error,
@@ -43,6 +40,7 @@ export const WatchlistPage = ({
   items,
   loading,
   loadingMore,
+  pendingShowIds,
   progressItems,
   signedIn,
   totalCount,
@@ -50,14 +48,14 @@ export const WatchlistPage = ({
   onRemove,
   onRetry,
   onSelect,
+  onSelectContinuation,
   onNextEpisodeWatched,
   onStatusChange,
 }: WatchlistPageProps) => {
-  const progressByShowId = new Map(progressItems.map((progress) => [progress.showId, progress]));
-  const continueWatchingItems = items
-    .filter((item) => item.mediaType === "tv" && item.status === "watching")
-    .map((item) => ({item, progress: progressByShowId.get(String(item.tmdbId)) ?? null}))
-    .filter(({progress}) => progress && progress.watchedEpisodeCount > 0 && progress.nextEpisode);
+  const {continueWatching, dormant} = useMemo(
+    () => buildContinuationGroups(items, progressItems),
+    [items, progressItems],
+  );
 
   if (!signedIn) {
     return (
@@ -91,47 +89,26 @@ export const WatchlistPage = ({
         </div>
       )}
 
-      {continueWatchingItems.length > 0 && (
-        <section className="continue-panel" id="continue-watching">
-          <div className="section-header">
-            <h2>Continue watching</h2>
-            <span>{continueWatchingItems.length} active</span>
-          </div>
-          <div className="continue-grid">
-            {continueWatchingItems.map(({item, progress}) => (
-              <article className="continue-card" data-testid={`continue-card-${item.tmdbId}`} key={item.itemId}>
-                <button className="watchlist-poster" type="button" onClick={() => onSelect(item)}>
-                  {item.poster ? <img src={item.poster} alt="" loading="lazy" /> : <Film size={28} aria-hidden="true" />}
-                </button>
-                <div className="continue-copy">
-                  <strong>{item.title}</strong>
-                  <span>
-                    <ListChecks size={16} aria-hidden="true" />
-                    {progress!.watchedEpisodeCount} of {progress!.totalEpisodes} watched
-                  </span>
-                  {progress!.nextEpisode && (
-                    <span className="next-episode" data-testid={`continue-next-${item.tmdbId}`}>
-                      {nextEpisodeLabelFor(progress!)}
-                    </span>
-                  )}
-                  <div className="progress-bar" aria-label={`${item.title} progress ${progress!.progressPercent}%`}>
-                    <span style={{width: `${Math.min(progress!.progressPercent, 100)}%`}} />
-                  </div>
-                </div>
-                <button
-                  className="continue-button"
-                  data-testid={`continue-watched-${item.tmdbId}`}
-                  type="button"
-                  onClick={() => onNextEpisodeWatched(item, progress!)}
-                >
-                  <CheckCircle2 size={16} aria-hidden="true" />
-                  Watched
-                </button>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
+      <ContinueWatchingSection
+        id="continue-watching"
+        title="Continue watching"
+        subtitle={`${continueWatching.length} active`}
+        entries={continueWatching}
+        pendingShowIds={pendingShowIds}
+        onSelect={onSelectContinuation}
+        onNextEpisodeWatched={onNextEpisodeWatched}
+      />
+
+      <ContinueWatchingSection
+        id="dormant-watching"
+        title="Haven't watched for a while"
+        subtitle={`${dormant.length} dormant`}
+        testIdPrefix="dormant"
+        entries={dormant}
+        pendingShowIds={pendingShowIds}
+        onSelect={onSelectContinuation}
+        onNextEpisodeWatched={onNextEpisodeWatched}
+      />
 
       <div className="watchlist-grid">
         {items.map((item) => {

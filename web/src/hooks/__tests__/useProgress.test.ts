@@ -94,7 +94,7 @@ describe("useProgress", () => {
     expect(result.current.items).toEqual([]);
   });
 
-  it("records mark-watched errors", async () => {
+  it("rolls back optimistic progress when mark-watched fails", async () => {
     vi.mocked(api.listProgress).mockResolvedValue(paginated([progressSummary]));
     vi.mocked(api.updateEpisodes).mockRejectedValue(new Error("Update failed"));
 
@@ -109,5 +109,7 @@ describe("useProgress", () => {
     });
 
     expect(result.current.error).toBe("Update failed");
+    expect(result.current.items[0]).toEqual(progressSummary);
+    expect(result.current.pendingShowIds.has(progressSummary.tmdbId)).toBe(false);
   });
 });

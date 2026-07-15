@@ -12,6 +12,7 @@ const renderDetail = (overrides: Partial<Parameters<typeof DetailPage>[0]> = {})
     onEpisodeUnwatched: vi.fn(),
     onEpisodeWatched: vi.fn(),
     onMarkAvailableSeasonWatched: vi.fn(),
+    onMarkNextEpisodeWatched: vi.fn(),
     onRemoveFromWatchlist: vi.fn(),
     onSeasonChange: vi.fn(),
     onWatchlistStatusChange: vi.fn(),
@@ -63,6 +64,18 @@ describe("DetailPage", () => {
 
     await user.click(screen.getByTestId("mark-season-watched"));
     expect(props.onMarkAvailableSeasonWatched).toHaveBeenCalled();
+  });
+
+  it("shows a post-completion next-episode prompt", async () => {
+    const user = userEvent.setup();
+    const props = renderDetail();
+
+    expect(screen.getByTestId("next-episode-prompt")).toHaveTextContent("Next up S1 E2");
+    await user.click(screen.getByTestId("next-episode-mark-watched"));
+    expect(props.onMarkNextEpisodeWatched).toHaveBeenCalled();
+
+    await user.click(screen.getByTestId("next-episode-dismiss"));
+    expect(screen.queryByTestId("next-episode-prompt")).not.toBeInTheDocument();
   });
 
   it("shows add-to-watchlist control when signed in and not already saved", async () => {

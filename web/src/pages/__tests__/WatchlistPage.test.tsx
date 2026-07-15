@@ -19,6 +19,7 @@ const renderWatchlist = (overrides: Partial<Parameters<typeof WatchlistPage>[0]>
     onRemove: vi.fn(),
     onRetry: vi.fn(),
     onSelect: vi.fn(),
+    onSelectContinuation: vi.fn(),
     onStatusChange: vi.fn(),
     ...overrides,
   };
@@ -37,6 +38,32 @@ describe("WatchlistPage", () => {
     expect(screen.getByTestId("continue-next-1001")).toHaveTextContent("Next up S1 E2");
   });
 
+  it("groups dormant shows separately from active Continue Watching", () => {
+    const dormantProgress = {
+      ...progressSummary,
+      showId: "2002",
+      tmdbId: 2002,
+      title: "Dormant Show",
+      updatedAt: "2025-01-01T00:00:00.000Z",
+    };
+    const dormantItem = {
+      ...watchlistItem,
+      itemId: "tv_2002",
+      tmdbId: 2002,
+      title: "Dormant Show",
+    };
+
+    renderWatchlist({
+      items: [watchlistItem, dormantItem],
+      progressItems: [progressSummary, dormantProgress],
+      totalCount: 2,
+    });
+
+    expect(screen.getByTestId("continue-card-1001")).toBeVisible();
+    expect(screen.getByTestId("dormant-card-2002")).toBeVisible();
+    expect(screen.getByRole("heading", {name: "Haven't watched for a while"})).toBeVisible();
+  });
+
   it("calls control callbacks for status, next episode, remove, select, retry, and load more", async () => {
     const user = userEvent.setup();
     const props = renderWatchlist({hasMore: true});
@@ -45,7 +72,12 @@ describe("WatchlistPage", () => {
     expect(props.onStatusChange).toHaveBeenCalledWith(watchlistItem, "completed");
 
     await user.click(screen.getByTestId("continue-watched-1001"));
-    expect(props.onNextEpisodeWatched).toHaveBeenCalledWith(watchlistItem, progressSummary);
+    expect(props.onNextEpisodeWatched).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tmdbId: watchlistItem.tmdbId,
+        progress: progressSummary,
+      }),
+    );
 
     await user.click(screen.getByRole("button", {name: "Critical Flow Show"}));
     expect(props.onSelect).toHaveBeenCalledWith(watchlistItem);
@@ -73,6 +105,7 @@ describe("WatchlistPage", () => {
         onRemove={vi.fn()}
         onRetry={vi.fn()}
         onSelect={vi.fn()}
+        onSelectContinuation={vi.fn()}
         onStatusChange={vi.fn()}
       />,
     );
@@ -93,6 +126,7 @@ describe("WatchlistPage", () => {
         onRemove={vi.fn()}
         onRetry={vi.fn()}
         onSelect={vi.fn()}
+        onSelectContinuation={vi.fn()}
         onStatusChange={vi.fn()}
       />,
     );
@@ -113,6 +147,7 @@ describe("WatchlistPage", () => {
         onRemove={vi.fn()}
         onRetry={vi.fn()}
         onSelect={vi.fn()}
+        onSelectContinuation={vi.fn()}
         onStatusChange={vi.fn()}
       />,
     );
@@ -133,6 +168,7 @@ describe("WatchlistPage", () => {
         onRemove={vi.fn()}
         onRetry={vi.fn()}
         onSelect={vi.fn()}
+        onSelectContinuation={vi.fn()}
         onStatusChange={vi.fn()}
       />,
     );

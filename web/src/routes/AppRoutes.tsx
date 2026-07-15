@@ -41,8 +41,10 @@ const ScreenAnalytics = () => {
 const WatchlistRoute = () => {
   const {user} = useAuth();
   const {
-    markNextWatchlistEpisodeWatched,
+    markContinuationEpisodeWatched,
+    openContinuationDetail,
     openMediaDetail,
+    pendingShowIds,
     progressItems,
     removeWatchlistItem,
     updateWatchlistStatus,
@@ -69,6 +71,7 @@ const WatchlistRoute = () => {
       items={watchlistItems}
       loading={watchlistLoading}
       loadingMore={watchlistLoadingMore}
+      pendingShowIds={pendingShowIds}
       progressItems={progressItems}
       signedIn={Boolean(user)}
       totalCount={watchlistTotalCount}
@@ -76,7 +79,10 @@ const WatchlistRoute = () => {
       onRemove={removeWatchlistItem}
       onRetry={reloadWatchlist}
       onSelect={(item) => openMediaDetail(item, "watchlist")}
-      onNextEpisodeWatched={markNextWatchlistEpisodeWatched}
+      onSelectContinuation={(entry) => openContinuationDetail(entry, "watchlist")}
+      onNextEpisodeWatched={(entry) => {
+        void markContinuationEpisodeWatched(entry);
+      }}
       onStatusChange={updateWatchlistStatus}
     />
   );

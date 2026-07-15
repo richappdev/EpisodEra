@@ -1,3 +1,4 @@
+import {useEffect, useState} from "react";
 import {
   ArrowLeft,
   Bookmark,
@@ -9,7 +10,9 @@ import {
   ListChecks,
   Star,
   Trash2,
+  X,
 } from "lucide-react";
+import {nextEpisodeLabelFor} from "../lib/continuation";
 import {EpisodeSummary, MediaDetail, TvSeasonDetail} from "../types/media";
 import {ShowProgress} from "../types/progress";
 import {WatchlistItem, WatchlistStatus, movieWatchlistStatuses, tvWatchlistStatuses} from "../types/watchlist";
@@ -30,6 +33,7 @@ interface DetailPageProps {
   onAddToWatchlist: (detail: MediaDetail) => void;
   onBack: () => void;
   onMarkAvailableSeasonWatched: () => void;
+  onMarkNextEpisodeWatched: () => void;
   onRemoveFromWatchlist: (item: WatchlistItem) => void;
   onSeasonChange: (seasonNumber: number) => void;
   onWatchlistStatusChange: (item: WatchlistItem, status: WatchlistStatus) => void;
@@ -51,6 +55,7 @@ export const DetailPage = ({
   onAddToWatchlist,
   onBack,
   onMarkAvailableSeasonWatched,
+  onMarkNextEpisodeWatched,
   onRemoveFromWatchlist,
   onSeasonChange,
   onWatchlistStatusChange,
@@ -78,6 +83,14 @@ export const DetailPage = ({
   const unwatchedAvailableSeasonCount = availableSeasonEpisodes.filter(
     (episode) => !watchedKeys.has(episode.episodeKey),
   ).length;
+  const nextEpisode = progress?.nextEpisode ?? null;
+  const [dismissedNextKey, setDismissedNextKey] = useState<string | null>(null);
+  const showNextPrompt =
+    signedIn && detail.mediaType === "tv" && Boolean(nextEpisode) && dismissedNextKey !== nextEpisode?.episodeKey;
+
+  useEffect(() => {
+    setDismissedNextKey(null);
+  }, [detail.id]);
 
   return (
     <main className="detail-page">
@@ -158,6 +171,45 @@ export const DetailPage = ({
           </div>
         </div>
       </section>
+
+      {showNextPrompt && nextEpisode && (
+        <section className="next-episode-prompt" data-testid="next-episode-prompt">
+          <div className="next-episode-prompt-copy">
+            <span className="media-kind">Watch next</span>
+            <strong>
+              {nextEpisodeLabelFor(progress!)}
+              {nextEpisode.episodeTitle ? ` · ${nextEpisode.episodeTitle}` : ""}
+            </strong>
+            <span>
+              {progress!.watchedEpisodeCount} of {progress!.totalEpisodes} watched
+              {progress!.totalEpisodes > progress!.watchedEpisodeCount
+                ? ` · ${progress!.totalEpisodes - progress!.watchedEpisodeCount} remaining`
+                : ""}
+            </span>
+          </div>
+          <div className="next-episode-prompt-actions">
+            <button
+              className="continue-button"
+              data-testid="next-episode-mark-watched"
+              type="button"
+              disabled={progressLoading}
+              onClick={onMarkNextEpisodeWatched}
+            >
+              <CheckCircle2 size={16} aria-hidden="true" />
+              Mark watched
+            </button>
+            <button
+              className="icon-button"
+              data-testid="next-episode-dismiss"
+              type="button"
+              aria-label="Dismiss next episode prompt"
+              onClick={() => setDismissedNextKey(nextEpisode.episodeKey)}
+            >
+              <X size={18} aria-hidden="true" />
+            </button>
+          </div>
+        </section>
+      )}
 
       {detail.mediaType === "tv" && (
         <section className="episode-panel">

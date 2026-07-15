@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useState} from "react";
 import type {User} from "firebase/auth";
 import {api} from "../api/client";
+import {optimisticMarkNextEpisode} from "../lib/continuation";
 import {maxPageSize} from "../types/pagination";
 import {ShowProgressSummary} from "../types/progress";
 import {toErrorMessage} from "./errorMessage";
@@ -24,11 +25,13 @@ export const useProgress = (user: User | null, onLibraryChange?: () => void) => 
   const [items, setItems] = useState<ShowProgressSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingShowIds, setPendingShowIds] = useState<Set<number>>(() => new Set());
 
   const reset = useCallback(() => {
     setItems([]);
     setLoading(false);
     setError(null);
+    setPendingShowIds(new Set());
   }, []);
 
   const reload = useCallback(async () => {
@@ -77,9 +80,32 @@ export const useProgress = (user: User | null, onLibraryChange?: () => void) => 
     setItems((current) => current.filter((candidate) => candidate.tmdbId !== showId));
   }, []);
 
+  const setShowPending = useCallback((tmdbId: number, pending: boolean) => {
+    setPendingShowIds((current) => {
+      const next = new Set(current);
+      if (pending) {
+        next.add(tmdbId);
+      } else {
+        next.delete(tmdbId);
+      }
+      return next;
+    });
+  }, []);
+
   const markNextEpisodeWatched = useCallback(
     async (tmdbId: number, nextEpisode: NonNullable<ShowProgressSummary["nextEpisode"]>) => {
       setError(null);
+
+      if (pendingShowIds.has(tmdbId)) {
+        return items.find((item) => item.tmdbId === tmdbId) ?? null;
+      }
+
+      const previous = items.find((item) => item.tmdbId === tmdbId) ?? null;
+      if (previous?.nextEpisode) {
+        upsertProgressItem(optimisticMarkNextEpisode(previous));
+      }
+
+      setShowPending(tmdbId, true);
 
       try {
         const updatedProgress = await api.updateEpisodes(tmdbId, {
@@ -96,18 +122,24 @@ export const useProgress = (user: User | null, onLibraryChange?: () => void) => 
         onLibraryChange?.();
         return updatedProgress;
       } catch (reason) {
+        if (previous) {
+          upsertProgressItem(previous);
+        }
         const message = toErrorMessage(reason, "Could not mark next episode watched.");
         setError(message);
         throw reason;
+      } finally {
+        setShowPending(tmdbId, false);
       }
     },
-    [onLibraryChange, upsertProgressItem],
+    [items, onLibraryChange, pendingShowIds, setShowPending, upsertProgressItem],
   );
 
   return {
     items,
     loading,
     error,
+    pendingShowIds,
     reload,
     upsertProgressItem,
     removeProgressItem,
