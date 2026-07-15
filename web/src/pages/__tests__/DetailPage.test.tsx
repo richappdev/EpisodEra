@@ -162,6 +162,62 @@ describe("DetailPage", () => {
     expect(screen.queryByTestId("episode-toggle-s01e01")).not.toBeInTheDocument();
   });
 
+  it("toggles movie watched status with the eye button", async () => {
+    const user = userEvent.setup();
+    const movieWatchlistItem = {
+      itemId: `movie_${movieDetail.id}`,
+      tmdbId: movieDetail.id,
+      mediaType: "movie" as const,
+      title: movieDetail.title,
+      poster: null,
+      backdrop: null,
+      status: "unwatched" as const,
+      addedAt: "2026-07-12T00:00:00.000Z",
+      updatedAt: "2026-07-12T00:00:00.000Z",
+    };
+    const props = renderDetail({
+      detail: movieDetail,
+      progress: null,
+      seasonDetail: null,
+      watchlistItem: movieWatchlistItem,
+    });
+
+    const toggle = screen.getByTestId("detail-watchlist-status");
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    expect(toggle).toHaveAttribute("aria-label", "Mark Critical Flow Movie as watched");
+
+    await user.click(toggle);
+    expect(props.onWatchlistStatusChange).toHaveBeenCalledWith(movieWatchlistItem, "watched");
+  });
+
+  it("marks a watched movie as not watched from the eye button", async () => {
+    const user = userEvent.setup();
+    const movieWatchlistItem = {
+      itemId: `movie_${movieDetail.id}`,
+      tmdbId: movieDetail.id,
+      mediaType: "movie" as const,
+      title: movieDetail.title,
+      poster: null,
+      backdrop: null,
+      status: "watched" as const,
+      addedAt: "2026-07-12T00:00:00.000Z",
+      updatedAt: "2026-07-12T00:00:00.000Z",
+    };
+    const props = renderDetail({
+      detail: movieDetail,
+      progress: null,
+      seasonDetail: null,
+      watchlistItem: movieWatchlistItem,
+    });
+
+    const toggle = screen.getByTestId("detail-watchlist-status");
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+    expect(toggle).toHaveAttribute("aria-label", "Mark Critical Flow Movie as not watched");
+
+    await user.click(toggle);
+    expect(props.onWatchlistStatusChange).toHaveBeenCalledWith(movieWatchlistItem, "unwatched");
+  });
+
   it("renders progress and season errors independently", () => {
     renderDetail({progressError: "Could not load progress.", seasonError: "Could not load episodes."});
 

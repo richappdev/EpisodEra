@@ -9,6 +9,8 @@ import {
   Circle,
   Clock,
   ExternalLink,
+  Eye,
+  EyeOff,
   ListChecks,
   Star,
   Trash2,
@@ -26,7 +28,7 @@ import {
 } from "../lib/seasonProgress";
 import {EpisodeSummary, MediaDetail, TvSeasonDetail} from "../types/media";
 import {ShowProgress} from "../types/progress";
-import {WatchlistItem, WatchlistStatus, movieWatchlistStatuses, tvWatchlistStatuses} from "../types/watchlist";
+import {WatchlistItem, WatchlistStatus, tvWatchlistStatuses} from "../types/watchlist";
 import {DiscussionPanel} from "../components/DiscussionPanel";
 
 const statusLabels: Record<WatchlistStatus, string> = {
@@ -87,7 +89,6 @@ export const DetailPage = ({
   signedIn,
   watchlistItem,
 }: DetailPageProps) => {
-  const statusOptions = detail.mediaType === "movie" ? movieWatchlistStatuses : tvWatchlistStatuses;
   const watchedKeys = useMemo(
     () => new Set(progress?.episodes.map((episode) => episode.episodeKey) ?? []),
     [progress],
@@ -416,18 +417,49 @@ export const DetailPage = ({
                     <Check size={16} aria-hidden="true" />
                     In watchlist
                   </span>
-                  <select
-                    aria-label={`Watchlist status for ${detail.title}`}
-                    data-testid="detail-watchlist-status"
-                    value={watchlistItem.status}
-                    onChange={(event) => onWatchlistStatusChange(watchlistItem, event.target.value as WatchlistStatus)}
-                  >
-                    {statusOptions.map((status) => (
-                      <option key={status} value={status}>
-                        {statusLabels[status]}
-                      </option>
-                    ))}
-                  </select>
+                  {detail.mediaType === "movie" ? (
+                    <button
+                      className={
+                        watchlistItem.status === "watched" ? "watched-toggle is-watched" : "watched-toggle"
+                      }
+                      type="button"
+                      data-testid="detail-watchlist-status"
+                      aria-pressed={watchlistItem.status === "watched"}
+                      aria-label={
+                        watchlistItem.status === "watched"
+                          ? `Mark ${detail.title} as not watched`
+                          : `Mark ${detail.title} as watched`
+                      }
+                      title={watchlistItem.status === "watched" ? "Watched" : "Not watched"}
+                      onClick={() =>
+                        onWatchlistStatusChange(
+                          watchlistItem,
+                          watchlistItem.status === "watched" ? "unwatched" : "watched",
+                        )
+                      }
+                    >
+                      {watchlistItem.status === "watched" ? (
+                        <Eye size={18} aria-hidden="true" />
+                      ) : (
+                        <EyeOff size={18} aria-hidden="true" />
+                      )}
+                    </button>
+                  ) : (
+                    <select
+                      aria-label={`Watchlist status for ${detail.title}`}
+                      data-testid="detail-watchlist-status"
+                      value={watchlistItem.status}
+                      onChange={(event) =>
+                        onWatchlistStatusChange(watchlistItem, event.target.value as WatchlistStatus)
+                      }
+                    >
+                      {tvWatchlistStatuses.map((status) => (
+                        <option key={status} value={status}>
+                          {statusLabels[status]}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   <button data-testid="detail-remove-watchlist" type="button" onClick={() => onRemoveFromWatchlist(watchlistItem)}>
                     <Trash2 size={16} aria-hidden="true" />
                     Remove

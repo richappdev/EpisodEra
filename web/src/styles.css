@@ -583,6 +583,26 @@ select:focus-visible {
   color: var(--color-primary);
 }
 
+.watched-toggle {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-muted);
+  min-height: var(--tap-target);
+  min-width: var(--tap-target);
+  padding: 0 12px;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.watched-toggle.is-watched {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-border);
+  color: var(--color-primary);
+}
+
 .watchlist-header {
   align-items: end;
   display: flex;
@@ -1849,6 +1869,7 @@ select:focus-visible {
   .continue-button:hover,
   .season-watch-button:hover,
   .episode-toggle:hover,
+  .watched-toggle:hover,
   .icon-button:hover {
     transform: translateY(-1px);
   }
@@ -2151,6 +2172,10 @@ select:focus-visible {
   .auth-note,
   .saved-chip {
     width: 100%;
+  }
+
+  .detail-actions .watched-toggle {
+    width: auto;
   }
 
   .detail-actions button,
