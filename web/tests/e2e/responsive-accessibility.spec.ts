@@ -28,8 +28,9 @@ test("signed-in shell keeps critical controls accessible on desktop and mobile",
 
     await expect(page.getByTestId("account-button")).toHaveAccessibleName("Sign out");
     await expect(page.getByRole("contentinfo")).toContainText(
-      "This product uses the TMDb API and TMDb images/data but is not endorsed or certified by TMDb.",
+      "This product uses TMDB and the TMDB APIs but is not endorsed, certified, or otherwise approved by TMDB.",
     );
+    await expect(page.getByRole("contentinfo").getByRole("img", {name: "The Movie Database (TMDB)"})).toBeVisible();
 
     await page.getByTestId("nav-watchlist").click();
     await expect(page.getByTestId("watchlist-header")).toBeVisible();

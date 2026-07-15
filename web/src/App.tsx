@@ -5,6 +5,7 @@ import {TopBar} from "./components/TopBar";
 import {AppRoutes} from "./routes/AppRoutes";
 import {isDetailPath, navFromPath, paths, type NavView} from "./routes/paths";
 import {legalCopy} from "./types/legal";
+import tmdbLogo from "./assets/tmdb-logo.svg";
 
 const resolveActiveView = (pathname: string, state: unknown): NavView => {
   if (isDetailPath(pathname)) {
@@ -29,13 +30,17 @@ const SiteFooter = () => {
       <p className="site-footer-links">
         <Link to={paths.privacy}>{footer.privacy}</Link>
       </p>
-      <p className="tmdb-attribution">
-        {footer.tmdbPrefix}{" "}
-        <a href="https://www.themoviedb.org/about/logos-attribution" rel="noreferrer" target="_blank">
-          {footer.tmdbLinkLabel}
+      <div className="tmdb-attribution">
+        <a
+          className="tmdb-attribution-logo"
+          href="https://www.themoviedb.org/"
+          rel="noreferrer"
+          target="_blank"
+        >
+          <img alt={footer.tmdbLogoAlt} height={14} src={tmdbLogo} width={108} />
         </a>
-        {footer.tmdbSuffix}
-      </p>
+        <p className="tmdb-attribution-text">{footer.tmdbNotice}</p>
+      </div>
     </footer>
   );
 };

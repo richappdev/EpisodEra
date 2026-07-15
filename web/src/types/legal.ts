@@ -16,9 +16,8 @@ export interface LegalCopy {
   };
   footer: {
     privacy: string;
-    tmdbPrefix: string;
-    tmdbLinkLabel: string;
-    tmdbSuffix: string;
+    tmdbLogoAlt: string;
+    tmdbNotice: string;
   };
   settings: {
     privacyTitle: string;
@@ -98,9 +97,9 @@ export const legalCopy: Record<SupportedLanguage, LegalCopy> = {
     },
     footer: {
       privacy: "Privacy",
-      tmdbPrefix: "This product uses the",
-      tmdbLinkLabel: "TMDb API",
-      tmdbSuffix: " and TMDb images/data but is not endorsed or certified by TMDb.",
+      tmdbLogoAlt: "The Movie Database (TMDB)",
+      tmdbNotice:
+        "This product uses TMDB and the TMDB APIs but is not endorsed, certified, or otherwise approved by TMDB.",
     },
     settings: {
       privacyTitle: "Privacy & data",
@@ -179,9 +178,8 @@ export const legalCopy: Record<SupportedLanguage, LegalCopy> = {
     },
     footer: {
       privacy: "隱私權",
-      tmdbPrefix: "本產品使用",
-      tmdbLinkLabel: "TMDb API",
-      tmdbSuffix: " 與 TMDb 圖片/資料，但未獲 TMDb 背書或認證。",
+      tmdbLogoAlt: "The Movie Database (TMDB)",
+      tmdbNotice: "本產品使用 TMDB 與 TMDB API，但未獲 TMDB 背書、認證或以其他方式核准。",
     },
     settings: {
       privacyTitle: "隱私與資料",

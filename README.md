@@ -250,7 +250,7 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 - Reconfirm the latest GitHub Actions CI run passes Firestore emulator progress and rules tests with `npm run test:emulator` after significant backend changes.
 - Local Firestore emulator execution still requires Java and the Firebase Emulator Suite.
 - TMDb detail, season, and trending responses use an in-memory TTL cache inside the Functions runtime. A persistent shared cache is still a possible future optimization.
-- TMDb images and metadata must retain visible app attribution: "This product uses the TMDb API and TMDb images/data but is not endorsed or certified by TMDb."
+- TMDb images and metadata must retain visible app attribution, including the official TMDB logo and: "This product uses TMDB and the TMDB APIs but is not endorsed, certified, or otherwise approved by TMDB."
 - Backend and frontend coverage enforcement is now configured for the current automated test surfaces. Playwright covers the signed-in critical flow, responsive/accessibility smoke, previous-episode gap resolution, season batch writes, failed/offline progress-write recovery, duplicate-action prevention during pending writes, and concurrent browser progress consistency. Broader full-app frontend coverage and deeper accessibility automation are still pending.
 - Deployed production smoke is available locally (`npm run smoke:prod:local`) and in GitHub Actions (`Production Smoke` workflow). Hosted runs require protected repository secrets and recorded workflow evidence for release candidates.
 - Production deployment must configure `CORS_ORIGINS` for the Firebase Hosting, staging, and production domains.

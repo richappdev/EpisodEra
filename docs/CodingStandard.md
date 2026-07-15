@@ -55,7 +55,7 @@ TMDb integration:
 - Normalize TMDb responses in mapper functions before returning API responses.
 - Return full image URLs, not raw TMDb paths, to the frontend.
 - Keep frontend independent from TMDb-specific field names.
-- Keep visible TMDb attribution anywhere the app uses TMDb images or data: "This product uses the TMDb API and TMDb images/data but is not endorsed or certified by TMDb."
+- Keep visible TMDb attribution anywhere the app uses TMDb images or data, including the official TMDB logo (less prominent than Episodera branding) and: "This product uses TMDB and the TMDB APIs but is not endorsed, certified, or otherwise approved by TMDB."
 
 ## Firestore
 
