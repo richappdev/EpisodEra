@@ -5,7 +5,8 @@ import {
   DiscoverySuggestionRail,
   DiscoverySuggestionsResponse,
 } from "../models/discovery";
-import {MediaSummary} from "../models/media";
+import {FranchiseTitleProgress} from "../models/franchise";
+import {MediaDetail, MediaSummary} from "../models/media";
 import {SupportedLanguage} from "../models/settings";
 import {buildFranchiseProgress} from "./franchiseLogic";
 import {
@@ -35,7 +36,6 @@ const franchiseTitleToSummary = (title: {
   tmdbId: number;
   mediaType: "movie" | "tv";
   title: string;
-  runtimeMinutes: number | null;
 }): MediaSummary => ({
   id: title.tmdbId,
   mediaType: title.mediaType,
@@ -46,6 +46,33 @@ const franchiseTitleToSummary = (title: {
   popularity: 0,
   images: {poster: null, backdrop: null},
 });
+
+const toMediaSummary = (detail: MediaDetail): MediaSummary => ({
+  id: detail.id,
+  mediaType: detail.mediaType,
+  title: detail.title,
+  overview: detail.overview,
+  releaseDate: detail.releaseDate,
+  voteAverage: detail.voteAverage,
+  popularity: detail.popularity,
+  images: detail.images,
+});
+
+/** Load poster/year/rating from TMDb; keep catalog stub if the lookup fails. */
+export const hydrateFranchiseTitle = async (
+  title: Pick<FranchiseTitleProgress, "tmdbId" | "mediaType" | "title">,
+  language: SupportedLanguage = "en-US",
+): Promise<MediaSummary> => {
+  try {
+    const detail =
+      title.mediaType === "movie" ?
+        await tmdbService.movieDetail(title.tmdbId, language) :
+        await tmdbService.tvDetail(title.tmdbId, language);
+    return toMediaSummary(detail);
+  } catch {
+    return franchiseTitleToSummary(title);
+  }
+};
 
 class DiscoveryService {
   async suggestions(
@@ -95,7 +122,10 @@ class DiscoveryService {
         return progress.recommendedNext ? [progress.recommendedNext] : [];
       });
 
-      const continueItems = continueFranchiseSuggestions(unfinished, maxMinutes).map(franchiseTitleToSummary);
+      const continueTitles = continueFranchiseSuggestions(unfinished, maxMinutes);
+      const continueItems = await Promise.all(
+        continueTitles.map((title) => hydrateFranchiseTitle(title, language)),
+      );
       if (continueItems.length > 0) {
         rails.push({
           id: "continue-franchise",
