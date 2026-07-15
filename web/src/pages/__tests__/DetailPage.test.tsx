@@ -13,6 +13,9 @@ const renderDetail = (overrides: Partial<Parameters<typeof DetailPage>[0]> = {})
     onEpisodeWatched: vi.fn(),
     onMarkAvailableSeasonWatched: vi.fn(),
     onMarkNextEpisodeWatched: vi.fn(),
+    onMarkPreviousEpisodesWatched: vi.fn(),
+    onMarkSeasonUnwatched: vi.fn(),
+    onMarkSelectedEpisodes: vi.fn(),
     onRemoveFromWatchlist: vi.fn(),
     onSeasonChange: vi.fn(),
     onWatchlistStatusChange: vi.fn(),
@@ -39,11 +42,21 @@ describe("DetailPage", () => {
     expect(screen.getByTestId("detail-tv-1001")).toHaveTextContent("Critical Flow Show");
     expect(screen.getByText("Returning Series")).toBeVisible();
     expect(screen.getByText("3 episodes")).toBeVisible();
-    expect(screen.getByText("1 of 3 watched (33.33%)")).toBeVisible();
+    expect(screen.getByTestId("show-progress-summary")).toHaveTextContent("1 / 3 episodes · 33.33% complete");
+    expect(screen.getByTestId("show-progress-summary")).toHaveTextContent("2 episodes remaining");
+    expect(screen.getByText("1 of 3 watched (33.33%) · Season 1/3")).toBeVisible();
     expect(screen.getByTestId("detail-watchlist-status")).toHaveValue("watching");
     expect(screen.getByTestId("episode-row-s01e01")).toHaveTextContent("Pilot");
     expect(screen.getByTestId("episode-toggle-s01e01")).toHaveTextContent("Watched");
     expect(screen.getByTestId("episode-toggle-s01e02")).toHaveTextContent("Mark watched");
+  });
+
+  it("renders season progress cards with remaining estimates", () => {
+    renderDetail();
+
+    expect(screen.getByTestId("season-card-1")).toHaveTextContent("1 / 3 episodes");
+    expect(screen.getByTestId("season-card-1")).toHaveTextContent("2 remaining");
+    expect(screen.getByTestId("season-remaining-time")).toHaveTextContent("1h 24m left");
   });
 
   it("calls watchlist and episode callbacks from controls", async () => {
@@ -64,6 +77,20 @@ describe("DetailPage", () => {
 
     await user.click(screen.getByTestId("mark-season-watched"));
     expect(props.onMarkAvailableSeasonWatched).toHaveBeenCalled();
+
+    await user.click(screen.getByTestId("mark-season-unwatched"));
+    expect(props.onMarkSeasonUnwatched).toHaveBeenCalled();
+  });
+
+  it("supports multi-select bulk episode actions", async () => {
+    const user = userEvent.setup();
+    const props = renderDetail();
+
+    await user.click(screen.getByTestId("toggle-episode-select"));
+    await user.click(screen.getByTestId("episode-select-s01e02"));
+    await user.click(screen.getByTestId("mark-selected-watched"));
+
+    expect(props.onMarkSelectedEpisodes).toHaveBeenCalledWith([seasonDetail.episodes[1]], true);
   });
 
   it("shows a post-completion next-episode prompt", async () => {

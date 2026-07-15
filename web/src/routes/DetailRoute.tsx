@@ -5,17 +5,15 @@ import {useAuth} from "../auth/AuthContext";
 import {useAppContext} from "../AppContext";
 import {DetailPage} from "../pages/DetailPage";
 import {trackEvent} from "../firebase";
+import {
+  availableUnwatchedEpisodes,
+  availableWatchedEpisodes,
+  isAvailableEpisode,
+  previousEpisodesToMark,
+} from "../lib/seasonProgress";
 import {EpisodeSummary, MediaDetail, MediaType, TvSeasonDetail} from "../types/media";
 import {ShowProgress} from "../types/progress";
 import {paths} from "./paths";
-
-const isAvailableEpisode = (episode: EpisodeSummary) => {
-  if (!episode.airDate) {
-    return true;
-  }
-
-  return new Date(`${episode.airDate}T00:00:00`).getTime() <= Date.now();
-};
 
 const parsePositiveInt = (value: string | undefined) => {
   const parsed = Number(value);
@@ -262,27 +260,17 @@ export const MediaDetailRoute = ({mediaType}: MediaDetailRouteProps) => {
     });
   };
 
-  const markAvailableSeasonWatched = async () => {
-    if (!detail || detail.mediaType !== "tv" || !seasonDetail || !mediaId) {
+  const batchUpdateEpisodes = async (
+    episodesToUpdate: EpisodeSummary[],
+    watched: boolean,
+    contentType: string,
+    confirmMessage: string,
+  ) => {
+    if (!detail || detail.mediaType !== "tv" || !mediaId || episodesToUpdate.length === 0) {
       return;
     }
 
-    const watchedKeys = new Set(progress?.episodes.map((episode) => episode.episodeKey) ?? []);
-    const episodesToMark = seasonDetail.episodes
-      .filter((episode) => isAvailableEpisode(episode) && !watchedKeys.has(episode.episodeKey))
-      .sort((left, right) => left.episodeNumber - right.episodeNumber);
-
-    if (episodesToMark.length === 0) {
-      return;
-    }
-
-    const shouldMarkSeason = window.confirm(
-      `Mark ${episodesToMark.length} available episode${episodesToMark.length === 1 ? "" : "s"} in ${
-        seasonDetail.title || `Season ${selectedSeason}`
-      } as watched?`,
-    );
-
-    if (!shouldMarkSeason) {
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
@@ -291,8 +279,8 @@ export const MediaDetailRoute = ({mediaType}: MediaDetailRouteProps) => {
 
     try {
       const latestProgress = await api.updateEpisodes(mediaId, {
-        watched: true,
-        episodes: episodesToMark.map(({seasonNumber, episodeNumber}) => ({seasonNumber, episodeNumber})),
+        watched,
+        episodes: episodesToUpdate.map(({seasonNumber, episodeNumber}) => ({seasonNumber, episodeNumber})),
       });
 
       if (!latestProgress) {
@@ -300,15 +288,94 @@ export const MediaDetailRoute = ({mediaType}: MediaDetailRouteProps) => {
       }
 
       trackEvent("select_content", {
-        content_type: "season_watched",
+        content_type: contentType,
         item_id: `${detail.id}:${selectedSeason}`,
       });
       applyProgressUpdate(latestProgress);
     } catch (err) {
-      setProgressError(err instanceof Error ? err.message : "Could not mark season episodes watched.");
+      setProgressError(
+        err instanceof Error
+          ? err.message
+          : watched
+            ? "Could not mark season episodes watched."
+            : "Could not mark season episodes unwatched.",
+      );
     } finally {
       setProgressLoading(false);
     }
+  };
+
+  const markAvailableSeasonWatched = async () => {
+    if (!seasonDetail) {
+      return;
+    }
+
+    const watchedKeys = new Set(progress?.episodes.map((episode) => episode.episodeKey) ?? []);
+    const episodesToMark = availableUnwatchedEpisodes(seasonDetail, watchedKeys);
+
+    await batchUpdateEpisodes(
+      episodesToMark,
+      true,
+      "season_watched",
+      `Mark ${episodesToMark.length} available episode${episodesToMark.length === 1 ? "" : "s"} in ${
+        seasonDetail.title || `Season ${selectedSeason}`
+      } as watched?`,
+    );
+  };
+
+  const markPreviousEpisodesWatched = async () => {
+    if (!seasonDetail) {
+      return;
+    }
+
+    const watchedKeys = new Set(progress?.episodes.map((episode) => episode.episodeKey) ?? []);
+    const episodesToMark = previousEpisodesToMark(seasonDetail, watchedKeys, progress?.nextEpisode ?? null);
+
+    await batchUpdateEpisodes(
+      episodesToMark,
+      true,
+      "previous_episodes_watched",
+      `Mark ${episodesToMark.length} previous episode${episodesToMark.length === 1 ? "" : "s"} in ${
+        seasonDetail.title || `Season ${selectedSeason}`
+      } as watched?`,
+    );
+  };
+
+  const markSeasonUnwatched = async () => {
+    if (!seasonDetail) {
+      return;
+    }
+
+    const watchedKeys = new Set(progress?.episodes.map((episode) => episode.episodeKey) ?? []);
+    const episodesToClear = availableWatchedEpisodes(seasonDetail, watchedKeys);
+
+    await batchUpdateEpisodes(
+      episodesToClear,
+      false,
+      "season_unwatched",
+      `Mark ${episodesToClear.length} episode${episodesToClear.length === 1 ? "" : "s"} in ${
+        seasonDetail.title || `Season ${selectedSeason}`
+      } as unwatched?`,
+    );
+  };
+
+  const markSelectedEpisodes = async (episodes: EpisodeSummary[], watched: boolean) => {
+    if (!seasonDetail || episodes.length === 0) {
+      return;
+    }
+
+    const filtered = watched
+      ? episodes.filter((episode) => isAvailableEpisode(episode))
+      : episodes;
+
+    await batchUpdateEpisodes(
+      filtered,
+      watched,
+      watched ? "selected_episodes_watched" : "selected_episodes_unwatched",
+      `Mark ${filtered.length} selected episode${filtered.length === 1 ? "" : "s"} as ${
+        watched ? "watched" : "unwatched"
+      }?`,
+    );
   };
 
   const markEpisodeUnwatched = (episode: EpisodeSummary) => {
@@ -387,6 +454,9 @@ export const MediaDetailRoute = ({mediaType}: MediaDetailRouteProps) => {
         onBack={() => navigate(-1)}
         onMarkAvailableSeasonWatched={markAvailableSeasonWatched}
         onMarkNextEpisodeWatched={markNextEpisodeWatched}
+        onMarkPreviousEpisodesWatched={markPreviousEpisodesWatched}
+        onMarkSeasonUnwatched={markSeasonUnwatched}
+        onMarkSelectedEpisodes={markSelectedEpisodes}
         onRemoveFromWatchlist={removeWatchlistItem}
         onSeasonChange={handleSeasonChange}
         onWatchlistStatusChange={updateWatchlistStatus}

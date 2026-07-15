@@ -1135,6 +1135,79 @@ select:focus-visible {
   padding: 0 10px;
 }
 
+.show-progress-summary {
+  display: grid;
+  gap: 6px;
+  margin: 4px 0 10px;
+}
+
+.show-progress-summary > span {
+  color: var(--color-text-soft);
+  font-size: 0.95rem;
+}
+
+.show-progress-bar {
+  margin-top: 4px;
+  max-width: 320px;
+}
+
+.season-card-list {
+  display: grid;
+  gap: 10px;
+}
+
+.season-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.season-card.expanded {
+  border-color: var(--color-border-strong);
+}
+
+.season-card-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto 1fr auto;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.season-card-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.season-card-copy > span {
+  color: var(--color-muted);
+  font-size: 0.92rem;
+}
+
+.season-complete-badge,
+.season-eta {
+  align-items: center;
+  color: var(--color-muted);
+  display: inline-flex;
+  gap: 6px;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.season-complete-badge {
+  color: var(--color-primary);
+}
+
 .progress-strip {
   align-items: center;
   background: var(--color-surface);
@@ -1142,13 +1215,15 @@ select:focus-visible {
   border-radius: var(--radius-md);
   color: var(--color-text-soft);
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   justify-content: space-between;
   min-height: 46px;
-  padding: 0 14px;
+  padding: 8px 14px;
 }
 
 .progress-copy,
+.progress-eta,
 .season-watch-button {
   align-items: center;
   display: inline-flex;
@@ -1157,6 +1232,23 @@ select:focus-visible {
 
 .progress-copy {
   min-width: 0;
+}
+
+.progress-eta {
+  color: var(--color-muted);
+  font-size: 0.92rem;
+}
+
+.season-bulk-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.season-bulk-actions.select-actions {
+  color: var(--color-muted);
+  font-size: 0.92rem;
 }
 
 .season-watch-button {
@@ -1170,7 +1262,8 @@ select:focus-visible {
   padding: 0 12px;
 }
 
-.season-watch-button:disabled {
+.season-watch-button:disabled,
+.season-bulk-actions .text-button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
@@ -1189,6 +1282,29 @@ select:focus-visible {
   gap: 14px;
   grid-template-columns: 76px 1fr auto;
   padding: 14px;
+}
+
+.episode-row.selectable {
+  grid-template-columns: auto 76px 1fr auto;
+}
+
+.episode-select {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  min-height: var(--tap-target);
+  min-width: var(--tap-target);
+}
+
+.sr-only {
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
 }
 
 .episode-number {

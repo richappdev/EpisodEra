@@ -1,9 +1,11 @@
-import {useEffect, useState} from "react";
+import {useEffect, useMemo, useState} from "react";
 import {
   ArrowLeft,
   Bookmark,
   Check,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   Circle,
   Clock,
   ExternalLink,
@@ -13,6 +15,15 @@ import {
   X,
 } from "lucide-react";
 import {nextEpisodeLabelFor} from "../lib/continuation";
+import {
+  availableUnwatchedEpisodes,
+  availableWatchedEpisodes,
+  buildSeasonProgressSnapshots,
+  formatWatchTime,
+  previousEpisodesToMark,
+  showProgressRemaining,
+  type SeasonProgressSnapshot,
+} from "../lib/seasonProgress";
 import {EpisodeSummary, MediaDetail, TvSeasonDetail} from "../types/media";
 import {ShowProgress} from "../types/progress";
 import {WatchlistItem, WatchlistStatus, movieWatchlistStatuses, tvWatchlistStatuses} from "../types/watchlist";
@@ -34,6 +45,9 @@ interface DetailPageProps {
   onBack: () => void;
   onMarkAvailableSeasonWatched: () => void;
   onMarkNextEpisodeWatched: () => void;
+  onMarkPreviousEpisodesWatched: () => void;
+  onMarkSeasonUnwatched: () => void;
+  onMarkSelectedEpisodes: (episodes: EpisodeSummary[], watched: boolean) => void;
   onRemoveFromWatchlist: (item: WatchlistItem) => void;
   onSeasonChange: (seasonNumber: number) => void;
   onWatchlistStatusChange: (item: WatchlistItem, status: WatchlistStatus) => void;
@@ -56,6 +70,9 @@ export const DetailPage = ({
   onBack,
   onMarkAvailableSeasonWatched,
   onMarkNextEpisodeWatched,
+  onMarkPreviousEpisodesWatched,
+  onMarkSeasonUnwatched,
+  onMarkSelectedEpisodes,
   onRemoveFromWatchlist,
   onSeasonChange,
   onWatchlistStatusChange,
@@ -70,27 +87,65 @@ export const DetailPage = ({
   watchlistItem,
 }: DetailPageProps) => {
   const statusOptions = detail.mediaType === "movie" ? movieWatchlistStatuses : tvWatchlistStatuses;
-  const watchedKeys = new Set(progress?.episodes.map((episode) => episode.episodeKey) ?? []);
+  const watchedKeys = useMemo(
+    () => new Set(progress?.episodes.map((episode) => episode.episodeKey) ?? []),
+    [progress],
+  );
   const seasons = detail.seasons ?? [];
-  const availableSeasonEpisodes =
-    seasonDetail?.episodes.filter((episode) => {
-      if (!episode.airDate) {
-        return true;
-      }
-
-      return new Date(`${episode.airDate}T00:00:00`).getTime() <= Date.now();
-    }) ?? [];
-  const unwatchedAvailableSeasonCount = availableSeasonEpisodes.filter(
-    (episode) => !watchedKeys.has(episode.episodeKey),
-  ).length;
+  const seasonSnapshots = useMemo(
+    () => buildSeasonProgressSnapshots(seasons, progress, seasonDetail),
+    [progress, seasonDetail, seasons],
+  );
+  const selectedSnapshot =
+    seasonSnapshots.find((season) => season.seasonNumber === selectedSeason) ?? null;
+  const unwatchedAvailableSeasonCount = seasonDetail
+    ? availableUnwatchedEpisodes(seasonDetail, watchedKeys).length
+    : 0;
+  const watchedInSeasonCount = seasonDetail ? availableWatchedEpisodes(seasonDetail, watchedKeys).length : 0;
+  const previousCount = seasonDetail
+    ? previousEpisodesToMark(seasonDetail, watchedKeys, progress?.nextEpisode ?? null).length
+    : 0;
+  const seasonRemainingMinutes = selectedSnapshot?.estimatedRemainingMinutes ?? 0;
+  const showRemainingMinutes = seasonSnapshots.reduce(
+    (sum, season) => sum + season.estimatedRemainingMinutes,
+    0,
+  );
+  const showRemaining = showProgressRemaining(progress);
   const nextEpisode = progress?.nextEpisode ?? null;
   const [dismissedNextKey, setDismissedNextKey] = useState<string | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set());
   const showNextPrompt =
     signedIn && detail.mediaType === "tv" && Boolean(nextEpisode) && dismissedNextKey !== nextEpisode?.episodeKey;
 
   useEffect(() => {
     setDismissedNextKey(null);
   }, [detail.id]);
+
+  useEffect(() => {
+    setSelectMode(false);
+    setSelectedKeys(new Set());
+  }, [selectedSeason, detail.id]);
+
+  const toggleSelected = (episodeKey: string) => {
+    setSelectedKeys((current) => {
+      const next = new Set(current);
+      if (next.has(episodeKey)) {
+        next.delete(episodeKey);
+      } else {
+        next.add(episodeKey);
+      }
+      return next;
+    });
+  };
+
+  const selectedEpisodes = (seasonDetail?.episodes ?? []).filter((episode) => selectedKeys.has(episode.episodeKey));
+
+  const handleSeasonCardActivate = (season: SeasonProgressSnapshot) => {
+    if (season.seasonNumber !== selectedSeason) {
+      onSeasonChange(season.seasonNumber);
+    }
+  };
 
   return (
     <main className="detail-page">
@@ -123,6 +178,26 @@ export const DetailPage = ({
               {detail.status && <span>{detail.status}</span>}
               {detail.totalEpisodes && <span>{detail.totalEpisodes} episodes</span>}
             </div>
+            {signedIn && detail.mediaType === "tv" && progress && (
+              <div className="show-progress-summary" data-testid="show-progress-summary">
+                <span>
+                  {progress.watchedEpisodeCount} / {progress.totalEpisodes} episodes · {progress.progressPercent}%
+                  complete
+                </span>
+                <span>
+                  {showRemaining.remainingCount} episode{showRemaining.remainingCount === 1 ? "" : "s"} remaining
+                  {showRemainingMinutes > 0
+                    ? ` · approximately ${formatWatchTime(showRemainingMinutes)}`
+                    : ""}
+                </span>
+                <div
+                  className="progress-bar show-progress-bar"
+                  aria-label={`${detail.title} progress ${progress.progressPercent}%`}
+                >
+                  <span style={{width: `${Math.min(progress.progressPercent, 100)}%`}} />
+                </div>
+              </div>
+            )}
             <p>{detail.overview || "No overview available."}</p>
             <div className="genre-row">
               {detail.genres.map((genre) => (
@@ -182,9 +257,7 @@ export const DetailPage = ({
             </strong>
             <span>
               {progress!.watchedEpisodeCount} of {progress!.totalEpisodes} watched
-              {progress!.totalEpisodes > progress!.watchedEpisodeCount
-                ? ` · ${progress!.totalEpisodes - progress!.watchedEpisodeCount} remaining`
-                : ""}
+              {showRemaining.remainingCount > 0 ? ` · ${showRemaining.remainingCount} remaining` : ""}
             </span>
           </div>
           <div className="next-episode-prompt-actions">
@@ -213,6 +286,55 @@ export const DetailPage = ({
 
       {detail.mediaType === "tv" && (
         <section className="episode-panel">
+          {seasonSnapshots.length > 0 && (
+            <div className="season-card-list" data-testid="season-card-list">
+              {seasonSnapshots.map((season) => {
+                const expanded = season.seasonNumber === selectedSeason;
+                return (
+                  <article
+                    className={expanded ? "season-card expanded" : "season-card"}
+                    data-testid={`season-card-${season.seasonNumber}`}
+                    key={season.seasonNumber}
+                  >
+                    <button
+                      className="season-card-toggle"
+                      type="button"
+                      aria-expanded={expanded}
+                      onClick={() => handleSeasonCardActivate(season)}
+                    >
+                      <span className="season-card-chevron" aria-hidden="true">
+                        {expanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                      </span>
+                      <span className="season-card-copy">
+                        <strong>{season.title}</strong>
+                        <span>
+                          {season.watchedCount} / {season.totalEpisodes} episodes · {season.progressPercent}%
+                          {season.remainingCount > 0
+                            ? ` · ${season.remainingCount} remaining`
+                            : ""}
+                        </span>
+                      </span>
+                      {season.completed ? (
+                        <span className="season-complete-badge" data-testid={`season-complete-${season.seasonNumber}`}>
+                          <CheckCircle2 size={14} aria-hidden="true" />
+                          Complete
+                        </span>
+                      ) : (
+                        <span className="season-eta">~{formatWatchTime(season.estimatedRemainingMinutes)}</span>
+                      )}
+                    </button>
+                    <div
+                      className="progress-bar"
+                      aria-label={`${season.title} progress ${season.progressPercent}%`}
+                    >
+                      <span style={{width: `${Math.min(season.progressPercent, 100)}%`}} />
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+
           <div className="episode-header">
             <div>
               <span className="media-kind">Episodes</span>
@@ -234,30 +356,98 @@ export const DetailPage = ({
           </div>
 
           {signedIn ? (
-            <div className="progress-strip">
-              <span className="progress-copy">
-                <ListChecks size={18} aria-hidden="true" />
-                {progressLoading ? (
-                  <span>Loading progress...</span>
-                ) : progress ? (
-                  <span>
-                    {progress.watchedEpisodeCount} of {progress.totalEpisodes} watched ({progress.progressPercent}%)
+            <>
+              <div className="progress-strip">
+                <span className="progress-copy">
+                  <ListChecks size={18} aria-hidden="true" />
+                  {progressLoading ? (
+                    <span>Loading progress...</span>
+                  ) : progress ? (
+                    <span>
+                      {progress.watchedEpisodeCount} of {progress.totalEpisodes} watched ({progress.progressPercent}%)
+                      {selectedSnapshot
+                        ? ` · Season ${selectedSnapshot.watchedCount}/${selectedSnapshot.totalEpisodes}`
+                        : ""}
+                    </span>
+                  ) : (
+                    <span>No watched episodes yet.</span>
+                  )}
+                </span>
+                {seasonRemainingMinutes > 0 && (
+                  <span className="progress-eta" data-testid="season-remaining-time">
+                    <Clock size={16} aria-hidden="true" />
+                    ~{formatWatchTime(seasonRemainingMinutes)} left
                   </span>
-                ) : (
-                  <span>No watched episodes yet.</span>
                 )}
-              </span>
-              <button
-                className="season-watch-button"
-                data-testid="mark-season-watched"
-                type="button"
-                disabled={progressLoading || seasonLoading || unwatchedAvailableSeasonCount === 0}
-                onClick={onMarkAvailableSeasonWatched}
-              >
-                <CheckCircle2 size={18} aria-hidden="true" />
-                Mark season watched
-              </button>
-            </div>
+              </div>
+
+              <div className="season-bulk-actions" data-testid="season-bulk-actions">
+                <button
+                  className="season-watch-button"
+                  data-testid="mark-season-watched"
+                  type="button"
+                  disabled={progressLoading || seasonLoading || unwatchedAvailableSeasonCount === 0}
+                  onClick={onMarkAvailableSeasonWatched}
+                >
+                  <CheckCircle2 size={18} aria-hidden="true" />
+                  Mark season watched
+                </button>
+                <button
+                  className="text-button"
+                  data-testid="mark-previous-watched"
+                  type="button"
+                  disabled={progressLoading || seasonLoading || previousCount === 0}
+                  onClick={onMarkPreviousEpisodesWatched}
+                >
+                  Mark previous watched
+                </button>
+                <button
+                  className="text-button"
+                  data-testid="mark-season-unwatched"
+                  type="button"
+                  disabled={progressLoading || seasonLoading || watchedInSeasonCount === 0}
+                  onClick={onMarkSeasonUnwatched}
+                >
+                  Mark season unwatched
+                </button>
+                <button
+                  className="text-button"
+                  data-testid="toggle-episode-select"
+                  type="button"
+                  disabled={progressLoading || seasonLoading || !seasonDetail?.episodes.length}
+                  onClick={() => {
+                    setSelectMode((current) => !current);
+                    setSelectedKeys(new Set());
+                  }}
+                >
+                  {selectMode ? "Cancel select" : "Select episodes"}
+                </button>
+              </div>
+
+              {selectMode && (
+                <div className="season-bulk-actions select-actions" data-testid="episode-select-actions">
+                  <span>{selectedKeys.size} selected</span>
+                  <button
+                    className="text-button"
+                    data-testid="mark-selected-watched"
+                    type="button"
+                    disabled={progressLoading || selectedEpisodes.length === 0}
+                    onClick={() => onMarkSelectedEpisodes(selectedEpisodes, true)}
+                  >
+                    Mark selected watched
+                  </button>
+                  <button
+                    className="text-button"
+                    data-testid="mark-selected-unwatched"
+                    type="button"
+                    disabled={progressLoading || selectedEpisodes.length === 0}
+                    onClick={() => onMarkSelectedEpisodes(selectedEpisodes, false)}
+                  >
+                    Mark selected unwatched
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
             <div className="state-panel">Sign in to track watched episodes.</div>
           )}
@@ -270,8 +460,24 @@ export const DetailPage = ({
             <div className="episode-list">
               {(seasonDetail?.episodes ?? []).map((episode) => {
                 const watched = watchedKeys.has(episode.episodeKey);
+                const selected = selectedKeys.has(episode.episodeKey);
                 return (
-                  <article className="episode-row" data-testid={`episode-row-${episode.episodeKey}`} key={episode.episodeKey}>
+                  <article
+                    className={selectMode ? "episode-row selectable" : "episode-row"}
+                    data-testid={`episode-row-${episode.episodeKey}`}
+                    key={episode.episodeKey}
+                  >
+                    {selectMode && (
+                      <label className="episode-select">
+                        <input
+                          type="checkbox"
+                          data-testid={`episode-select-${episode.episodeKey}`}
+                          checked={selected}
+                          onChange={() => toggleSelected(episode.episodeKey)}
+                        />
+                        <span className="sr-only">Select {episode.title || `Episode ${episode.episodeNumber}`}</span>
+                      </label>
+                    )}
                     <div className="episode-number">
                       S{episode.seasonNumber} E{episode.episodeNumber}
                     </div>
