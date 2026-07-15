@@ -670,6 +670,77 @@ select:focus-visible {
   margin: 0;
 }
 
+.settings-import-status {
+  display: grid;
+  gap: 8px;
+}
+
+.settings-import-status.is-live .settings-note {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.settings-import-progress {
+  background: color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: 999px;
+  height: 6px;
+  overflow: hidden;
+}
+
+.settings-import-progress span {
+  background: var(--color-primary);
+  display: block;
+  height: 100%;
+  transition: width 200ms ease-out;
+}
+
+.settings-import-review {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-import-review-list {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.settings-import-review-item {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.settings-import-review-header {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  justify-content: space-between;
+}
+
+.settings-import-candidate-list {
+  display: grid;
+  gap: 6px;
+}
+
+.settings-import-manual {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.settings-import-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .settings-inline-link {
   justify-self: start;
 }

@@ -27,6 +27,8 @@ export interface MatchResult {
   searchQuery: string;
   candidateCount: number;
   notes: string;
+  /** Top candidates for manual review when auto-match fails. */
+  candidates: TmdbTvCandidate[];
 }
 
 /** Known remake / spinoff overrides from the offline tool. */
@@ -192,6 +194,7 @@ export const chooseMatch = (
       searchQuery,
       candidateCount: 0,
       notes: "No TMDb search results",
+      candidates: [],
     };
   }
 
@@ -226,6 +229,7 @@ export const chooseMatch = (
     searchQuery,
     candidateCount: candidates.length,
     notes,
+    candidates: scored.slice(0, 5).map((row) => row.candidate),
   };
 };
 

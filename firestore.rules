@@ -251,6 +251,10 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /mediaMappings/{mappingId} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

@@ -67,15 +67,34 @@ export interface AcceptedTvTimeShowMapping {
   matchMethod: string;
 }
 
+export interface TvTimeMappingCandidate {
+  tmdbId: number;
+  title: string;
+  poster: string | null;
+  backdrop: string | null;
+  year: string | null;
+}
+
 export interface SkippedTvTimeShowMapping {
   sourceShowId: string;
   title: string;
   reason: string;
   confidence?: number;
   notes?: string;
+  candidates: TvTimeMappingCandidate[];
 }
 
 export interface ResolveTvTimeShowsResponse {
   accepted: AcceptedTvTimeShowMapping[];
   skipped: SkippedTvTimeShowMapping[];
+}
+
+export interface MediaMapping {
+  provider: "tv_time";
+  mediaType: "tv" | "movie";
+  externalId: string;
+  tmdbId: number;
+  title: string | null;
+  updatedBy: string | null;
+  updatedAt: string | null;
 }

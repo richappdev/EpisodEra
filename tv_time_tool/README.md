@@ -76,7 +76,7 @@ Writes:
 **episodes_import.csv**
 
 - `tmdbId`, `mediaType`, `seasonNumber`, `episodeNumber`, `episodeKey`
-- `watchedAt` — preserved from TV Time (`first_recorded_at`); API does not accept this yet
+- `watchedAt` — preserved from TV Time (`first_recorded_at`); accepted by `/me/imports` staging
 - `sourceShowId`, `sourceEpisodeId` — audit trail back to TV Time
 
 **watchlist_import.csv**
@@ -90,9 +90,10 @@ Writes:
 
 1. Sign in at [https://episodera.web.app](https://episodera.web.app)
 2. Open **Settings → Import from TV Time**
-3. Upload your TV Time GDPR `.zip` (parsed in the browser; unmatched shows are skipped)
-4. Or use **Advanced** to upload `watchlist_import.csv` / `episodes_import.csv` from this tool
-5. Click **Start import** and keep the tab open until it reports completion
+3. Upload your TV Time GDPR `.zip` (parsed in the browser)
+4. Review unmatched/ambiguous shows (pick a TMDb candidate, enter an id, or skip). Picks are saved to `mediaMappings` for later imports
+5. Or use **Advanced** to upload `watchlist_import.csv` / `episodes_import.csv` from this tool
+6. Click **Start import** / **Continue import** and keep the tab open until it reports completion
 
 The API stages rows under `users/{uid}/imports/{importId}`, preserves historical `watchedAt`, and merges watchlist statuses without downgrading existing progress.
 

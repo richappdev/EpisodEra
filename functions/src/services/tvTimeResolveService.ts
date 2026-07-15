@@ -1,5 +1,6 @@
 import {HttpError} from "../lib/httpError";
 import {MediaSummary} from "../models/media";
+import {mediaMappingService} from "./mediaMappingService";
 import {tmdbService} from "./tmdbService";
 import {
   DEFAULT_SHOW_OVERRIDES,
@@ -13,6 +14,14 @@ import {
   parseResolveShowsInput,
   titleVariants,
 } from "./tvTimeResolveLogic";
+
+export interface MappingCandidate {
+  tmdbId: number;
+  title: string;
+  poster: string | null;
+  backdrop: string | null;
+  year: string | null;
+}
 
 export interface AcceptedShowMapping {
   sourceShowId: string;
@@ -30,6 +39,7 @@ export interface SkippedShowMapping {
   reason: string;
   confidence?: number;
   notes?: string;
+  candidates: MappingCandidate[];
 }
 
 export interface ResolveShowsResult {
@@ -86,6 +96,7 @@ const findBestMatch = async (showName: string): Promise<MatchResult> => {
     searchQuery: showName,
     candidateCount: 0,
     notes: "No match",
+    candidates: [],
   };
 
   for (const query of titleVariants(showName)) {
@@ -102,6 +113,15 @@ const findBestMatch = async (showName: string): Promise<MatchResult> => {
 
   return best;
 };
+
+const toMappingCandidates = (candidates: TmdbTvCandidate[]): MappingCandidate[] =>
+  candidates.slice(0, 5).map((candidate) => ({
+    tmdbId: candidate.id,
+    title: candidate.title,
+    poster: candidate.poster ?? null,
+    backdrop: candidate.backdrop ?? null,
+    year: candidate.releaseDate ? candidate.releaseDate.slice(0, 4) : null,
+  }));
 
 const detailAsCandidate = async (tmdbId: number): Promise<TmdbTvCandidate> => {
   const detail = await tmdbService.tvDetail(tmdbId, "en-US");
@@ -139,6 +159,7 @@ const skippedFromMatch = (sourceShowId: string, title: string, match: MatchResul
     reason,
     confidence: match.confidence || undefined,
     notes: match.notes || undefined,
+    candidates: toMappingCandidates(match.candidates ?? (match.candidate ? [match.candidate] : [])),
   };
 };
 
@@ -170,6 +191,23 @@ class TvTimeResolveService {
           searchQuery: `override:${show.sourceShowId}`,
           candidateCount: 1,
           notes: "Manual override",
+          candidates: [candidate],
+        };
+        accepted.push(acceptedFromMatch(show.sourceShowId, show.title, match));
+        continue;
+      }
+
+      const storedMapping = await mediaMappingService.get("tv_time", "tv", show.sourceShowId);
+      if (storedMapping) {
+        const candidate = await detailAsCandidate(storedMapping.tmdbId);
+        const match: MatchResult = {
+          candidate,
+          confidence: 1,
+          method: "manual",
+          searchQuery: `mapping:${show.sourceShowId}`,
+          candidateCount: 1,
+          notes: "Stored media mapping",
+          candidates: [candidate],
         };
         accepted.push(acceptedFromMatch(show.sourceShowId, show.title, match));
         continue;

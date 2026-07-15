@@ -873,11 +873,40 @@ Response `200`:
       "title": "Ambiguous Show",
       "reason": "ambiguous",
       "confidence": 0.88,
-      "notes": "Close runner-up: …"
+      "notes": "Close runner-up: …",
+      "candidates": [
+        {
+          "tmdbId": 111,
+          "title": "Ambiguous Show",
+          "poster": null,
+          "backdrop": null,
+          "year": "2020"
+        }
+      ]
     }
   ]
 }
 ```
+
+Skipped rows include up to five TMDb `candidates` for the Settings mapping-review UI. Resolving also consults persisted `mediaMappings` (see below) before search.
+
+```http
+PUT /me/imports/media-mappings
+```
+
+Persist a provider → TMDb override for future resolves (and the current import after review). Body:
+
+```json
+{
+  "provider": "tv_time",
+  "mediaType": "tv",
+  "externalId": "200",
+  "tmdbId": 111,
+  "title": "Ambiguous Show"
+}
+```
+
+Response `200`: `{ "mapping": MediaMapping }` with `updatedBy` / `updatedAt`. Documents live at root `mediaMappings/{provider}_{mediaType}_{externalId}` (Cloud Functions only; client R/W denied).
 
 ```http
 POST /me/imports
@@ -911,7 +940,7 @@ Episode staging body: `{ "episodes": [{ "tmdbId", "seasonNumber", "episodeNumber
 }
 ```
 
-Import rules: historical `watchedAt` is preserved when provided; existing watched episodes keep the earliest timestamp; watchlist statuses never downgrade; clients loop `/run` until `done` is true. The Settings UI accepts a GDPR `.zip` (parsed in-browser) or the two prepared CSVs, then drives this loop.
+Import rules: historical `watchedAt` is preserved when provided; existing watched episodes keep the earliest timestamp; watchlist statuses never downgrade; clients loop `/run` until `done` is true. The Settings UI accepts a GDPR `.zip` (parsed in-browser), pauses for unmatched/ambiguous show review (saving picks via `media-mappings`), or the two prepared CSVs, then drives this loop.
 
 ## Errors
 

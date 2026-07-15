@@ -21,6 +21,7 @@ import {
   parseResolveTvTimeShowsBody,
   tvTimeResolveService,
 } from "../services/tvTimeResolveService";
+import {mediaMappingService, parseUpsertMediaMappingInput} from "../services/mediaMappingService";
 import {HttpError} from "../lib/httpError";
 
 export const meRouter = Router();
@@ -201,6 +202,15 @@ meRouter.post("/me/imports/resolve-tv-time-shows", async (req: AuthenticatedRequ
   try {
     const shows = parseResolveTvTimeShowsBody(req.body);
     res.json(await tvTimeResolveService.resolveShows(shows));
+  } catch (error) {
+    next(error);
+  }
+});
+
+meRouter.put("/me/imports/media-mappings", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const input = parseUpsertMediaMappingInput(req.body);
+    res.json({mapping: await mediaMappingService.upsert(req.user!.uid, input)});
   } catch (error) {
     next(error);
   }

@@ -2,7 +2,7 @@
 
 Firestore stores user-owned application state. TMDb remains the source of truth for media metadata, so documents should reference TMDb IDs and cache only the fields needed for display or offline convenience.
 
-**Baseline:** tip `1d5ca30` (2026-07-15) after UX Phases 1–6. Franchises, achievements, challenges, year recap, and discovery suggestions are computed in Cloud Functions (or in-code catalogs) — not stored as Firestore collections. Append-only `watchEvents` and TV Time import staging are planned; see Notion *TV Time Data Schema Analysis*.
+**Baseline:** tip after TV Time import Phase 1 (ZIP resolve + mapping review + `mediaMappings`). Franchises, achievements, challenges, year recap, and discovery suggestions are computed in Cloud Functions (or in-code catalogs) — not stored as Firestore collections. Append-only `watchEvents` remains planned (Data Schema Phase 2); see Notion *TV Time Data Schema Analysis*.
 
 ## Collections
 
@@ -18,6 +18,7 @@ users/{userId}/friends/{friendUserId}
 users/{userId}/imports/{importId}
 users/{userId}/imports/{importId}/stagedShows/{mediaType_tmdbId}
 users/{userId}/imports/{importId}/stagedEpisodes/{tv_tmdbId_sNNeNN}
+mediaMappings/{provider}_{mediaType}_{externalId}
 public/discussions/{movie|tv}_{tmdbId}/{commentId}
 public/{document}
 ```
@@ -255,6 +256,24 @@ TV Time (and future provider) import jobs. Written only by Cloud Functions; clie
 
 `stagedShows` and `stagedEpisodes` hold pending rows before `/run`. Episode progress written by import may include `source` (`tv_time`) and `sourceImportId`, and preserve historical `watchedAt`.
 
+## mediaMappings/{provider}_{mediaType}_{externalId}
+
+Shared provider → TMDb ID overrides used by ZIP resolve (`PUT /me/imports/media-mappings`). Written only by Cloud Functions; client read/write denied.
+
+```json
+{
+  "provider": "tv_time",
+  "mediaType": "tv",
+  "externalId": "200",
+  "tmdbId": 111,
+  "title": "Ambiguous Show",
+  "updatedBy": "<uid>",
+  "updatedAt": "<timestamp>"
+}
+```
+
+Document ID format: `{provider}_{mediaType}_{externalId}` (e.g. `tv_time_tv_200`).
+
 ## Not stored in Firestore
 
 - Franchise catalogs: `functions/src/data/franchises.ts` (`star-wars`, `mcu-phase-one`)
@@ -272,6 +291,7 @@ The current `firestore.rules` policy is intentionally narrow:
 - Users can read/write only their own `settings` documents.
 - Users can read/delete their own `friends` documents; client create/update is denied.
 - Users can read their own `imports` tree; client writes are denied (Cloud Functions only).
+- `mediaMappings/**` client read/write is denied (Cloud Functions only).
 - `public/**` is read-only for all clients (includes discussions).
 - Everything else is denied by default.
 

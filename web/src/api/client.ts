@@ -27,6 +27,7 @@ import {
   ImportJobSummary,
   ImportRunResult,
   ImportWatchlistItemInput,
+  MediaMapping,
   ResolveTvTimeShowInput,
   ResolveTvTimeShowsResponse,
 } from "../types/import";
@@ -192,6 +193,13 @@ export const api = {
       method: "POST",
       body: {shows},
     }),
+  upsertMediaMapping: (body: {
+    provider: "tv_time";
+    mediaType: "tv" | "movie";
+    externalId: string;
+    tmdbId: number;
+    title?: string | null;
+  }) => request<{mapping: MediaMapping}>("/me/imports/media-mappings", {method: "PUT", body}),
   createImport: (body: {provider?: "tv_time"; sourceHash?: string | null}) =>
     request<{import: ImportJobSummary}>("/me/imports", {method: "POST", body}),
   getImport: (importId: string) =>
