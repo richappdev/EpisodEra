@@ -371,4 +371,73 @@ describe("ImportTvTimePanel", () => {
       expect(screen.getByTestId("tv-time-import-message")).toHaveTextContent("Import completed"),
     );
   });
+
+  it("lets the user pick a different candidate before continuing", async () => {
+    vi.mocked(api.resolveTvTimeShows).mockResolvedValue({
+      accepted: [
+        {
+          sourceShowId: "100",
+          tmdbId: 125988,
+          title: "Silo",
+          poster: null,
+          backdrop: null,
+          confidence: 1,
+          matchMethod: "exact",
+        },
+      ],
+      skipped: [
+        {
+          sourceShowId: "200",
+          title: "Mystery Show",
+          reason: "ambiguous",
+          confidence: 0.85,
+          notes: "Close runner-up",
+          candidates: [
+            {
+              tmdbId: 111,
+              title: "Mystery Show",
+              poster: null,
+              backdrop: null,
+              year: "2020",
+            },
+            {
+              tmdbId: 222,
+              title: "Mystery Shows",
+              poster: null,
+              backdrop: null,
+              year: null,
+            },
+          ],
+        },
+      ],
+    });
+    vi.mocked(api.runImport).mockResolvedValue({
+      import: {
+        ...baseJob,
+        status: "completed",
+        watchlistImported: 2,
+        episodesImported: 3,
+        episodesStaged: 3,
+      },
+      processedEpisodes: 3,
+      remainingEpisodes: 0,
+      done: true,
+    });
+
+    render(<ImportTvTimePanel language="en-US" signedIn />);
+    fireEvent.change(screen.getByTestId("tv-time-zip-input"), {
+      target: {files: [makeZipFile(true)]},
+    });
+    fireEvent.click(screen.getByTestId("tv-time-import-start"));
+    await waitFor(() => expect(screen.getByTestId("tv-time-import-review")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByLabelText(/Mystery Shows · #222/));
+    fireEvent.click(screen.getByTestId("tv-time-import-continue"));
+
+    await waitFor(() =>
+      expect(api.upsertMediaMapping).toHaveBeenCalledWith(
+        expect.objectContaining({externalId: "200", tmdbId: 222, title: "Mystery Shows"}),
+      ),
+    );
+  });
 });
