@@ -4,11 +4,13 @@ import {listPaginated, PaginatedResult, PaginationQuery} from "../lib/pagination
 import {
   BatchEpisodeProgressInput,
   EpisodeProgress,
+  ImportEpisodesInput,
   MarkEpisodeWatchedInput,
   ProgressEpisodePointer,
   ShowProgress,
   ShowProgressSummary,
 } from "../models/progress";
+import {parseImportWatchedAt, pickEarliestWatchedAt} from "./importLogic";
 import {MediaDetail, TvSeasonDetail} from "../models/media";
 import {
   compareEpisodeCoordinates,
@@ -38,6 +40,8 @@ interface EpisodeProgressDocument {
   watched: boolean;
   watchedAt?: Timestamp;
   updatedAt?: Timestamp;
+  source?: string | null;
+  sourceImportId?: string | null;
 }
 
 interface CanonicalProgressMetadata {
@@ -286,6 +290,152 @@ class ProgressService {
     }
 
     return progress;
+  }
+
+  /**
+   * Import-only OR-merge of watched episodes. Preserves historical watchedAt,
+   * never unwatches, and does not treat re-import as a rewatch.
+   */
+  async importWatchedEpisodes(
+    userId: string,
+    showId: string,
+    tmdbId: number,
+    input: ImportEpisodesInput,
+  ): Promise<{imported: number; skipped: number; failedKeys: string[]}> {
+    if (input.episodes.length === 0) {
+      return {imported: 0, skipped: 0, failedKeys: []};
+    }
+
+    if (input.episodes.length > maxBatchEpisodeCount) {
+      throw new HttpError(400, `episodes cannot contain more than ${maxBatchEpisodeCount} items.`, "batch_too_large");
+    }
+
+    const canonical = await this.loadCanonicalMetadata(tmdbId);
+    const failedKeys: string[] = [];
+    const requested = input.episodes.flatMap((episode) => {
+      const episodeKey = episodeKeyFor(episode.seasonNumber, episode.episodeNumber);
+      const metadata = canonical.episodesByKey.get(episodeKey);
+      if (!metadata) {
+        failedKeys.push(episodeKey);
+        return [];
+      }
+
+      return [{
+        metadata,
+        watchedAt: parseImportWatchedAt(episode.watchedAt),
+      }];
+    });
+
+    if (requested.length === 0) {
+      return {imported: 0, skipped: 0, failedKeys};
+    }
+
+    const progressRef = this.collection(userId).doc(showId);
+    const historyCollection = this.historyCollection(userId);
+    let imported = 0;
+    let skipped = 0;
+    const now = new Date();
+
+    await getFirestore().runTransaction(async (transaction) => {
+      const existingEpisodesSnapshot = await transaction.get(progressRef.collection("episodes"));
+      const finalEpisodeKeys = new Set(existingEpisodesSnapshot.docs.map((doc) => doc.id));
+      const existingEpisodesByKey = new Map(existingEpisodesSnapshot.docs.map((doc) => [doc.id, doc]));
+
+      for (const {metadata: episode, watchedAt: incomingWatchedAt} of requested) {
+        const episodeRef = progressRef.collection("episodes").doc(episode.episodeKey);
+        const historyRef = historyCollection.doc(`tv_${tmdbId}_${episode.episodeKey}`);
+        const existing = existingEpisodesByKey.get(episode.episodeKey);
+        const existingWatchedAt = existing?.get("watchedAt") as Timestamp | undefined;
+        const earliest = pickEarliestWatchedAt(
+          existingWatchedAt?.toDate() ?? null,
+          incomingWatchedAt,
+          now,
+        );
+
+        if (existing) {
+          skipped += 1;
+          transaction.set(
+            episodeRef,
+            {
+              watchedAt: Timestamp.fromDate(earliest),
+              updatedAt: FieldValue.serverTimestamp(),
+              source: existing.get("source") ?? input.source ?? "tv_time",
+              sourceImportId: existing.get("sourceImportId") ?? input.importId,
+            },
+            {merge: true},
+          );
+          transaction.set(
+            historyRef,
+            {
+              watchedAt: Timestamp.fromDate(earliest),
+              updatedAt: FieldValue.serverTimestamp(),
+            },
+            {merge: true},
+          );
+          continue;
+        }
+
+        imported += 1;
+        finalEpisodeKeys.add(episode.episodeKey);
+        const seasonEpisode = canonical.seasons
+          .flatMap((season) => season.episodes)
+          .find(
+            (candidate) =>
+              candidate.seasonNumber === episode.seasonNumber &&
+              candidate.episodeNumber === episode.episodeNumber,
+          );
+
+        transaction.set(episodeRef, {
+          seasonNumber: episode.seasonNumber,
+          episodeNumber: episode.episodeNumber,
+          episodeTitle: episode.episodeTitle,
+          watched: true,
+          watchedAt: Timestamp.fromDate(earliest),
+          updatedAt: FieldValue.serverTimestamp(),
+          source: input.source ?? "tv_time",
+          sourceImportId: input.importId,
+        });
+        transaction.set(historyRef, {
+          tmdbId,
+          mediaType: "tv",
+          title: canonical.tvDetail.title,
+          seasonNumber: episode.seasonNumber,
+          episodeNumber: episode.episodeNumber,
+          episodeTitle: episode.episodeTitle,
+          watchedAt: Timestamp.fromDate(earliest),
+          updatedAt: FieldValue.serverTimestamp(),
+          rewatchCount: 0,
+          genreNames: canonical.tvDetail.genres.map((genre) => genre.name),
+          runtimeMinutes:
+            seasonEpisode?.runtimeMinutes ?? canonical.tvDetail.runtimeMinutes ?? null,
+        });
+      }
+
+      const finalEpisodes = [...finalEpisodeKeys]
+        .map((episodeKey) => canonical.episodesByKey.get(episodeKey))
+        .filter((episode): episode is ProgressEpisodePointer => episode !== undefined)
+        .sort(compareEpisodeCoordinates);
+      const highestWatchedEpisode = finalEpisodes[finalEpisodes.length - 1] ?? null;
+      const nextEpisode = findNextUnwatchedEpisode(canonical.seasons, finalEpisodeKeys);
+
+      transaction.set(
+        progressRef,
+        {
+          tmdbId,
+          title: canonical.tvDetail.title,
+          totalEpisodes: canonical.totalEpisodes,
+          watchedEpisodeCount: finalEpisodes.length,
+          progressPercent: progressPercentFor(finalEpisodes.length, canonical.totalEpisodes),
+          currentSeason: highestWatchedEpisode?.seasonNumber ?? null,
+          currentEpisode: highestWatchedEpisode?.episodeNumber ?? null,
+          nextEpisode,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
+    });
+
+    return {imported, skipped, failedKeys};
   }
 
   private async loadCanonicalMetadata(tmdbId: number): Promise<CanonicalProgressMetadata> {

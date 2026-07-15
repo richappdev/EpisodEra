@@ -86,12 +86,23 @@ Writes:
 
 ## Step 4 — Import into EpisodEra
 
-No bulk-import UI exists yet. Use authenticated API calls:
+### In-app (preferred)
 
-1. `POST /watchlist` for each row in `watchlist_import.csv`
-2. `POST /progress/{tmdbId}/episodes/batch` in chunks of ≤100 per show (see `batch_plan.json`)
+1. Sign in at [https://episodera.web.app](https://episodera.web.app)
+2. Open **Settings → Import from TV Time**
+3. Upload `watchlist_import.csv` and `episodes_import.csv`
+4. Click **Start import** and keep the tab open until it reports completion
 
-**Note:** The current API sets `watchedAt` to server time. Historical timestamps in `episodes_import.csv` are for reference only unless the API is extended or you use Admin SDK writes.
+The API stages rows under `users/{uid}/imports/{importId}`, preserves historical `watchedAt`, and merges watchlist statuses without downgrading existing progress.
+
+### API (advanced)
+
+1. `POST /me/imports` with optional `sourceHash`
+2. `POST /me/imports/:id/watchlist` and `/episodes` in chunks of ≤200
+3. `POST /me/imports/:id/commit`
+4. Loop `POST /me/imports/:id/run` until `done: true`
+
+See `docs/API.md` (TV Time import).
 
 ## Options
 

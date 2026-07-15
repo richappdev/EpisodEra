@@ -11,6 +11,12 @@ import {challengeService} from "../services/challengeService";
 import {friendService} from "../services/friendService";
 import {statsService} from "../services/statsService";
 import {franchiseService} from "../services/franchiseService";
+import {
+  importService,
+  parseCreateImportInput,
+  parseEpisodeStageInput,
+  parseWatchlistStageInput,
+} from "../services/importService";
 import {HttpError} from "../lib/httpError";
 
 export const meRouter = Router();
@@ -182,6 +188,74 @@ meRouter.delete("/me/account", async (req: AuthenticatedRequest, res, next) => {
   try {
     await accountDeletionService.deleteAccount(req.user!.uid);
     res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+meRouter.post("/me/imports", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const input = parseCreateImportInput(req.body);
+    res.status(201).json({import: await importService.create(req.user!.uid, input.provider, input.sourceHash)});
+  } catch (error) {
+    next(error);
+  }
+});
+
+meRouter.get("/me/imports/:importId", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    res.json({import: await importService.get(req.user!.uid, req.params.importId)});
+  } catch (error) {
+    next(error);
+  }
+});
+
+meRouter.post("/me/imports/:importId/watchlist", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    res.json({
+      import: await importService.stageWatchlist(
+        req.user!.uid,
+        req.params.importId,
+        parseWatchlistStageInput(req.body),
+      ),
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+meRouter.post("/me/imports/:importId/episodes", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    res.json({
+      import: await importService.stageEpisodes(
+        req.user!.uid,
+        req.params.importId,
+        parseEpisodeStageInput(req.body),
+      ),
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+meRouter.post("/me/imports/:importId/commit", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    res.json({import: await importService.commit(req.user!.uid, req.params.importId)});
+  } catch (error) {
+    next(error);
+  }
+});
+
+meRouter.post("/me/imports/:importId/run", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const maxEpisodeWrites = Number(req.body?.maxEpisodeWrites);
+    res.json(
+      await importService.run(
+        req.user!.uid,
+        req.params.importId,
+        Number.isInteger(maxEpisodeWrites) && maxEpisodeWrites > 0 ? maxEpisodeWrites : undefined,
+      ),
+    );
   } catch (error) {
     next(error);
   }

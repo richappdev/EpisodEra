@@ -1,6 +1,7 @@
 import {FormEvent, useState} from "react";
 import {Link} from "react-router-dom";
 import {Globe2, ListChecks, ShieldAlert, Tv, Trash2} from "lucide-react";
+import {ImportTvTimePanel} from "../components/ImportTvTimePanel";
 import {legalCopy} from "../types/legal";
 import {
   SupportedLanguage,
@@ -238,6 +239,8 @@ export const SettingsPage = ({
             <span>{copy.hideSpoilersLabel}</span>
           </label>
         </section>
+
+        <ImportTvTimePanel language={language} signedIn={signedIn} />
 
         <section className="settings-group" aria-labelledby="privacy-settings-title">
           <div className="settings-group-heading">

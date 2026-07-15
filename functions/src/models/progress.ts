@@ -41,3 +41,15 @@ export interface BatchEpisodeProgressInput {
   watched: boolean;
   episodes: MarkEpisodeWatchedInput[];
 }
+
+export interface ImportEpisodeWatchedInput {
+  seasonNumber: number;
+  episodeNumber: number;
+  watchedAt?: string | null;
+}
+
+export interface ImportEpisodesInput {
+  importId: string;
+  source?: "tv_time" | "manual" | "bulk_season" | "bulk_fill_previous";
+  episodes: ImportEpisodeWatchedInput[];
+}

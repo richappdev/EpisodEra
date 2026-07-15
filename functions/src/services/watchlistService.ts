@@ -11,6 +11,7 @@ import {
 } from "../models/watchlist";
 import {listPaginated, PaginatedResult, PaginationQuery} from "../lib/pagination";
 import {historyService} from "./historyService";
+import {mergeWatchlistStatus} from "./importLogic";
 
 interface WatchlistDocument {
   tmdbId: number;
@@ -175,6 +176,55 @@ class WatchlistService {
     });
 
     return this.get(userId, itemId);
+  }
+
+  /** Import merge: never downgrade status; keep existing titles when present. */
+  async mergeImport(userId: string, input: AddWatchlistItemInput): Promise<WatchlistItem> {
+    const itemId = itemIdFor(input.mediaType, input.tmdbId);
+    const ref = this.collection(userId).doc(itemId);
+    const incomingStatus = normalizeStatusForMediaType(
+      input.mediaType,
+      input.status ?? defaultStatusFor(input.mediaType),
+    );
+
+    if (!isValidStatusForMediaType(input.mediaType, incomingStatus)) {
+      throw new HttpError(400, statusErrorForMediaType(input.mediaType), "invalid_status");
+    }
+
+    await getFirestore().runTransaction(async (transaction) => {
+      const existing = await transaction.get(ref);
+      const existingData = existing.exists ? (existing.data() as WatchlistDocument) : null;
+      const mergedStatus = mergeWatchlistStatus(
+        input.mediaType,
+        existingData ? normalizeStatusForMediaType(existingData.mediaType, existingData.status) : null,
+        incomingStatus,
+      );
+
+      transaction.set(
+        ref,
+        {
+          tmdbId: input.tmdbId,
+          mediaType: input.mediaType,
+          title: existingData?.title?.trim() ? existingData.title : input.title,
+          poster: existingData?.poster ?? input.poster ?? null,
+          backdrop: existingData?.backdrop ?? input.backdrop ?? null,
+          status: mergedStatus,
+          addedAt: existing.exists ? existing.get("addedAt") ?? FieldValue.serverTimestamp() : FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
+    });
+
+    const item = await this.get(userId, itemId);
+    if (item.mediaType === "movie" && item.status === "watched") {
+      await historyService.recordMovie(userId, {
+        tmdbId: item.tmdbId,
+        title: item.title,
+      });
+    }
+
+    return item;
   }
 
   async updateStatus(userId: string, itemId: string, status: WatchlistStatus): Promise<WatchlistItem> {

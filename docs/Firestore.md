@@ -15,6 +15,9 @@ users/{userId}/history/{historyId}
 users/{userId}/settings/profile
 users/{userId}/ratings/{mediaType_id}
 users/{userId}/friends/{friendUserId}
+users/{userId}/imports/{importId}
+users/{userId}/imports/{importId}/stagedShows/{mediaType_tmdbId}
+users/{userId}/imports/{importId}/stagedEpisodes/{tv_tmdbId_sNNeNN}
 public/discussions/{movie|tv}_{tmdbId}/{commentId}
 public/{document}
 ```
@@ -228,11 +231,35 @@ Allowed `status` values: `pending_outgoing`, `pending_incoming`, `accepted`.
 
 Spoiler-aware discussion comments. Written only by Cloud Functions; readable by clients under `public/**` rules. Spoiler hiding is derived from the viewer’s watch history and `hideSpoilersUntilWatched`.
 
+## users/{userId}/imports/{importId}
+
+TV Time (and future provider) import jobs. Written only by Cloud Functions; clients may read.
+
+```json
+{
+  "provider": "tv_time",
+  "status": "draft",
+  "sourceHash": "optional-idempotency-key",
+  "watchlistStaged": 0,
+  "episodesStaged": 0,
+  "watchlistImported": 0,
+  "episodesImported": 0,
+  "episodesSkipped": 0,
+  "episodesFailed": 0,
+  "errorMessage": null,
+  "createdAt": "<timestamp>",
+  "updatedAt": "<timestamp>",
+  "completedAt": null
+}
+```
+
+`stagedShows` and `stagedEpisodes` hold pending rows before `/run`. Episode progress written by import may include `source` (`tv_time`) and `sourceImportId`, and preserve historical `watchedAt`.
+
 ## Not stored in Firestore
 
 - Franchise catalogs: `functions/src/data/franchises.ts` (`star-wars`, `mcu-phase-one`)
 - Achievements, challenges, year recap, discovery suggestions: computed in Cloud Functions
-- Append-only `watchEvents` and TV Time import staging: planned (Data Schema Phase 1–2), not shipped
+- Append-only `watchEvents`: planned (Data Schema Phase 2), not shipped
 
 ## Security Rules
 
@@ -244,6 +271,7 @@ The current `firestore.rules` policy is intentionally narrow:
 - Users can read/write only their own `history` documents.
 - Users can read/write only their own `settings` documents.
 - Users can read/delete their own `friends` documents; client create/update is denied.
+- Users can read their own `imports` tree; client writes are denied (Cloud Functions only).
 - `public/**` is read-only for all clients (includes discussions).
 - Everything else is denied by default.
 
@@ -256,7 +284,7 @@ cd functions
 npm run test:emulator
 ```
 
-Account deletion uses the Admin SDK `recursiveDelete` operation on `users/{uid}` from `DELETE /me/account`. This removes the profile document and all owner-scoped subcollections (watchlist, progress, history, settings, ratings, friends) before deleting the Firebase Authentication user. Discussion comments under `public/discussions/**` are not part of the user tree and need a separate retention/moderation policy.
+Account deletion uses the Admin SDK `recursiveDelete` operation on `users/{uid}` from `DELETE /me/account`. This removes the profile document and all owner-scoped subcollections (watchlist, progress, history, settings, ratings, friends, imports) before deleting the Firebase Authentication user. Discussion comments under `public/discussions/**` are not part of the user tree and need a separate retention/moderation policy.
 Java is required by the Firebase Emulator Suite.
 
 ## Indexes

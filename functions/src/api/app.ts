@@ -27,7 +27,7 @@ app.use(cors({
     callback(new HttpError(403, "Origin is not allowed.", "origin_not_allowed"));
   },
 }));
-app.use(express.json({limit: "64kb"}));
+app.use(express.json({limit: "256kb"}));
 app.use((req, res, next) => {
   const requestId = req.header("x-request-id") ?? crypto.randomUUID();
   const startedAt = Date.now();

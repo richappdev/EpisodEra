@@ -22,6 +22,12 @@ import {
   FriendsResponse,
 } from "../types/social";
 import {AddWatchlistItemInput, WatchlistItem, WatchlistResponse, WatchlistStatus} from "../types/watchlist";
+import {
+  ImportEpisodeInput,
+  ImportJobSummary,
+  ImportRunResult,
+  ImportWatchlistItemInput,
+} from "../types/import";
 import {getAppCheckToken} from "../firebase";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:5001/episodera/us-central1/api";
@@ -179,4 +185,28 @@ export const api = {
     request<WatchlistItem>(`/watchlist/${itemId}/status`, {method: "PATCH", body: {status}}),
   removeWatchlistItem: (itemId: string) => request<null>(`/watchlist/${itemId}`, {method: "DELETE"}),
   deleteAccount: () => request<null>("/me/account", {method: "DELETE"}),
+  createImport: (body: {provider?: "tv_time"; sourceHash?: string | null}) =>
+    request<{import: ImportJobSummary}>("/me/imports", {method: "POST", body}),
+  getImport: (importId: string) =>
+    request<{import: ImportJobSummary}>(`/me/imports/${encodeURIComponent(importId)}`),
+  stageImportWatchlist: (importId: string, items: ImportWatchlistItemInput[]) =>
+    request<{import: ImportJobSummary}>(`/me/imports/${encodeURIComponent(importId)}/watchlist`, {
+      method: "POST",
+      body: {items},
+    }),
+  stageImportEpisodes: (importId: string, episodes: ImportEpisodeInput[]) =>
+    request<{import: ImportJobSummary}>(`/me/imports/${encodeURIComponent(importId)}/episodes`, {
+      method: "POST",
+      body: {episodes},
+    }),
+  commitImport: (importId: string) =>
+    request<{import: ImportJobSummary}>(`/me/imports/${encodeURIComponent(importId)}/commit`, {
+      method: "POST",
+      body: {},
+    }),
+  runImport: (importId: string, maxEpisodeWrites = 100) =>
+    request<ImportRunResult>(`/me/imports/${encodeURIComponent(importId)}/run`, {
+      method: "POST",
+      body: {maxEpisodeWrites},
+    }),
 };

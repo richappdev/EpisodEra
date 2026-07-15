@@ -12,7 +12,7 @@ The deployed Cloud Functions URL normally has this form:
 https://us-central1-<firebase-project-id>.cloudfunctions.net/api
 ```
 
-Responses are JSON except for successful `DELETE /watchlist/:itemId` and `DELETE /me/account`, which return an empty `204 No Content` response. Send JSON request bodies with `Content-Type: application/json`; the request body limit is 64 KiB.
+Responses are JSON except for successful `DELETE /watchlist/:itemId` and `DELETE /me/account`, which return an empty `204 No Content` response. Send JSON request bodies with `Content-Type: application/json`; the request body limit is 256 KiB (supports chunked TV Time import staging).
 
 Read-only discovery endpoints can be called without authentication. User-owned endpoints require a Firebase ID token in the `Authorization` header:
 
@@ -836,7 +836,45 @@ Response: updated settings. Supported language values are `en-US` and `zh-TW`. T
 DELETE /me/account
 ```
 
-Permanently deletes the signed-in user's Firestore data under `users/{uid}` (profile, watchlist, progress, history, settings, ratings) and removes the Firebase Authentication user. Returns `204 No Content` on success. This action is irreversible.
+Permanently deletes the signed-in user's Firestore data under `users/{uid}` (profile, watchlist, progress, history, settings, ratings, friends, imports) and removes the Firebase Authentication user. Returns `204 No Content` on success. This action is irreversible.
+
+## TV Time import
+
+Chunked import for CSVs produced by `tv_time_tool/generate_episodera_import.py`. All routes require a Firebase ID token. Staging chunks are limited to 200 rows; each `/run` processes up to 100 pending episodes plus pending watchlist merges.
+
+```http
+POST /me/imports
+```
+
+```json
+{ "provider": "tv_time", "sourceHash": "optional-idempotency-key" }
+```
+
+Response `201`: `{ "import": ImportJobSummary }`.
+
+```http
+GET /me/imports/:importId
+POST /me/imports/:importId/watchlist
+POST /me/imports/:importId/episodes
+POST /me/imports/:importId/commit
+POST /me/imports/:importId/run
+```
+
+Watchlist staging body: `{ "items": [{ "tmdbId", "mediaType", "title", "status", "poster?", "backdrop?", "sourceShowId?" }] }`.  
+Episode staging body: `{ "episodes": [{ "tmdbId", "seasonNumber", "episodeNumber", "watchedAt?", "sourceShowId?", "sourceEpisodeId?", "bulkType?" }] }`.
+
+`/run` response:
+
+```json
+{
+  "import": { "importId": "...", "status": "running", "episodesImported": 100 },
+  "processedEpisodes": 100,
+  "remainingEpisodes": 4500,
+  "done": false
+}
+```
+
+Import rules: historical `watchedAt` is preserved when provided; existing watched episodes keep the earliest timestamp; watchlist statuses never downgrade; clients loop `/run` until `done` is true. The Settings UI uploads the two CSVs and drives this loop.
 
 ## Errors
 
