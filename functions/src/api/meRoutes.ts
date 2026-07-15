@@ -17,6 +17,10 @@ import {
   parseEpisodeStageInput,
   parseWatchlistStageInput,
 } from "../services/importService";
+import {
+  parseResolveTvTimeShowsBody,
+  tvTimeResolveService,
+} from "../services/tvTimeResolveService";
 import {HttpError} from "../lib/httpError";
 
 export const meRouter = Router();
@@ -188,6 +192,15 @@ meRouter.delete("/me/account", async (req: AuthenticatedRequest, res, next) => {
   try {
     await accountDeletionService.deleteAccount(req.user!.uid);
     res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+meRouter.post("/me/imports/resolve-tv-time-shows", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const shows = parseResolveTvTimeShowsBody(req.body);
+    res.json(await tvTimeResolveService.resolveShows(shows));
   } catch (error) {
     next(error);
   }

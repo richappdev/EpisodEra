@@ -840,7 +840,44 @@ Permanently deletes the signed-in user's Firestore data under `users/{uid}` (pro
 
 ## TV Time import
 
-Chunked import for CSVs produced by `tv_time_tool/generate_episodera_import.py`. All routes require a Firebase ID token. Staging chunks are limited to 200 rows; each `/run` processes up to 100 pending episodes plus pending watchlist merges.
+Supports (1) browser-side TV Time GDPR ZIP parsing with server-side show resolution, or (2) CSVs from `tv_time_tool/generate_episodera_import.py`. All routes require a Firebase ID token. Staging chunks are limited to 200 rows; each `/run` processes up to 100 pending episodes plus pending watchlist merges.
+
+```http
+POST /me/imports/resolve-tv-time-shows
+```
+
+Resolve TV Time show titles to TMDb IDs after the client has parsed a GDPR ZIP locally. Chunks are limited to 25 shows. High-confidence matches (`confidence >= 0.82`, not `ambiguous`) are accepted; remakes/overrides known to the server are applied automatically.
+
+```json
+{ "shows": [{ "sourceShowId": "100", "title": "Silo" }] }
+```
+
+Response `200`:
+
+```json
+{
+  "accepted": [
+    {
+      "sourceShowId": "100",
+      "tmdbId": 125988,
+      "title": "Silo",
+      "poster": "https://image.tmdb.org/t/p/w500/…",
+      "backdrop": null,
+      "confidence": 1,
+      "matchMethod": "exact"
+    }
+  ],
+  "skipped": [
+    {
+      "sourceShowId": "200",
+      "title": "Ambiguous Show",
+      "reason": "ambiguous",
+      "confidence": 0.88,
+      "notes": "Close runner-up: …"
+    }
+  ]
+}
+```
 
 ```http
 POST /me/imports
@@ -874,7 +911,7 @@ Episode staging body: `{ "episodes": [{ "tmdbId", "seasonNumber", "episodeNumber
 }
 ```
 
-Import rules: historical `watchedAt` is preserved when provided; existing watched episodes keep the earliest timestamp; watchlist statuses never downgrade; clients loop `/run` until `done` is true. The Settings UI uploads the two CSVs and drives this loop.
+Import rules: historical `watchedAt` is preserved when provided; existing watched episodes keep the earliest timestamp; watchlist statuses never downgrade; clients loop `/run` until `done` is true. The Settings UI accepts a GDPR `.zip` (parsed in-browser) or the two prepared CSVs, then drives this loop.
 
 ## Errors
 

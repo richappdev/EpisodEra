@@ -30,7 +30,7 @@ const splitCsvLine = (line: string): string[] => {
   return cells.map((cell) => cell.trim());
 };
 
-const parseCsv = (text: string): Record<string, string>[] => {
+export const parseCsv = (text: string): Record<string, string>[] => {
   const lines = text
     .replace(/^\uFEFF/, "")
     .split(/\r?\n/)

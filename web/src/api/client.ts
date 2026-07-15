@@ -27,6 +27,8 @@ import {
   ImportJobSummary,
   ImportRunResult,
   ImportWatchlistItemInput,
+  ResolveTvTimeShowInput,
+  ResolveTvTimeShowsResponse,
 } from "../types/import";
 import {getAppCheckToken} from "../firebase";
 
@@ -185,6 +187,11 @@ export const api = {
     request<WatchlistItem>(`/watchlist/${itemId}/status`, {method: "PATCH", body: {status}}),
   removeWatchlistItem: (itemId: string) => request<null>(`/watchlist/${itemId}`, {method: "DELETE"}),
   deleteAccount: () => request<null>("/me/account", {method: "DELETE"}),
+  resolveTvTimeShows: (shows: ResolveTvTimeShowInput[]) =>
+    request<ResolveTvTimeShowsResponse>("/me/imports/resolve-tv-time-shows", {
+      method: "POST",
+      body: {shows},
+    }),
   createImport: (body: {provider?: "tv_time"; sourceHash?: string | null}) =>
     request<{import: ImportJobSummary}>("/me/imports", {method: "POST", body}),
   getImport: (importId: string) =>

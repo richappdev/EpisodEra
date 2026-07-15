@@ -90,8 +90,9 @@ Writes:
 
 1. Sign in at [https://episodera.web.app](https://episodera.web.app)
 2. Open **Settings → Import from TV Time**
-3. Upload `watchlist_import.csv` and `episodes_import.csv`
-4. Click **Start import** and keep the tab open until it reports completion
+3. Upload your TV Time GDPR `.zip` (parsed in the browser; unmatched shows are skipped)
+4. Or use **Advanced** to upload `watchlist_import.csv` / `episodes_import.csv` from this tool
+5. Click **Start import** and keep the tab open until it reports completion
 
 The API stages rows under `users/{uid}/imports/{importId}`, preserves historical `watchedAt`, and merges watchlist statuses without downgrading existing progress.
 

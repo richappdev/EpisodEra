@@ -51,3 +51,31 @@ export interface ImportEpisodeInput {
   sourceEpisodeId?: string | null;
   bulkType?: string | null;
 }
+
+export interface ResolveTvTimeShowInput {
+  sourceShowId: string;
+  title: string;
+}
+
+export interface AcceptedTvTimeShowMapping {
+  sourceShowId: string;
+  tmdbId: number;
+  title: string;
+  poster: string | null;
+  backdrop: string | null;
+  confidence: number;
+  matchMethod: string;
+}
+
+export interface SkippedTvTimeShowMapping {
+  sourceShowId: string;
+  title: string;
+  reason: string;
+  confidence?: number;
+  notes?: string;
+}
+
+export interface ResolveTvTimeShowsResponse {
+  accepted: AcceptedTvTimeShowMapping[];
+  skipped: SkippedTvTimeShowMapping[];
+}
