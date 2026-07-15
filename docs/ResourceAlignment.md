@@ -358,8 +358,8 @@ A feature is complete only when all applicable conditions are met:
 
 | Resource              | Current status                                                                                                          |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| GitHub implementation | Tip `1d5ca30` (2026-07-15): MVP core + UX Phases 1–6. TV Time import **Phase 1** nearly complete (ZIP resolve, mapping review UI, `mediaMappings`). App Check **client** at `c97b0c3`. Remaining: `watchEvents` (Phase 2), App Check Phase 2+, compliance, deps, ops. |
-| Notion planning       | Parent + Firestore re-baselined to `1d5ca30` (2026-07-15); local smoke PASS same day; prior hosted smoke `c97b0c3` |
+| GitHub implementation | Tip `7fe1df9` (2026-07-15): MVP core + UX Phases 1–6. TV Time import **Phase 1** nearly complete (ZIP resolve, mapping review UI, `mediaMappings`). App Check **client** at `c97b0c3`. Remaining: `watchEvents` (Phase 2), App Check Phase 2+, compliance, deps, ops. |
+| Notion planning       | Parent + Firestore re-baselined to `7fe1df9` (2026-07-15); local smoke PASS same day; prior hosted smoke `c97b0c3` |
 | Figma design          | Responsive screen system documented; direct latest-file verification pending when connector access allows |
 | Canva reporting       | Should distinguish implemented code, recorded smoke evidence, and beta-ready status; refresh after hosted smoke reruns |
 
@@ -375,6 +375,8 @@ These limitations affect resource synchronization only. They do not change produ
 
 ## Change Log
 ### 2026-07-15 (TV Time import Phase 1 — mapping review + mediaMappings)
+
+* Canonical tip `7fe1df9` (web API client allows `PUT` for media-mappings upsert).
 
 * Shipped in-app mapping review for unmatched/ambiguous TV Time shows; user picks persist to Firestore `mediaMappings/{provider}_{mediaType}_{externalId}` via `PUT /me/imports/media-mappings` (Cloud Functions only writes).
 * ZIP resolve (`POST /me/imports/resolve-tv-time-shows`) consults shared overrides; Settings import flow includes review UI before staging/commit/run.

@@ -43,7 +43,7 @@ export const setApiTokenProvider = (provider: () => Promise<string | null>) => {
 
 interface RequestOptions {
   body?: unknown;
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   token?: string | null;
 }
 
