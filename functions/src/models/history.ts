@@ -10,4 +10,9 @@ export interface HistoryEntry {
   episodeTitle: string | null;
   watchedAt: string | null;
   updatedAt: string | null;
+  rewatchCount: number;
+}
+
+export interface UpdateHistoryInput {
+  watchedAt: string;
 }

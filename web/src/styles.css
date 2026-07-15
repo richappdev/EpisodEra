@@ -1017,6 +1017,17 @@ select:focus-visible {
   margin-top: 24px;
 }
 
+.history-panel .section-header > div {
+  display: grid;
+  gap: 6px;
+}
+
+.timeline-link {
+  justify-self: start;
+  min-height: auto;
+  padding: 0;
+}
+
 .history-list {
   display: grid;
   gap: 10px;
@@ -1052,6 +1063,144 @@ select:focus-visible {
 .history-row span,
 .history-row time {
   color: var(--color-muted);
+}
+
+.timeline-header {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.timeline-header h2 {
+  font-size: 28px;
+  margin: 4px 0 0;
+}
+
+.timeline-header p {
+  color: var(--color-text-soft);
+  margin: 6px 0 0;
+}
+
+.timeline-header > svg {
+  color: var(--color-primary);
+}
+
+.timeline-controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.timeline-controls input[type="search"],
+.timeline-controls select {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  min-height: var(--tap-target);
+  padding: 0 12px;
+}
+
+.timeline-controls input[type="search"] {
+  min-width: min(280px, 100%);
+}
+
+.timeline-rewatch-filter {
+  align-items: center;
+  color: var(--color-text-soft);
+  display: inline-flex;
+  gap: 8px;
+  min-height: var(--tap-target);
+}
+
+.timeline-group {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.timeline-group > h3 {
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.timeline-list {
+  display: grid;
+  gap: 10px;
+}
+
+.timeline-row {
+  align-items: start;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 14px;
+}
+
+.timeline-row > svg {
+  color: var(--color-primary);
+  margin-top: 2px;
+}
+
+.timeline-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.timeline-copy > button {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+
+.timeline-copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeline-copy > span,
+.timeline-copy time {
+  color: var(--color-muted);
+}
+
+.rewatch-badge {
+  color: var(--color-primary) !important;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.timeline-row-actions {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.timeline-edit-form {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.timeline-edit-form input {
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  min-height: var(--tap-target);
+  padding: 0 10px;
 }
 
 .watchlist-item {

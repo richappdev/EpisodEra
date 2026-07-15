@@ -1,5 +1,5 @@
 import {NavLink} from "react-router-dom";
-import {BarChart3, Bookmark, LogIn, LogOut, Search, Settings, TrendingUp} from "lucide-react";
+import {BarChart3, Bookmark, History, LogIn, LogOut, Search, Settings, TrendingUp} from "lucide-react";
 import {useAuth} from "../auth/AuthContext";
 import {useAppContext} from "../AppContext";
 import {paths, type NavView} from "../routes/paths";
@@ -54,6 +54,10 @@ export const TopBar = ({activeView}: TopBarProps) => {
           <NavLink className={navClassName("watchlist", activeView)} data-testid="nav-watchlist" title={copy.watchlist} to={paths.watchlist}>
             <Bookmark size={18} aria-hidden="true" />
             <span>{copy.watchlist}</span>
+          </NavLink>
+          <NavLink className={navClassName("timeline", activeView)} data-testid="nav-timeline" title={copy.timeline} to={paths.timeline}>
+            <History size={18} aria-hidden="true" />
+            <span>{copy.timeline}</span>
           </NavLink>
           <NavLink className={navClassName("profile", activeView)} data-testid="nav-profile" title={copy.profile} to={paths.profile}>
             <BarChart3 size={18} aria-hidden="true" />

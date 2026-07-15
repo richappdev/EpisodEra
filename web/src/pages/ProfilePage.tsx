@@ -1,5 +1,7 @@
+import {Link} from "react-router-dom";
 import {BarChart3, CheckCircle2, Clapperboard, Film, ListChecks, Loader2, PlayCircle, Tv} from "lucide-react";
 import {SectionError} from "../components/SectionError";
+import {paths} from "../routes/paths";
 import {HistoryEntry} from "../types/history";
 import {UserProfile} from "../types/profile";
 import {UserStats} from "../types/stats";
@@ -120,7 +122,12 @@ export const ProfilePage = ({
 
       <section className="history-panel">
         <div className="section-header">
-          <h2>Recent history</h2>
+          <div>
+            <h2>Recent history</h2>
+            <Link className="text-button timeline-link" data-testid="profile-open-timeline" to={paths.timeline}>
+              Open timeline
+            </Link>
+          </div>
           <span>{historyTotalCount || history.length} items</span>
         </div>
 

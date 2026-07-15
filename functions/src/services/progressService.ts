@@ -210,6 +210,7 @@ class ProgressService {
 
         if (input.watched) {
           const existing = existingEpisodesByKey.get(episode.episodeKey);
+          const wasAlreadyWatched = Boolean(existing);
           finalEpisodeKeys.add(episode.episodeKey);
           transaction.set(
             episodeRef,
@@ -234,6 +235,7 @@ class ProgressService {
               episodeTitle: episode.episodeTitle,
               watchedAt: existing?.get("watchedAt") ?? FieldValue.serverTimestamp(),
               updatedAt: FieldValue.serverTimestamp(),
+              rewatchCount: wasAlreadyWatched ? FieldValue.increment(1) : 0,
             },
             {merge: true},
           );

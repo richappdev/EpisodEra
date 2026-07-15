@@ -10,6 +10,8 @@ vi.mock("../../api/client", () => ({
   api: {
     meStats: vi.fn(),
     meHistory: vi.fn(),
+    updateHistoryEntry: vi.fn(),
+    deleteHistoryEntry: vi.fn(),
   },
 }));
 
@@ -96,5 +98,27 @@ describe("useProfileStats", () => {
     expect(result.current.historyItems).toEqual([]);
     expect(result.current.statsError).toBeNull();
     expect(result.current.historyError).toBeNull();
+  });
+
+  it("updates watchedAt and deletes history entries", async () => {
+    const updated = {...historyEntry, watchedAt: "2026-07-01T00:00:00.000Z"};
+    vi.mocked(api.meStats).mockResolvedValue(stats);
+    vi.mocked(api.meHistory).mockResolvedValue(paginated([historyEntry], {totalCount: 1}));
+    vi.mocked(api.updateHistoryEntry).mockResolvedValue(updated);
+    vi.mocked(api.deleteHistoryEntry).mockResolvedValue(null);
+
+    const {result} = renderHook(() => useProfileStats(mockUser));
+    await waitFor(() => expect(result.current.historyItems).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.updateHistoryWatchedAt(historyEntry.historyId, updated.watchedAt!);
+    });
+    expect(result.current.historyItems[0]).toEqual(updated);
+
+    await act(async () => {
+      await result.current.deleteHistoryEntry(historyEntry.historyId);
+    });
+    expect(result.current.historyItems).toEqual([]);
+    expect(api.deleteHistoryEntry).toHaveBeenCalledWith(historyEntry.historyId);
   });
 });

@@ -1,6 +1,6 @@
 import {MediaSummary} from "../types/media";
 
-export type NavView = "trending" | "search" | "watchlist" | "profile" | "settings";
+export type NavView = "trending" | "search" | "watchlist" | "timeline" | "profile" | "settings";
 
 export const paths = {
   home: "/",
@@ -11,6 +11,7 @@ export const paths = {
   tvSeason: (id: number | string, seasonNumber: number | string) => `/tv/${id}/season/${seasonNumber}`,
   watchlist: "/watchlist",
   continueWatching: "/continue-watching",
+  timeline: "/timeline",
   profile: "/profile",
   settings: "/settings",
   privacy: "/privacy",
@@ -27,6 +28,9 @@ export const navFromPath = (pathname: string): NavView => {
   }
   if (pathname.startsWith("/watchlist") || pathname.startsWith("/continue-watching")) {
     return "watchlist";
+  }
+  if (pathname.startsWith("/timeline")) {
+    return "timeline";
   }
   if (pathname.startsWith("/profile")) {
     return "profile";

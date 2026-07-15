@@ -7,7 +7,9 @@ import {setAnalyticsUserId, trackEvent} from "../firebase";
 import {PrivacyPage} from "../pages/PrivacyPage";
 import {ProfilePage} from "../pages/ProfilePage";
 import {SettingsPage} from "../pages/SettingsPage";
+import {TimelinePage} from "../pages/TimelinePage";
 import {WatchlistPage} from "../pages/WatchlistPage";
+import {HistoryEntry} from "../types/history";
 import {AuthRoute, ContinueWatchingRoute} from "./AuthRoute";
 import {MediaDetailRoute} from "./DetailRoute";
 import {DiscoveryRoute} from "./DiscoveryRoute";
@@ -84,6 +86,75 @@ const WatchlistRoute = () => {
         void markContinuationEpisodeWatched(entry);
       }}
       onStatusChange={updateWatchlistStatus}
+    />
+  );
+};
+
+const TimelineRoute = () => {
+  const {user} = useAuth();
+  const {
+    deleteHistoryEntry,
+    historyError,
+    historyHasMore,
+    historyItems,
+    historyLoading,
+    historyLoadingMore,
+    historyTotalCount,
+    loadMoreHistory,
+    openMediaDetail,
+    reloadHistory,
+    removeProgressItem,
+    updateHistoryWatchedAt,
+    upsertProgressItem,
+  } = useAppContext();
+
+  const openHistoryEntry = (entry: HistoryEntry) => {
+    openMediaDetail(
+      {
+        mediaType: entry.mediaType,
+        tmdbId: entry.tmdbId,
+        itemId: entry.historyId,
+        title: entry.title,
+        poster: null,
+        backdrop: null,
+        status: entry.mediaType === "movie" ? "watched" : "watching",
+        addedAt: entry.watchedAt,
+        updatedAt: entry.updatedAt,
+      },
+      "timeline",
+    );
+  };
+
+  return (
+    <TimelinePage
+      error={historyError}
+      hasMore={historyHasMore}
+      items={historyItems}
+      loading={historyLoading}
+      loadingMore={historyLoadingMore}
+      signedIn={Boolean(user)}
+      totalCount={historyTotalCount}
+      onDeleteEntry={async (entry) => {
+        await deleteHistoryEntry(entry.historyId);
+        if (entry.mediaType === "tv") {
+          try {
+            const {progress} = await api.getProgress(entry.tmdbId);
+            if (progress) {
+              upsertProgressItem(progress);
+            } else {
+              removeProgressItem(entry.tmdbId);
+            }
+          } catch {
+            removeProgressItem(entry.tmdbId);
+          }
+        }
+      }}
+      onLoadMore={loadMoreHistory}
+      onRetry={reloadHistory}
+      onSelectEntry={openHistoryEntry}
+      onUpdateWatchedAt={async (entry, watchedAt) => {
+        await updateHistoryWatchedAt(entry.historyId, watchedAt);
+      }}
     />
   );
 };
@@ -191,6 +262,7 @@ export const AppRoutes = () => (
       <Route element={<MediaDetailRoute mediaType="tv" />} path="/tv/:id/season/:seasonNumber" />
       <Route element={<WatchlistRoute />} path={paths.watchlist} />
       <Route element={<ContinueWatchingRoute />} path={paths.continueWatching} />
+      <Route element={<TimelineRoute />} path={paths.timeline} />
       <Route element={<ProfileRoute />} path={paths.profile} />
       <Route element={<SettingsRoute />} path={paths.settings} />
       <Route element={<PrivacyRoute />} path={paths.privacy} />

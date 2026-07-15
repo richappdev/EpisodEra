@@ -109,6 +109,64 @@ export const useProfileStats = (user: User | null) => {
     void refresh();
   }, [refresh, reset, user]);
 
+  const upsertHistoryItem = useCallback((item: HistoryEntry) => {
+    setHistoryItems((current) => {
+      const existing = current.findIndex((candidate) => candidate.historyId === item.historyId);
+      if (existing === -1) {
+        return [item, ...current].sort((left, right) => {
+          const leftTime = Date.parse(left.watchedAt ?? "") || 0;
+          const rightTime = Date.parse(right.watchedAt ?? "") || 0;
+          return rightTime - leftTime;
+        });
+      }
+
+      return current
+        .map((candidate) => (candidate.historyId === item.historyId ? item : candidate))
+        .sort((left, right) => {
+          const leftTime = Date.parse(left.watchedAt ?? "") || 0;
+          const rightTime = Date.parse(right.watchedAt ?? "") || 0;
+          return rightTime - leftTime;
+        });
+    });
+  }, []);
+
+  const removeHistoryItem = useCallback((historyId: string) => {
+    setHistoryItems((current) => current.filter((candidate) => candidate.historyId !== historyId));
+    setHistoryTotalCount((current) => Math.max(0, current - 1));
+  }, []);
+
+  const updateHistoryWatchedAt = useCallback(
+    async (historyId: string, watchedAt: string) => {
+      setHistoryError(null);
+      try {
+        const updated = await api.updateHistoryEntry(historyId, {watchedAt});
+        upsertHistoryItem(updated);
+        return updated;
+      } catch (reason) {
+        const message = toErrorMessage(reason, "Could not update history.");
+        setHistoryError(message);
+        throw reason;
+      }
+    },
+    [upsertHistoryItem],
+  );
+
+  const deleteHistoryEntry = useCallback(
+    async (historyId: string) => {
+      setHistoryError(null);
+      try {
+        await api.deleteHistoryEntry(historyId);
+        removeHistoryItem(historyId);
+        await reloadStats();
+      } catch (reason) {
+        const message = toErrorMessage(reason, "Could not remove history entry.");
+        setHistoryError(message);
+        throw reason;
+      }
+    },
+    [removeHistoryItem, reloadStats],
+  );
+
   return {
     stats,
     statsLoading,
@@ -123,5 +181,9 @@ export const useProfileStats = (user: User | null) => {
     reloadHistory,
     loadMoreHistory,
     refresh,
+    upsertHistoryItem,
+    removeHistoryItem,
+    updateHistoryWatchedAt,
+    deleteHistoryEntry,
   };
 };

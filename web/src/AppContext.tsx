@@ -9,6 +9,7 @@ import {useSettings} from "./hooks/useSettings";
 import {useWatchlist} from "./hooks/useWatchlist";
 import {suggestedWatchlistStatusForProgress, type ContinuationEntry} from "./lib/continuation";
 import {setAnalyticsUserId} from "./firebase";
+import {HistoryEntry} from "./types/history";
 import {MediaDetail, MediaSummary} from "./types/media";
 import {UserProfile} from "./types/profile";
 import {ShowProgressSummary} from "./types/progress";
@@ -42,6 +43,7 @@ interface AppContextValue {
   addToWatchlist: (detail: MediaDetail) => void;
   changeAutoMarkPreviousEpisodesWatched: (enabled: boolean) => void;
   changeLanguage: (nextLanguage: SupportedLanguage) => void;
+  deleteHistoryEntry: (historyId: string) => Promise<void>;
   loadMoreHistory: () => void;
   loadMoreWatchlist: () => void;
   markContinuationEpisodeWatched: (entry: ContinuationEntry) => Promise<ShowProgressSummary | null>;
@@ -56,6 +58,7 @@ interface AppContextValue {
   setProfile: (profile: UserProfile | null) => void;
   signOutAndReset: () => Promise<void>;
   syncWatchlistStatusFromProgress: (progress: ShowProgressSummary) => void;
+  updateHistoryWatchedAt: (historyId: string, watchedAt: string) => Promise<HistoryEntry>;
   updateWatchlistStatus: (item: WatchlistItem, status: WatchlistStatus) => void;
   upsertWatchlistItem: (item: WatchlistItem) => void;
   upsertProgressItem: (item: ShowProgressSummary | null) => void;
@@ -195,6 +198,7 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
       addToWatchlist,
       changeAutoMarkPreviousEpisodesWatched: settings.changeAutoMarkPreviousEpisodesWatched,
       changeLanguage: settings.changeLanguage,
+      deleteHistoryEntry: profileStats.deleteHistoryEntry,
       loadMoreHistory: profileStats.loadMoreHistory,
       loadMoreWatchlist: watchlist.loadMore,
       markContinuationEpisodeWatched,
@@ -219,6 +223,7 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
       setProfile: profileState.setProfile,
       signOutAndReset,
       syncWatchlistStatusFromProgress,
+      updateHistoryWatchedAt: profileStats.updateHistoryWatchedAt,
       updateWatchlistStatus: (item: WatchlistItem, status: WatchlistStatus) => {
         void watchlist.updateWatchlistStatus(item, status);
       },

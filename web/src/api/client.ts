@@ -1,6 +1,6 @@
 import {DiscoveryResponse, MediaDetail, MediaType, TvSeasonDetail} from "../types/media";
 import {PaginationParams, withPagination} from "../types/pagination";
-import {HistoryResponse} from "../types/history";
+import {HistoryEntry, HistoryResponse, UpdateHistoryInput} from "../types/history";
 import {ProfileResponse, UpdateUserProfileInput, UserProfile} from "../types/profile";
 import {
   BatchEpisodeProgressInput,
@@ -97,6 +97,10 @@ export const api = {
     request<ProgressResponse>(`/progress/${showId}/episode/${episodeKey}`, {method: "DELETE"}),
   meHistory: (pagination?: PaginationParams) =>
     request<HistoryResponse>(withPagination("/me/history", pagination)),
+  updateHistoryEntry: (historyId: string, input: UpdateHistoryInput) =>
+    request<HistoryEntry>(`/me/history/${encodeURIComponent(historyId)}`, {method: "PATCH", body: input}),
+  deleteHistoryEntry: (historyId: string) =>
+    request<null>(`/me/history/${encodeURIComponent(historyId)}`, {method: "DELETE"}),
   meProfile: () => request<ProfileResponse>("/me/profile"),
   updateMeProfile: (profile: UpdateUserProfileInput, token?: string | null) =>
     request<UserProfile>("/me/profile", {method: "PATCH", body: profile, token}),

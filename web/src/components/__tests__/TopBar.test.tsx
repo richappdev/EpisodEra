@@ -82,6 +82,7 @@ describe("TopBar", () => {
 
     expect(screen.getByText("Welcome, Ada")).toBeVisible();
     expect(screen.getByTestId("nav-search")).toHaveAttribute("href", "/search");
+    expect(screen.getByTestId("nav-timeline")).toHaveAttribute("href", "/timeline");
 
     await userEventApi.click(screen.getByTestId("account-button"));
     expect(signOutAndReset).toHaveBeenCalled();
