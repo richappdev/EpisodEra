@@ -35,10 +35,10 @@ test("history failure preserves profile stats and recovers on retry", async ({pa
   await page.goto("/profile");
   await expect(page.getByTestId("stat-watched-episodes")).toHaveText("1");
   await expect(page.getByTestId("stat-watchlist-count")).toHaveText("1");
-  await expect(page.getByRole("alert")).toContainText("Temporary history outage.");
+  await expect(page.getByRole("alert").filter({hasText: "Temporary history outage."})).toBeVisible();
   await expect(page.getByTestId("history-row-tv_1001_s01e01")).toHaveCount(0);
 
-  await page.getByRole("button", {name: "Retry"}).click();
+  await page.getByRole("alert").filter({hasText: "Temporary history outage."}).getByRole("button", {name: "Retry"}).click();
   await expect(page.getByTestId("history-row-tv_1001_s01e01")).toBeVisible();
   await expect(page.getByRole("alert")).toHaveCount(0);
 });

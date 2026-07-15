@@ -119,6 +119,11 @@ export const installMockApi = async (page: Page, options: MockApiOptions = {}) =
         language: "en-US",
         preferredProviderIds: [],
         watchRegion: "US",
+        achievementsEnabled: true,
+        showAchievementsOnProfile: true,
+        shareActivityWithFriends: false,
+        allowFriendRequests: true,
+        hideSpoilersUntilWatched: true,
         updatedAt: now,
       });
     }
@@ -134,6 +139,7 @@ export const installMockApi = async (page: Page, options: MockApiOptions = {}) =
           bio: null,
           country: null,
           timezone: null,
+          friendCode: "E2E001",
           createdAt: now,
           updatedAt: now,
         },
@@ -181,6 +187,56 @@ export const installMockApi = async (page: Page, options: MockApiOptions = {}) =
         topGenre: stats.topGenres[0] ?? null,
         newlyDiscovered: stats.topShows.slice(0, 3),
       });
+    }
+
+    if (method === "GET" && path === "/me/achievements") {
+      return json(route, {
+        enabled: true,
+        showOnProfile: true,
+        unlockedCount: 0,
+        items: [],
+      });
+    }
+
+    if (method === "GET" && path === "/me/friends") {
+      return json(route, {
+        friendCode: "E2E001",
+        allowFriendRequests: true,
+        shareActivityWithFriends: false,
+        items: [],
+      });
+    }
+
+    if (method === "GET" && path === "/me/feed") {
+      return json(route, {items: []});
+    }
+
+    if (method === "GET" && path === "/me/challenges") {
+      return json(route, {items: []});
+    }
+
+    if (method === "GET" && /^\/discussions\/(movie|tv)\/\d+$/.test(path)) {
+      return json(route, {items: []});
+    }
+
+    if (method === "POST" && /^\/discussions\/(movie|tv)\/\d+$/.test(path)) {
+      const body = request.postDataJSON() as {body?: string};
+      return json(
+        route,
+        {
+          commentId: "e2e-comment-1",
+          userId: "e2e-user",
+          displayName: "E2E",
+          body: body.body ?? "",
+          mediaType: path.includes("/movie/") ? "movie" : "tv",
+          tmdbId: Number(path.split("/").at(-1)),
+          seasonNumber: null,
+          episodeNumber: null,
+          createdAt: new Date().toISOString(),
+          spoilerHidden: false,
+        },
+        201,
+      );
     }
 
     if (method === "GET" && path === "/franchises") {

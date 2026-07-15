@@ -20,7 +20,7 @@ test("signed-in user can complete the core watchlist and episode progress flow",
 
   await page.getByTestId("episode-toggle-s01e01").click();
   await expect(page.getByTestId("episode-toggle-s01e01")).toContainText("Watched");
-  await expect(page.getByText("1 of 3 watched")).toBeVisible();
+  await expect(page.getByText("1 of 3 watched · 2 remaining")).toBeVisible();
 
   expect(requests.progressBatchBodies).toEqual([
     {watched: true, episodes: [{seasonNumber: 1, episodeNumber: 1}]},
