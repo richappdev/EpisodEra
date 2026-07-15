@@ -708,6 +708,7 @@ export const ImportTvTimePanel = ({language, signedIn}: ImportTvTimePanelProps) 
                         className="text-button"
                         type="button"
                         disabled={busy}
+                        data-testid={`tv-time-apply-manual-${row.sourceShowId}`}
                         onClick={() => void applyManualId(row.sourceShowId)}
                       >
                         {copy.applyManual}
@@ -735,6 +736,7 @@ export const ImportTvTimePanel = ({language, signedIn}: ImportTvTimePanelProps) 
                   className="text-button"
                   type="button"
                   disabled={busy}
+                  data-testid="tv-time-import-cancel-review"
                   onClick={() => {
                     setPendingZip(null);
                     resetTransient();

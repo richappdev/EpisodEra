@@ -235,4 +235,140 @@ describe("ImportTvTimePanel", () => {
       expect(screen.getByTestId("tv-time-import-message")).toHaveTextContent("Import completed"),
     );
   });
+
+  const openReview = async () => {
+    vi.mocked(api.resolveTvTimeShows).mockResolvedValue({
+      accepted: [
+        {
+          sourceShowId: "100",
+          tmdbId: 125988,
+          title: "Silo",
+          poster: null,
+          backdrop: null,
+          confidence: 1,
+          matchMethod: "exact",
+        },
+      ],
+      skipped: [
+        {
+          sourceShowId: "200",
+          title: "Mystery Show",
+          reason: "low_confidence",
+          confidence: 0.4,
+          notes: null,
+          candidates: [
+            {
+              tmdbId: 111,
+              title: "Mystery Show",
+              poster: null,
+              backdrop: null,
+              year: "2020",
+            },
+          ],
+        },
+      ],
+    });
+    vi.mocked(api.runImport).mockResolvedValue({
+      import: {
+        ...baseJob,
+        status: "completed",
+        watchlistImported: 1,
+        episodesImported: 2,
+        episodesStaged: 2,
+      },
+      processedEpisodes: 2,
+      remainingEpisodes: 0,
+      done: true,
+    });
+
+    render(<ImportTvTimePanel language="en-US" signedIn />);
+    fireEvent.change(screen.getByTestId("tv-time-zip-input"), {
+      target: {files: [makeZipFile(true)]},
+    });
+    fireEvent.click(screen.getByTestId("tv-time-import-start"));
+    await waitFor(() => expect(screen.getByTestId("tv-time-import-review")).toBeInTheDocument());
+  };
+
+  it("skips unmatched shows from review and continues import", async () => {
+    await openReview();
+    expect(screen.getByText("Low confidence")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText("Skip"));
+    fireEvent.click(screen.getByTestId("tv-time-import-continue"));
+
+    await waitFor(() => expect(api.runImport).toHaveBeenCalled());
+    expect(api.upsertMediaMapping).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(screen.getByTestId("tv-time-import-message")).toHaveTextContent("1 shows skipped"),
+    );
+    expect(screen.getByTestId("tv-time-import-skipped")).toHaveTextContent("Skipped shows: Mystery Show");
+  });
+
+  it("applies a manual TMDb id and persists the mapping", async () => {
+    vi.mocked(api.detail).mockResolvedValue({
+      id: 333,
+      mediaType: "tv",
+      title: "Manual Match",
+      overview: "",
+      releaseDate: "2021-05-01",
+      voteAverage: 7,
+      popularity: 1,
+      images: {poster: null, backdrop: null},
+      genres: [],
+      runtimeMinutes: null,
+      status: null,
+      originalLanguage: null,
+      homepage: null,
+    });
+
+    await openReview();
+    fireEvent.change(screen.getByTestId("tv-time-manual-id-200"), {target: {value: "333"}});
+    fireEvent.click(screen.getByTestId("tv-time-apply-manual-200"));
+
+    await waitFor(() => expect(api.detail).toHaveBeenCalledWith("tv", 333, "en-US"));
+    await waitFor(() => expect(screen.getByText(/Manual Match \(2021\) · #333/)).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId("tv-time-import-continue"));
+    await waitFor(() =>
+      expect(api.upsertMediaMapping).toHaveBeenCalledWith({
+        provider: "tv_time",
+        mediaType: "tv",
+        externalId: "200",
+        tmdbId: 333,
+        title: "Manual Match",
+      }),
+    );
+  });
+
+  it("shows an error when the manual TMDb id is invalid or missing", async () => {
+    await openReview();
+    fireEvent.change(screen.getByTestId("tv-time-manual-id-200"), {target: {value: "not-a-number"}});
+    fireEvent.click(screen.getByTestId("tv-time-apply-manual-200"));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Enter a positive TMDb id."));
+
+    fireEvent.change(screen.getByTestId("tv-time-manual-id-200"), {target: {value: "404"}});
+    vi.mocked(api.detail).mockRejectedValueOnce(new Error("not found"));
+    fireEvent.click(screen.getByTestId("tv-time-apply-manual-200"));
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent("Could not load that TMDb TV id."),
+    );
+  });
+
+  it("cancels mapping review without starting import", async () => {
+    await openReview();
+    fireEvent.click(screen.getByTestId("tv-time-import-cancel-review"));
+    await waitFor(() => expect(screen.queryByTestId("tv-time-import-review")).not.toBeInTheDocument());
+    expect(api.runImport).not.toHaveBeenCalled();
+    expect(screen.getByTestId("tv-time-import-start")).toBeEnabled();
+  });
+
+  it("continues import when mapping persistence fails", async () => {
+    vi.mocked(api.upsertMediaMapping).mockRejectedValueOnce(new Error("save failed"));
+    await openReview();
+    fireEvent.click(screen.getByTestId("tv-time-import-continue"));
+    await waitFor(() => expect(api.runImport).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.getByTestId("tv-time-import-message")).toHaveTextContent("Import completed"),
+    );
+  });
 });
