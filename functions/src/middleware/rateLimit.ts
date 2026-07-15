@@ -20,6 +20,8 @@ const publicReadPaths = [
   /^\/trending(?:\/|$|\?)/,
   /^\/movie\/\d+(?:\?|$)/,
   /^\/tv\/\d+(?:\/season\/\d+)?(?:\?|$)/,
+  /^\/franchises(?:\/|$|\?)/,
+  /^\/discover(?:\/|$|\?)/,
 ];
 
 const writePaths = [

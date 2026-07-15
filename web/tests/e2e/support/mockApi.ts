@@ -117,6 +117,8 @@ export const installMockApi = async (page: Page, options: MockApiOptions = {}) =
       return json(route, {
         autoMarkPreviousEpisodesWatched: options.autoMarkPreviousEpisodesWatched ?? false,
         language: "en-US",
+        preferredProviderIds: [],
+        watchRegion: "US",
         updatedAt: now,
       });
     }
@@ -178,6 +180,96 @@ export const installMockApi = async (page: Page, options: MockApiOptions = {}) =
         topMovie: stats.topMovies[0] ?? null,
         topGenre: stats.topGenres[0] ?? null,
         newlyDiscovered: stats.topShows.slice(0, 3),
+      });
+    }
+
+    if (method === "GET" && path === "/franchises") {
+      return json(route, {
+        items: [
+          {
+            slug: "star-wars",
+            name: "Star Wars",
+            description: "Skywalker Saga sample",
+            titleCount: 2,
+            phaseCount: 1,
+          },
+        ],
+      });
+    }
+
+    if (method === "GET" && path === "/franchises/star-wars") {
+      return json(route, {
+        slug: "star-wars",
+        name: "Star Wars",
+        description: "Skywalker Saga sample",
+        phases: [{id: "original", name: "Original"}],
+        titles: [
+          {
+            tmdbId: 11,
+            mediaType: "movie",
+            title: "A New Hope",
+            phaseId: "original",
+            releaseOrder: 1,
+            chronologicalOrder: 1,
+            runtimeMinutes: 121,
+            providerIds: [337],
+          },
+        ],
+      });
+    }
+
+    if (method === "GET" && path === "/me/franchises/star-wars/progress") {
+      return json(route, {
+        slug: "star-wars",
+        name: "Star Wars",
+        description: "Skywalker Saga sample",
+        order: "release",
+        totalTitles: 1,
+        watchedTitles: 0,
+        inProgressTitles: 0,
+        progressPercent: 0,
+        phases: [{id: "original", name: "Original", totalTitles: 1, watchedTitles: 0, progressPercent: 0}],
+        titles: [
+          {
+            tmdbId: 11,
+            mediaType: "movie",
+            title: "A New Hope",
+            phaseId: "original",
+            phaseName: "Original",
+            releaseOrder: 1,
+            chronologicalOrder: 1,
+            runtimeMinutes: 121,
+            status: "unwatched",
+            progressPercent: 0,
+          },
+        ],
+        recommendedNext: {
+          tmdbId: 11,
+          mediaType: "movie",
+          title: "A New Hope",
+          phaseId: "original",
+          phaseName: "Original",
+          releaseOrder: 1,
+          chronologicalOrder: 1,
+          runtimeMinutes: 121,
+          status: "unwatched",
+          progressPercent: 0,
+        },
+      });
+    }
+
+    if (method === "GET" && path === "/discover/suggestions") {
+      return json(route, {
+        mood: null,
+        maxMinutes: null,
+        region: "US",
+        providerIds: [],
+        rails: [],
+        moods: [
+          {id: "relaxing", label: "Something relaxing", genreIds: [35], maxRuntimeMinutes: null},
+          {id: "quick-watch", label: "I have 30 minutes", genreIds: [], maxRuntimeMinutes: 30},
+        ],
+        providers: [{id: 8, name: "Netflix"}],
       });
     }
 

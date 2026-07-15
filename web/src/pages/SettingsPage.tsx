@@ -1,8 +1,14 @@
 import {FormEvent, useState} from "react";
 import {Link} from "react-router-dom";
-import {Globe2, ListChecks, ShieldAlert, Trash2} from "lucide-react";
+import {Globe2, ListChecks, ShieldAlert, Tv, Trash2} from "lucide-react";
 import {legalCopy} from "../types/legal";
-import {SupportedLanguage, languageLabels, supportedLanguages, uiCopy} from "../types/settings";
+import {
+  SupportedLanguage,
+  commonStreamingProviders,
+  languageLabels,
+  supportedLanguages,
+  uiCopy,
+} from "../types/settings";
 import {paths} from "../routes/paths";
 
 interface SettingsPageProps {
@@ -12,10 +18,14 @@ interface SettingsPageProps {
   error: string | null;
   language: SupportedLanguage;
   loading: boolean;
+  preferredProviderIds: number[];
   signedIn: boolean;
+  watchRegion: string;
   onAutoMarkPreviousEpisodesWatchedChange: (enabled: boolean) => void;
   onDeleteAccount: () => Promise<void>;
   onLanguageChange: (language: SupportedLanguage) => void;
+  onPreferredProviderIdsChange: (providerIds: number[]) => void;
+  onWatchRegionChange: (region: string) => void;
 }
 
 export const SettingsPage = ({
@@ -25,15 +35,20 @@ export const SettingsPage = ({
   error,
   language,
   loading,
+  preferredProviderIds,
   signedIn,
+  watchRegion,
   onAutoMarkPreviousEpisodesWatchedChange,
   onDeleteAccount,
   onLanguageChange,
+  onPreferredProviderIdsChange,
+  onWatchRegionChange,
 }: SettingsPageProps) => {
   const copy = uiCopy[language].settings;
   const legal = legalCopy[language].settings;
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [regionDraft, setRegionDraft] = useState(watchRegion);
 
   const closeDeleteDialog = () => {
     if (accountDeleting) {
@@ -103,6 +118,52 @@ export const SettingsPage = ({
             <span>{copy.autoMarkPreviousLabel}</span>
           </label>
           <p className="settings-note">{copy.autoMarkPreviousNote}</p>
+        </section>
+
+        <section className="settings-group" aria-labelledby="providers-settings-title">
+          <div className="settings-group-heading">
+            <Tv size={20} aria-hidden="true" />
+            <h3 id="providers-settings-title">{copy.providersTitle}</h3>
+          </div>
+          <label className="settings-field">
+            {copy.regionLabel}
+            <input
+              data-testid="watch-region-input"
+              disabled={loading || accountDeleting}
+              maxLength={2}
+              value={regionDraft}
+              onBlur={() => {
+                if (/^[A-Za-z]{2}$/.test(regionDraft)) {
+                  onWatchRegionChange(regionDraft.toUpperCase());
+                } else {
+                  setRegionDraft(watchRegion);
+                }
+              }}
+              onChange={(event) => setRegionDraft(event.target.value.toUpperCase())}
+            />
+          </label>
+          <div className="provider-chip-row" data-testid="provider-chip-row">
+            {commonStreamingProviders.map((provider) => {
+              const checked = preferredProviderIds.includes(provider.id);
+              return (
+                <label className="provider-chip" key={provider.id}>
+                  <input
+                    checked={checked}
+                    disabled={loading || accountDeleting}
+                    type="checkbox"
+                    onChange={() => {
+                      const next = checked
+                        ? preferredProviderIds.filter((id) => id !== provider.id)
+                        : [...preferredProviderIds, provider.id];
+                      onPreferredProviderIdsChange(next);
+                    }}
+                  />
+                  <span>{provider.name}</span>
+                </label>
+              );
+            })}
+          </div>
+          <p className="settings-note">{copy.providersNote}</p>
         </section>
 
         <section className="settings-group" aria-labelledby="privacy-settings-title">

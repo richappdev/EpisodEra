@@ -28,6 +28,7 @@ interface AppContextValue {
   historyTotalCount: number;
   language: SupportedLanguage;
   pendingShowIds: ReadonlySet<number>;
+  preferredProviderIds: number[];
   profile: UserProfile | null;
   progressItems: ShowProgressSummary[];
   recap: YearRecap | null;
@@ -45,9 +46,12 @@ interface AppContextValue {
   watchlistLoading: boolean;
   watchlistLoadingMore: boolean;
   watchlistTotalCount: number;
+  watchRegion: string;
   addToWatchlist: (detail: MediaDetail) => void;
   changeAutoMarkPreviousEpisodesWatched: (enabled: boolean) => void;
   changeLanguage: (nextLanguage: SupportedLanguage) => void;
+  changePreferredProviderIds: (providerIds: number[]) => void;
+  changeWatchRegion: (region: string) => void;
   deleteHistoryEntry: (historyId: string) => Promise<void>;
   loadMoreHistory: () => void;
   loadMoreWatchlist: () => void;
@@ -188,6 +192,7 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
       historyTotalCount: profileStats.historyTotalCount,
       language: settings.language,
       pendingShowIds: progress.pendingShowIds,
+      preferredProviderIds: settings.preferredProviderIds,
       profile: profileState.profile,
       progressItems: progress.items,
       recap: profileStats.recap,
@@ -205,9 +210,12 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
       watchlistLoading: watchlist.loading,
       watchlistLoadingMore: watchlist.loadingMore,
       watchlistTotalCount: watchlist.totalCount,
+      watchRegion: settings.watchRegion,
       addToWatchlist,
       changeAutoMarkPreviousEpisodesWatched: settings.changeAutoMarkPreviousEpisodesWatched,
       changeLanguage: settings.changeLanguage,
+      changePreferredProviderIds: settings.changePreferredProviderIds,
+      changeWatchRegion: settings.changeWatchRegion,
       deleteHistoryEntry: profileStats.deleteHistoryEntry,
       loadMoreHistory: profileStats.loadMoreHistory,
       loadMoreWatchlist: watchlist.loadMore,

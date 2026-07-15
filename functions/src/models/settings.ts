@@ -5,5 +5,7 @@ export type SupportedLanguage = (typeof supportedLanguages)[number];
 export interface UserSettings {
   autoMarkPreviousEpisodesWatched: boolean;
   language: SupportedLanguage;
+  preferredProviderIds: number[];
+  watchRegion: string;
   updatedAt: string | null;
 }

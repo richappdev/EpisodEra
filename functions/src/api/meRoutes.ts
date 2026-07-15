@@ -7,6 +7,7 @@ import {progressService} from "../services/progressService";
 import {parseProfileInput, profileService} from "../services/profileService";
 import {parseSettingsInput, settingsService} from "../services/settingsService";
 import {statsService} from "../services/statsService";
+import {franchiseService} from "../services/franchiseService";
 
 export const meRouter = Router();
 
@@ -28,6 +29,14 @@ meRouter.get("/me/recap", async (req: AuthenticatedRequest, res, next) => {
         ? parsedYear
         : new Date().getUTCFullYear();
     res.json(await statsService.getYearRecap(req.user!.uid, year));
+  } catch (error) {
+    next(error);
+  }
+});
+
+meRouter.get("/me/franchises/:slug/progress", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    res.json(await franchiseService.getProgress(req.user!.uid, req.params.slug, req.query.order));
   } catch (error) {
     next(error);
   }

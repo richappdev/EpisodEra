@@ -14,10 +14,14 @@ const renderSettings = (props: Partial<ComponentProps<typeof SettingsPage>> = {}
         error={null}
         language="en-US"
         loading={false}
+        preferredProviderIds={[8]}
         signedIn
+        watchRegion="US"
         onAutoMarkPreviousEpisodesWatchedChange={vi.fn()}
         onDeleteAccount={vi.fn().mockResolvedValue(undefined)}
         onLanguageChange={vi.fn()}
+        onPreferredProviderIdsChange={vi.fn()}
+        onWatchRegionChange={vi.fn()}
         {...props}
       />
     </MemoryRouter>,

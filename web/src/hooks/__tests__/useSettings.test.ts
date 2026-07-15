@@ -30,6 +30,8 @@ describe("useSettings", () => {
     vi.mocked(api.meSettings).mockResolvedValue({
       language: "zh-TW",
       autoMarkPreviousEpisodesWatched: true,
+      preferredProviderIds: [8],
+      watchRegion: "TW",
       updatedAt: null,
     });
 
@@ -39,6 +41,8 @@ describe("useSettings", () => {
 
     expect(result.current.language).toBe("zh-TW");
     expect(result.current.autoMarkPreviousEpisodesWatched).toBe(true);
+    expect(result.current.preferredProviderIds).toEqual([8]);
+    expect(result.current.watchRegion).toBe("TW");
     expect(window.localStorage.getItem("episodera.language")).toBe("zh-TW");
   });
 
@@ -48,6 +52,8 @@ describe("useSettings", () => {
     act(() => {
       result.current.changeLanguage("zh-TW");
       result.current.changeAutoMarkPreviousEpisodesWatched(true);
+      result.current.changePreferredProviderIds([337]);
+      result.current.changeWatchRegion("gb");
     });
 
     expect(api.updateMeSettings).not.toHaveBeenCalled();
@@ -57,6 +63,8 @@ describe("useSettings", () => {
     });
     expect(result.current.language).toBe("zh-TW");
     expect(result.current.autoMarkPreviousEpisodesWatched).toBe(true);
+    expect(result.current.preferredProviderIds).toEqual([337]);
+    expect(result.current.watchRegion).toBe("GB");
     expect(window.localStorage.getItem("episodera.autoMarkPreviousEpisodesWatched")).toBe("true");
   });
 
@@ -64,11 +72,15 @@ describe("useSettings", () => {
     vi.mocked(api.meSettings).mockResolvedValue({
       language: "en-US",
       autoMarkPreviousEpisodesWatched: false,
+      preferredProviderIds: [],
+      watchRegion: "US",
       updatedAt: null,
     });
     vi.mocked(api.updateMeSettings).mockResolvedValue({
       language: "zh-TW",
       autoMarkPreviousEpisodesWatched: false,
+      preferredProviderIds: [],
+      watchRegion: "US",
       updatedAt: null,
     });
 

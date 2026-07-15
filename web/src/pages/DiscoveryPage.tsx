@@ -1,10 +1,14 @@
 import {FormEvent, useCallback, useEffect, useMemo, useState} from "react";
+import {Link} from "react-router-dom";
 import {Search} from "lucide-react";
 import {api} from "../api/client";
 import {ContinueWatchingSection} from "../components/ContinueWatchingSection";
 import {SectionError} from "../components/SectionError";
 import {MediaSection} from "../components/MediaSection";
 import {buildContinuationGroups, type ContinuationEntry} from "../lib/continuation";
+import {paths} from "../routes/paths";
+import {discoveryMoods} from "../lib/discoveryMoods";
+import {DiscoveryMood, DiscoverySuggestionsResponse} from "../types/discovery";
 import {DiscoveryResponse, MediaSummary, MediaType, PagedResult} from "../types/media";
 import {ShowProgressSummary} from "../types/progress";
 import {SupportedLanguage, uiCopy} from "../types/settings";
@@ -15,9 +19,11 @@ interface DiscoveryPageProps {
   language: SupportedLanguage;
   initialSearchQuery?: string | null;
   pendingShowIds?: ReadonlySet<number>;
+  preferredProviderIds?: number[];
   progressItems?: ShowProgressSummary[];
   signedIn?: boolean;
   watchlistItems?: WatchlistItem[];
+  watchRegion?: string;
   onSearchQueryChange?: (query: string) => void;
   onSelect: (item: MediaSummary) => void;
   onSelectContinuation?: (entry: ContinuationEntry) => void;
@@ -34,9 +40,11 @@ export const DiscoveryPage = ({
   language,
   initialSearchQuery = null,
   pendingShowIds,
+  preferredProviderIds = [],
   progressItems = [],
   signedIn = false,
   watchlistItems = [],
+  watchRegion = "US",
   onSearchQueryChange,
   onSelect,
   onSelectContinuation,
@@ -49,6 +57,10 @@ export const DiscoveryPage = ({
   const [trendingData, setTrendingData] = useState<PagedResult<MediaSummary> | null>(null);
   const [trendingPage, setTrendingPage] = useState(1);
   const [trendingTab, setTrendingTab] = useState<TrendingTab>("tv");
+  const [mood, setMood] = useState<DiscoveryMood | null>(null);
+  const [suggestions, setSuggestions] = useState<DiscoverySuggestionsResponse | null>(null);
+  const [suggestionsError, setSuggestionsError] = useState<string | null>(null);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -89,6 +101,25 @@ export const DiscoveryPage = ({
     },
     [language, trendingTab],
   );
+
+  const loadSuggestions = useCallback(async () => {
+    setSuggestionsLoading(true);
+    setSuggestionsError(null);
+    try {
+      setSuggestions(
+        await api.discoverSuggestions(language, {
+          mood: mood ?? undefined,
+          maxMinutes: mood === "quick-watch" ? 30 : undefined,
+          providers: preferredProviderIds,
+          region: watchRegion,
+        }),
+      );
+    } catch (err) {
+      setSuggestionsError(err instanceof Error ? err.message : "Could not load suggestions.");
+    } finally {
+      setSuggestionsLoading(false);
+    }
+  }, [language, mood, preferredProviderIds, watchRegion]);
 
   const loadSearch = useCallback(
     async (searchQuery: string, page: number, append: boolean) => {
@@ -141,6 +172,14 @@ export const DiscoveryPage = ({
   }, [loadTrending, view]);
 
   useEffect(() => {
+    if (view !== "trending") {
+      return;
+    }
+
+    void loadSuggestions();
+  }, [loadSuggestions, view]);
+
+  useEffect(() => {
     if (view !== "search") {
       return;
     }
@@ -172,6 +211,7 @@ export const DiscoveryPage = ({
   const retry = () => {
     if (view === "trending") {
       void loadTrending(trendingPage, false);
+      void loadSuggestions();
       return;
     }
 
@@ -238,6 +278,42 @@ export const DiscoveryPage = ({
             onNextEpisodeWatched={onNextEpisodeWatched}
           />
         </>
+      )}
+
+      {view === "trending" && (
+        <section className="discovery-smart" data-testid="discovery-smart">
+          <div className="section-header">
+            <div>
+              <span className="media-kind">Smart discovery</span>
+              <h2>Match a mood or time budget</h2>
+            </div>
+            <Link className="text-button" data-testid="home-franchises-link" to={paths.franchises}>
+              Browse franchises
+            </Link>
+          </div>
+          <div className="mood-chip-row" role="group" aria-label="Discovery moods">
+            {(suggestions?.moods?.length ? suggestions.moods : discoveryMoods).map((definition) => (
+              <button
+                className={mood === definition.id ? "active" : ""}
+                data-testid={`mood-${definition.id}`}
+                key={definition.id}
+                type="button"
+                onClick={() => setMood((current) => (current === definition.id ? null : definition.id))}
+              >
+                {definition.label}
+              </button>
+            ))}
+          </div>
+          {suggestionsLoading && <div className="state-panel inline-state">Loading suggestions...</div>}
+          {suggestionsError && !suggestionsLoading && (
+            <SectionError message={suggestionsError} onRetry={() => void loadSuggestions()} />
+          )}
+          {!suggestionsLoading &&
+            !suggestionsError &&
+            suggestions?.rails.map((rail) => (
+              <MediaSection key={rail.id} title={rail.title} items={rail.items} onSelect={onSelect} />
+            ))}
+        </section>
       )}
 
       {view === "trending" && (

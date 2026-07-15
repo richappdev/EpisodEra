@@ -7,6 +7,8 @@ import {toErrorMessage} from "./errorMessage";
 
 const languageStorageKey = "episodera.language";
 const autoMarkPreviousEpisodesWatchedStorageKey = "episodera.autoMarkPreviousEpisodesWatched";
+const preferredProvidersStorageKey = "episodera.preferredProviderIds";
+const watchRegionStorageKey = "episodera.watchRegion";
 
 const initialLanguage = (): SupportedLanguage => {
   const stored = window.localStorage.getItem(languageStorageKey);
@@ -16,11 +18,29 @@ const initialLanguage = (): SupportedLanguage => {
 const initialAutoMarkPreviousEpisodesWatched = () =>
   window.localStorage.getItem(autoMarkPreviousEpisodesWatchedStorageKey) === "true";
 
+const initialPreferredProviderIds = () => {
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(preferredProvidersStorageKey) ?? "[]");
+    return Array.isArray(stored)
+      ? stored.map(Number).filter((id) => Number.isInteger(id) && id > 0)
+      : [];
+  } catch {
+    return [];
+  }
+};
+
+const initialWatchRegion = () => {
+  const stored = window.localStorage.getItem(watchRegionStorageKey);
+  return stored && /^[A-Za-z]{2}$/.test(stored) ? stored.toUpperCase() : "US";
+};
+
 export const useSettings = (user: User | null) => {
   const [language, setLanguage] = useState<SupportedLanguage>(initialLanguage);
   const [autoMarkPreviousEpisodesWatched, setAutoMarkPreviousEpisodesWatched] = useState(
     initialAutoMarkPreviousEpisodesWatched,
   );
+  const [preferredProviderIds, setPreferredProviderIds] = useState<number[]>(initialPreferredProviderIds);
+  const [watchRegion, setWatchRegion] = useState(initialWatchRegion);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +51,14 @@ export const useSettings = (user: User | null) => {
   useEffect(() => {
     window.localStorage.setItem(autoMarkPreviousEpisodesWatchedStorageKey, String(autoMarkPreviousEpisodesWatched));
   }, [autoMarkPreviousEpisodesWatched]);
+
+  useEffect(() => {
+    window.localStorage.setItem(preferredProvidersStorageKey, JSON.stringify(preferredProviderIds));
+  }, [preferredProviderIds]);
+
+  useEffect(() => {
+    window.localStorage.setItem(watchRegionStorageKey, watchRegion);
+  }, [watchRegion]);
 
   const reset = useCallback(() => {
     setLoading(false);
@@ -50,6 +78,8 @@ export const useSettings = (user: User | null) => {
       const settings = await api.meSettings();
       setLanguage(settings.language);
       setAutoMarkPreviousEpisodesWatched(settings.autoMarkPreviousEpisodesWatched);
+      setPreferredProviderIds(settings.preferredProviderIds ?? []);
+      setWatchRegion(settings.watchRegion ?? "US");
     } catch (reason) {
       setError(toErrorMessage(reason, "Could not load settings."));
     } finally {
@@ -67,7 +97,14 @@ export const useSettings = (user: User | null) => {
   }, [reload, reset, user]);
 
   const persistSettings = useCallback(
-    (patch: Partial<{language: SupportedLanguage; autoMarkPreviousEpisodesWatched: boolean}>) => {
+    (
+      patch: Partial<{
+        language: SupportedLanguage;
+        autoMarkPreviousEpisodesWatched: boolean;
+        preferredProviderIds: number[];
+        watchRegion: string;
+      }>,
+    ) => {
       if (!user) {
         return Promise.resolve();
       }
@@ -80,6 +117,8 @@ export const useSettings = (user: User | null) => {
         .then((settings) => {
           setLanguage(settings.language);
           setAutoMarkPreviousEpisodesWatched(settings.autoMarkPreviousEpisodesWatched);
+          setPreferredProviderIds(settings.preferredProviderIds ?? []);
+          setWatchRegion(settings.watchRegion ?? "US");
         })
         .catch((reason: unknown) => {
           setError(toErrorMessage(reason, "Could not save settings."));
@@ -126,13 +165,54 @@ export const useSettings = (user: User | null) => {
     [persistSettings, user],
   );
 
+  const changePreferredProviderIds = useCallback(
+    (providerIds: number[]) => {
+      setPreferredProviderIds(providerIds);
+      trackEvent("select_content", {
+        content_type: "preferred_providers",
+        item_id: providerIds.join(","),
+      });
+      setError(null);
+
+      if (!user) {
+        return;
+      }
+
+      void persistSettings({preferredProviderIds: providerIds});
+    },
+    [persistSettings, user],
+  );
+
+  const changeWatchRegion = useCallback(
+    (region: string) => {
+      const normalized = region.toUpperCase();
+      setWatchRegion(normalized);
+      trackEvent("select_content", {
+        content_type: "watch_region",
+        item_id: normalized,
+      });
+      setError(null);
+
+      if (!user) {
+        return;
+      }
+
+      void persistSettings({watchRegion: normalized});
+    },
+    [persistSettings, user],
+  );
+
   return {
     language,
     autoMarkPreviousEpisodesWatched,
+    preferredProviderIds,
+    watchRegion,
     loading,
     error,
     reload,
     changeLanguage,
     changeAutoMarkPreviousEpisodesWatched,
+    changePreferredProviderIds,
+    changeWatchRegion,
   };
 };

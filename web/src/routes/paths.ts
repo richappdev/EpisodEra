@@ -1,6 +1,13 @@
 import {MediaSummary} from "../types/media";
 
-export type NavView = "trending" | "search" | "watchlist" | "timeline" | "profile" | "settings";
+export type NavView =
+  | "trending"
+  | "search"
+  | "watchlist"
+  | "timeline"
+  | "franchises"
+  | "profile"
+  | "settings";
 
 export const paths = {
   home: "/",
@@ -12,6 +19,8 @@ export const paths = {
   watchlist: "/watchlist",
   continueWatching: "/continue-watching",
   timeline: "/timeline",
+  franchises: "/franchises",
+  franchise: (slug: string) => `/franchises/${encodeURIComponent(slug)}`,
   profile: "/profile",
   settings: "/settings",
   privacy: "/privacy",
@@ -31,6 +40,9 @@ export const navFromPath = (pathname: string): NavView => {
   }
   if (pathname.startsWith("/timeline")) {
     return "timeline";
+  }
+  if (pathname.startsWith("/franchises")) {
+    return "franchises";
   }
   if (pathname.startsWith("/profile")) {
     return "profile";

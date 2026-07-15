@@ -13,6 +13,7 @@ import {HistoryEntry} from "../types/history";
 import {AuthRoute, ContinueWatchingRoute} from "./AuthRoute";
 import {MediaDetailRoute} from "./DetailRoute";
 import {DiscoveryRoute} from "./DiscoveryRoute";
+import {FranchiseDetailRoute, FranchiseListRoute} from "./FranchiseRoute";
 import {isDetailPath, navFromPath, paths} from "./paths";
 
 const ScreenAnalytics = () => {
@@ -219,9 +220,13 @@ const SettingsRoute = () => {
     autoMarkPreviousEpisodesWatched,
     changeAutoMarkPreviousEpisodesWatched,
     changeLanguage,
+    changePreferredProviderIds,
+    changeWatchRegion,
     language,
+    preferredProviderIds,
     settingsError,
     settingsLoading,
+    watchRegion,
   } = useAppContext();
   const [accountDeleting, setAccountDeleting] = useState(false);
   const [accountDeletionError, setAccountDeletionError] = useState<string | null>(null);
@@ -252,10 +257,14 @@ const SettingsRoute = () => {
       error={settingsError}
       language={language}
       loading={settingsLoading}
+      preferredProviderIds={preferredProviderIds}
       signedIn={Boolean(user)}
+      watchRegion={watchRegion}
       onAutoMarkPreviousEpisodesWatchedChange={changeAutoMarkPreviousEpisodesWatched}
       onDeleteAccount={handleDeleteAccount}
       onLanguageChange={changeLanguage}
+      onPreferredProviderIdsChange={changePreferredProviderIds}
+      onWatchRegionChange={changeWatchRegion}
     />
   );
 };
@@ -277,6 +286,8 @@ export const AppRoutes = () => (
       <Route element={<WatchlistRoute />} path={paths.watchlist} />
       <Route element={<ContinueWatchingRoute />} path={paths.continueWatching} />
       <Route element={<TimelineRoute />} path={paths.timeline} />
+      <Route element={<FranchiseListRoute />} path={paths.franchises} />
+      <Route element={<FranchiseDetailRoute />} path="/franchises/:slug" />
       <Route element={<ProfileRoute />} path={paths.profile} />
       <Route element={<SettingsRoute />} path={paths.settings} />
       <Route element={<PrivacyRoute />} path={paths.privacy} />

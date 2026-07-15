@@ -5,6 +5,8 @@ export type SupportedLanguage = (typeof supportedLanguages)[number];
 export interface UserSettings {
   autoMarkPreviousEpisodesWatched: boolean;
   language: SupportedLanguage;
+  preferredProviderIds: number[];
+  watchRegion: string;
   updatedAt: string | null;
 }
 
@@ -16,6 +18,15 @@ export const languageLabels: Record<SupportedLanguage, string> = {
 export const isSupportedLanguage = (value: string | null): value is SupportedLanguage =>
   supportedLanguages.includes(value as SupportedLanguage);
 
+export const commonStreamingProviders = [
+  {id: 8, name: "Netflix"},
+  {id: 9, name: "Amazon Prime Video"},
+  {id: 15, name: "Hulu"},
+  {id: 337, name: "Disney+"},
+  {id: 350, name: "Apple TV+"},
+  {id: 1899, name: "Max"},
+] as const;
+
 export const uiCopy = {
   "en-US": {
     topBar: {
@@ -24,6 +35,7 @@ export const uiCopy = {
       search: "Search",
       watchlist: "Watchlist",
       timeline: "Timeline",
+      franchises: "Franchises",
       profile: "Profile",
       settings: "Settings",
       signIn: "Sign in",
@@ -39,6 +51,9 @@ export const uiCopy = {
       autoMarkPreviousLabel: "Automatically mark earlier episodes watched",
       autoMarkPreviousNote:
         "When enabled, marking a later episode watched also marks earlier unwatched episodes in that season.",
+      providersTitle: "Streaming providers",
+      providersNote: "Suggestions prefer titles available on your selected services when provider data is available.",
+      regionLabel: "Watch region",
       signedOutNote: "Sign in to sync these preferences across sessions. This device still uses them now.",
       saving: "Saving settings...",
     },
@@ -53,6 +68,7 @@ export const uiCopy = {
       search: "搜尋",
       watchlist: "片單",
       timeline: "時間軸",
+      franchises: "系列宇宙",
       profile: "個人檔案",
       settings: "設定",
       signIn: "登入",
@@ -67,6 +83,9 @@ export const uiCopy = {
       progressTitle: "集數進度",
       autoMarkPreviousLabel: "自動將較早集數標記為已觀看",
       autoMarkPreviousNote: "啟用後，將較後面的集數標記為已觀看時，也會標記同季中較早且尚未觀看的集數。",
+      providersTitle: "串流平台",
+      providersNote: "有平台資料時，推薦會優先顯示你所選服務上的片單。",
+      regionLabel: "觀看地區",
       signedOutNote: "登入後可跨工作階段同步這些偏好。此裝置現在仍會套用這些設定。",
       saving: "正在儲存設定...",
     },

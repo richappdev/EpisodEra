@@ -11,6 +11,7 @@ import {
 } from "../middleware/rateLimit";
 import {mediaRouter} from "./mediaRoutes";
 import {meRouter} from "./meRoutes";
+import {discoveryRouter} from "./discoveryRoutes";
 import {progressRouter} from "./progressRoutes";
 import {watchlistRouter} from "./watchlistRoutes";
 
@@ -60,6 +61,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/", mediaRouter);
+app.use("/", discoveryRouter);
 app.use("/", watchlistRouter);
 app.use("/", progressRouter);
 app.use("/", meRouter);

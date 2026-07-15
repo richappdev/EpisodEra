@@ -18,8 +18,10 @@ export const DiscoveryRoute = ({view}: DiscoveryRouteProps) => {
     openContinuationDetail,
     openMediaDetail,
     pendingShowIds,
+    preferredProviderIds,
     progressItems,
     watchlistItems,
+    watchRegion,
   } = useAppContext();
   const initialSearchQuery = view === "search" ? searchParams.get("q") : null;
   const nav: NavView = navFromPath(view === "search" ? paths.search : paths.home);
@@ -29,10 +31,12 @@ export const DiscoveryRoute = ({view}: DiscoveryRouteProps) => {
       initialSearchQuery={initialSearchQuery}
       language={language}
       pendingShowIds={pendingShowIds}
+      preferredProviderIds={preferredProviderIds}
       progressItems={progressItems}
       signedIn={Boolean(user)}
       view={view}
       watchlistItems={watchlistItems}
+      watchRegion={watchRegion}
       onSearchQueryChange={(query) => navigate(paths.searchQuery(query), {replace: true})}
       onSelect={(item) => openMediaDetail(item, nav)}
       onSelectContinuation={(entry) => openContinuationDetail(entry, nav)}

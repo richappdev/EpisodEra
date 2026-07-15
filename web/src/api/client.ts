@@ -1,5 +1,7 @@
 import {DiscoveryResponse, MediaDetail, MediaType, TvSeasonDetail} from "../types/media";
 import {PaginationParams, withPagination} from "../types/pagination";
+import {DiscoverySuggestionsResponse} from "../types/discovery";
+import {FranchiseCatalog, FranchiseOrder, FranchiseProgress, FranchiseSummary} from "../types/franchise";
 import {HistoryEntry, HistoryResponse, UpdateHistoryInput} from "../types/history";
 import {ProfileResponse, UpdateUserProfileInput, UserProfile} from "../types/profile";
 import {
@@ -105,11 +107,40 @@ export const api = {
   updateMeProfile: (profile: UpdateUserProfileInput, token?: string | null) =>
     request<UserProfile>("/me/profile", {method: "PATCH", body: profile, token}),
   meSettings: () => request<UserSettings>("/me/settings"),
-  updateMeSettings: (settings: Partial<Pick<UserSettings, "autoMarkPreviousEpisodesWatched" | "language">>) =>
-    request<UserSettings>("/me/settings", {method: "PATCH", body: settings}),
+  updateMeSettings: (
+    settings: Partial<
+      Pick<UserSettings, "autoMarkPreviousEpisodesWatched" | "language" | "preferredProviderIds" | "watchRegion">
+    >,
+  ) => request<UserSettings>("/me/settings", {method: "PATCH", body: settings}),
   meStats: () => request<UserStats>("/me/stats"),
   meRecap: (year?: number) =>
     request<YearRecap>(year == null ? "/me/recap" : `/me/recap?year=${encodeURIComponent(String(year))}`),
+  listFranchises: () => request<{items: FranchiseSummary[]}>("/franchises"),
+  getFranchise: (slug: string) => request<FranchiseCatalog>(`/franchises/${encodeURIComponent(slug)}`),
+  meFranchiseProgress: (slug: string, order: FranchiseOrder = "release") =>
+    request<FranchiseProgress>(
+      `/me/franchises/${encodeURIComponent(slug)}/progress?order=${encodeURIComponent(order)}`,
+    ),
+  discoverSuggestions: (
+    language: SupportedLanguage,
+    options?: {mood?: string; maxMinutes?: number; providers?: number[]; region?: string},
+  ) => {
+    const params = new URLSearchParams();
+    params.set("language", language);
+    if (options?.mood) {
+      params.set("mood", options.mood);
+    }
+    if (options?.maxMinutes != null) {
+      params.set("maxMinutes", String(options.maxMinutes));
+    }
+    if (options?.providers && options.providers.length > 0) {
+      params.set("providers", options.providers.join(","));
+    }
+    if (options?.region) {
+      params.set("region", options.region);
+    }
+    return request<DiscoverySuggestionsResponse>(`/discover/suggestions?${params.toString()}`);
+  },
   listWatchlist: (pagination?: PaginationParams) =>
     request<WatchlistResponse>(withPagination("/watchlist", pagination)),
   addWatchlistItem: (input: AddWatchlistItemInput) =>

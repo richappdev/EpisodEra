@@ -139,10 +139,30 @@ service cloud.firestore {
 
     function validSettings(settingsId) {
       return settingsId == 'profile'
-        && request.resource.data.keys().hasOnly(['autoMarkPreviousEpisodesWatched', 'language', 'updatedAt'])
+        && request.resource.data.keys().hasOnly([
+          'autoMarkPreviousEpisodesWatched',
+          'language',
+          'preferredProviderIds',
+          'watchRegion',
+          'updatedAt',
+        ])
         && request.resource.data.keys().hasAll(['autoMarkPreviousEpisodesWatched', 'language'])
         && request.resource.data.autoMarkPreviousEpisodesWatched is bool
-        && validLanguage(request.resource.data.language);
+        && validLanguage(request.resource.data.language)
+        && (
+          !('preferredProviderIds' in request.resource.data)
+          || (
+            request.resource.data.preferredProviderIds is list
+            && request.resource.data.preferredProviderIds.size() <= 12
+          )
+        )
+        && (
+          !('watchRegion' in request.resource.data)
+          || (
+            request.resource.data.watchRegion is string
+            && request.resource.data.watchRegion.matches('^[A-Za-z]{2}$')
+          )
+        );
     }
 
     function validRating(itemId) {

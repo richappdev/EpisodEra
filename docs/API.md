@@ -52,6 +52,10 @@ TMDb detail and TV season reads use a 24-hour per-Functions-instance in-memory T
 | `DELETE` | `/progress/:showId/episode/:episodeKey` | Firebase ID token | `200` |
 | `GET` | `/me/stats` | Firebase ID token | `200` |
 | `GET` | `/me/recap` | Firebase ID token | `200` |
+| `GET` | `/me/franchises/:slug/progress` | Firebase ID token | `200` |
+| `GET` | `/franchises` | Optional | `200` |
+| `GET` | `/franchises/:slug` | Optional | `200` |
+| `GET` | `/discover/suggestions` | Optional | `200` |
 | `GET` | `/me/history` | Firebase ID token | `200` |
 | `GET` | `/me/profile` | Firebase ID token | `200` |
 | `PATCH` | `/me/profile` | Firebase ID token | `200` |
@@ -65,7 +69,7 @@ The API applies per-Functions-instance rate limits before route handlers run:
 
 | Bucket | Scope | Default |
 | --- | --- | --- |
-| Public reads | Client IP for `GET /search`, `GET /trending*`, `GET /movie/:id`, `GET /tv/:id`, and `GET /tv/:id/season/:seasonNumber` | 120 requests per 60 seconds |
+| Public reads | Client IP for `GET /search`, `GET /trending*`, `GET /movie/:id`, `GET /tv/:id`, `GET /tv/:id/season/:seasonNumber`, `GET /franchises*`, and `GET /discover*` | 120 requests per 60 seconds |
 | Authenticated writes | Firebase UID for `POST`, `PATCH`, and `DELETE` requests under `/watchlist`, `/progress`, `/me/profile`, `/me/settings`, and `/me/account` | 60 requests per 60 seconds |
 
 Configure defaults with:
@@ -631,6 +635,28 @@ Response:
 ```
 
 `newlyDiscovered` titles are those whose first watched event falls in the requested year.
+
+## Franchises and Smart Discovery
+
+Curated franchise catalogs are public. Personal completion requires authentication.
+
+```http
+GET /franchises
+GET /franchises/:slug
+GET /me/franchises/:slug/progress?order=release|chronological
+GET /discover/suggestions?mood={mood}&maxMinutes={minutes}&providers={ids}&region={cc}&language={lang}
+```
+
+`mood` supports `relaxing`, `mind-bending`, `emotional`, `epic`, and `quick-watch`. When signed in, suggestions may include unfinished franchise next titles and will use saved `preferredProviderIds` / `watchRegion` from settings when query params are omitted.
+
+Settings also accept:
+
+```json
+{
+  "preferredProviderIds": [8, 337],
+  "watchRegion": "US"
+}
+```
 
 ## Profile History
 

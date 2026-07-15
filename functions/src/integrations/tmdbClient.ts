@@ -85,6 +85,81 @@ export class TmdbClient {
     );
   }
 
+  async discoverMovies(
+    options: {
+      page?: number;
+      language?: SupportedLanguage;
+      withGenres?: string;
+      withRuntimeLte?: number;
+      withWatchProviders?: string;
+      watchRegion?: string;
+    } = {},
+  ): Promise<PagedResult<MediaSummary>> {
+    const {
+      page = 1,
+      language = "en-US",
+      withGenres,
+      withRuntimeLte,
+      withWatchProviders,
+      watchRegion = "US",
+    } = options;
+
+    return mapPaged(
+      await this.getCached<TmdbPagedResponse<TmdbMovie>>(
+        "/discover/movie",
+        {
+          page,
+          language,
+          sort_by: "popularity.desc",
+          include_adult: false,
+          with_genres: withGenres,
+          "with_runtime.lte": withRuntimeLte,
+          with_watch_providers: withWatchProviders,
+          watch_region: withWatchProviders ? watchRegion : undefined,
+          with_watch_monetization_types: withWatchProviders ? "flatrate|free|ads|rent|buy" : undefined,
+        },
+        trendingTtlMs,
+      ),
+      "movie",
+    );
+  }
+
+  async discoverTv(
+    options: {
+      page?: number;
+      language?: SupportedLanguage;
+      withGenres?: string;
+      withWatchProviders?: string;
+      watchRegion?: string;
+    } = {},
+  ): Promise<PagedResult<MediaSummary>> {
+    const {
+      page = 1,
+      language = "en-US",
+      withGenres,
+      withWatchProviders,
+      watchRegion = "US",
+    } = options;
+
+    return mapPaged(
+      await this.getCached<TmdbPagedResponse<TmdbTv>>(
+        "/discover/tv",
+        {
+          page,
+          language,
+          sort_by: "popularity.desc",
+          include_adult: false,
+          with_genres: withGenres,
+          with_watch_providers: withWatchProviders,
+          watch_region: withWatchProviders ? watchRegion : undefined,
+          with_watch_monetization_types: withWatchProviders ? "flatrate|free|ads|rent|buy" : undefined,
+        },
+        trendingTtlMs,
+      ),
+      "tv",
+    );
+  }
+
   clearCache() {
     this.cache.clear();
   }

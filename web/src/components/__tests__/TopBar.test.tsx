@@ -34,6 +34,7 @@ const baseContext = {
   autoMarkPreviousEpisodesWatched: false,
   historyItems: [],
   language: "en-US" as const,
+  preferredProviderIds: [],
   profile,
   progressItems: [],
   recap: null,
@@ -48,9 +49,12 @@ const baseContext = {
   watchlistError: null,
   watchlistItems: [],
   watchlistLoading: false,
+  watchRegion: "US",
   addToWatchlist: vi.fn(),
   changeAutoMarkPreviousEpisodesWatched: vi.fn(),
   changeLanguage: vi.fn(),
+  changePreferredProviderIds: vi.fn(),
+  changeWatchRegion: vi.fn(),
   loadRecap: vi.fn(),
   markContinuationEpisodeWatched: vi.fn(),
   openAuth: vi.fn(),
@@ -88,6 +92,7 @@ describe("TopBar", () => {
     expect(screen.getByText("Welcome, Ada")).toBeVisible();
     expect(screen.getByTestId("nav-search")).toHaveAttribute("href", "/search");
     expect(screen.getByTestId("nav-timeline")).toHaveAttribute("href", "/timeline");
+    expect(screen.getByTestId("nav-franchises")).toHaveAttribute("href", "/franchises");
 
     await userEventApi.click(screen.getByTestId("account-button"));
     expect(signOutAndReset).toHaveBeenCalled();
