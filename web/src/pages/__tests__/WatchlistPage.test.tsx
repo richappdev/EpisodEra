@@ -64,6 +64,33 @@ describe("WatchlistPage", () => {
     expect(screen.getByRole("heading", {name: "Haven't watched for a while"})).toBeVisible();
   });
 
+  it("hides completed and dropped titles from the watchlist grid", () => {
+    const completedItem = {
+      ...watchlistItem,
+      itemId: "tv_3003",
+      tmdbId: 3003,
+      title: "Finished Show",
+      status: "completed" as const,
+    };
+    const droppedItem = {
+      ...watchlistItem,
+      itemId: "tv_4004",
+      tmdbId: 4004,
+      title: "Dropped Show",
+      status: "dropped" as const,
+    };
+
+    renderWatchlist({
+      items: [watchlistItem, completedItem, droppedItem],
+      totalCount: 3,
+    });
+
+    expect(screen.getByTestId("watchlist-item-1001")).toBeVisible();
+    expect(screen.queryByTestId("watchlist-item-3003")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("watchlist-item-4004")).not.toBeInTheDocument();
+    expect(screen.getByTestId("watchlist-header")).toHaveTextContent("3 saved");
+  });
+
   it("calls control callbacks for status, next episode, remove, select, retry, and load more", async () => {
     const user = userEvent.setup();
     const props = renderWatchlist({hasMore: true});

@@ -42,10 +42,16 @@ describe("continuation", () => {
 
   it("excludes dropped and completed watchlist titles", () => {
     const dropped = {...watchlistItem, status: "dropped" as const};
-    const groups = buildContinuationGroups([dropped], [progressSummary], now);
+    const completed = {...watchlistItem, status: "completed" as const};
 
-    expect(groups.continueWatching).toEqual([]);
-    expect(groups.dormant).toEqual([]);
+    expect(buildContinuationGroups([dropped], [progressSummary], now)).toEqual({
+      continueWatching: [],
+      dormant: [],
+    });
+    expect(buildContinuationGroups([completed], [progressSummary], now)).toEqual({
+      continueWatching: [],
+      dormant: [],
+    });
   });
 
   it("includes progress-only shows without a watchlist row", () => {

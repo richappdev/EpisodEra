@@ -4,7 +4,13 @@ import {ContinueWatchingSection} from "../components/ContinueWatchingSection";
 import {SectionError} from "../components/SectionError";
 import {buildContinuationGroups, type ContinuationEntry} from "../lib/continuation";
 import {ShowProgressSummary} from "../types/progress";
-import {WatchlistItem, WatchlistStatus, movieWatchlistStatuses, tvWatchlistStatuses} from "../types/watchlist";
+import {
+  WatchlistItem,
+  WatchlistStatus,
+  isActiveWatchlistStatus,
+  movieWatchlistStatuses,
+  tvWatchlistStatuses,
+} from "../types/watchlist";
 
 const statusLabels: Record<WatchlistStatus, string> = {
   planned: "Planned",
@@ -56,6 +62,7 @@ export const WatchlistPage = ({
     () => buildContinuationGroups(items, progressItems),
     [items, progressItems],
   );
+  const activeItems = useMemo(() => items.filter((item) => isActiveWatchlistStatus(item.status)), [items]);
 
   if (!signedIn) {
     return (
@@ -111,7 +118,7 @@ export const WatchlistPage = ({
       />
 
       <div className="watchlist-grid">
-        {items.map((item) => {
+        {activeItems.map((item) => {
           const statusOptions = item.mediaType === "movie" ? movieWatchlistStatuses : tvWatchlistStatuses;
 
           return (

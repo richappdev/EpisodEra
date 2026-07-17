@@ -7,6 +7,10 @@ export const watchlistStatuses = [...tvWatchlistStatuses, ...movieWatchlistStatu
 
 export type WatchlistStatus = (typeof watchlistStatuses)[number];
 
+/** Statuses that belong on the Watchlist / Continue Watching surfaces. */
+export const isActiveWatchlistStatus = (status: WatchlistStatus) =>
+  status === "watching" || status === "planned" || status === "unwatched";
+
 export interface WatchlistItem {
   itemId: string;
   tmdbId: number;

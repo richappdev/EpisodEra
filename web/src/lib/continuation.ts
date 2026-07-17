@@ -1,5 +1,5 @@
 import {ShowProgressSummary} from "../types/progress";
-import {WatchlistItem} from "../types/watchlist";
+import {WatchlistItem, isActiveWatchlistStatus} from "../types/watchlist";
 
 /** Shows with no progress update for this many days move to the dormant bucket. */
 export const DORMANT_AFTER_DAYS = 21;
@@ -22,9 +22,6 @@ export interface ContinuationGroups {
 }
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-const isActiveTvWatchlistStatus = (status: WatchlistItem["status"]) =>
-  status === "watching" || status === "planned";
 
 export const daysSince = (isoDate: string | null | undefined, now: Date = new Date()) => {
   if (!isoDate) {
@@ -77,7 +74,7 @@ export const buildContinuationGroups = (
 
     const watchlistItem = watchlistByShowId.get(progress.showId) ?? null;
     // Exclude dropped/completed watchlist rows; allow watching, planned, or progress-only.
-    if (watchlistItem && !isActiveTvWatchlistStatus(watchlistItem.status)) {
+    if (watchlistItem && !isActiveWatchlistStatus(watchlistItem.status)) {
       continue;
     }
 
