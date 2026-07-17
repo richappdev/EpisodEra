@@ -358,8 +358,8 @@ A feature is complete only when all applicable conditions are met:
 
 | Resource              | Current status                                                                                                          |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| GitHub implementation | Tip `aeda075` (2026-07-17): App Check Phase 2 monitor deployed (Functions); Phase 3 enforce still off (`APP_CHECK_ENFORCE_AUTH_WRITES` unset). `friendCode` Admin-write-only in rules. TV Time import Phase 1 **code** shipped; **acceptance** still needs tip-matched hosted smoke evidence + soak/lifecycle/ZIP-arch. |
-| Notion planning       | Re-baseline to `aeda075` after recording local tip smoke PASS; hosted Production Smoke workflow evidence still recommended for release gate |
+| GitHub implementation | Tip `5d70afe`+ (2026-07-17): App Check **Phase 3 enforce live** (`APP_CHECK_ENFORCE_AUTH_WRITES=true`); Hosting rebuilt with reCAPTCHA site key; `friendCode` Admin-write-only. TV Time Phase 1 acceptance still needs hosted workflow evidence + soak/lifecycle/ZIP-arch. |
+| Notion planning       | Re-baseline after recording Phase 3 enforce + local tip smoke PASS; add GitHub Actions secret `EPISODERA_SMOKE_APP_CHECK_BYPASS` for hosted smoke |
 | Figma design          | Responsive screen system documented; direct latest-file verification pending when connector access allows |
 | Canva reporting       | Should distinguish implemented code, recorded smoke evidence, and beta-ready status; refresh after hosted smoke reruns |
 
@@ -374,6 +374,12 @@ At the time of this update:
 These limitations affect resource synchronization only. They do not change product scope or implementation status.
 
 ## Change Log
+### 2026-07-17 (App Check Phase 3 enforce live)
+
+* Hosting redeployed with `VITE_FIREBASE_APP_CHECK_RECAPTCHA_SITE_KEY`; Functions redeployed with `APP_CHECK_ENFORCE_AUTH_WRITES=true` + smoke bypass.
+* Local production smoke **PASS** under enforcement (bypass header). GitHub secret sync via `gh` returned 403 — set `EPISODERA_SMOKE_APP_CHECK_BYPASS` in repo settings manually.
+* Next product gate unchanged: TV Time Phase 1 acceptance (hosted smoke evidence, soak, lifecycle, ZIP-arch).
+
 ### 2026-07-17 (App Check Phase 2 deploy + friendCode rules)
 
 * Tip `aeda075` on `main` / `origin/main`: App Check backend monitor + Phase 3 flag, `friendCode` locked in Firestore rules, `build:prod` requires reCAPTCHA site key.
