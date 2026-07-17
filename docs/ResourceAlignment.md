@@ -358,8 +358,8 @@ A feature is complete only when all applicable conditions are met:
 
 | Resource              | Current status                                                                                                          |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| GitHub implementation | Tip `b147545` (2026-07-15): MVP core + UX Phases 1–6. TV Time import **Phase 1 code** shipped (ZIP resolve, mapping review, `mediaMappings`, staging/run); **acceptance open** (tip smoke + import path, 4.7k soak, ZIP-arch decision, lifecycle cleanup). App Check **client** at `c97b0c3`. Phase 2 `watchEvents` blocked until Phase 1 complete. |
-| Notion planning       | Parent + Firestore + Schema/Test/Reliability/UX pages re-baselined to `b147545` (2026-07-15 evening); hosted tip smoke PENDING |
+| GitHub implementation | Tip `aeda075` (2026-07-17): App Check Phase 2 monitor deployed (Functions); Phase 3 enforce still off (`APP_CHECK_ENFORCE_AUTH_WRITES` unset). `friendCode` Admin-write-only in rules. TV Time import Phase 1 **code** shipped; **acceptance** still needs tip-matched hosted smoke evidence + soak/lifecycle/ZIP-arch. |
+| Notion planning       | Re-baseline to `aeda075` after recording local tip smoke PASS; hosted Production Smoke workflow evidence still recommended for release gate |
 | Figma design          | Responsive screen system documented; direct latest-file verification pending when connector access allows |
 | Canva reporting       | Should distinguish implemented code, recorded smoke evidence, and beta-ready status; refresh after hosted smoke reruns |
 
@@ -374,6 +374,13 @@ At the time of this update:
 These limitations affect resource synchronization only. They do not change product scope or implementation status.
 
 ## Change Log
+### 2026-07-17 (App Check Phase 2 deploy + friendCode rules)
+
+* Tip `aeda075` on `main` / `origin/main`: App Check backend monitor + Phase 3 flag, `friendCode` locked in Firestore rules, `build:prod` requires reCAPTCHA site key.
+* Deployed `functions` + `firestore:rules` to `episodera` with enforcement **off** (monitor-only).
+* Local production smoke **PASS** at tip against `https://api-m74gmd4u4a-uc.a.run.app` (invalid auth / CORS / rate-limit verified).
+* Next: set prod App Check site key in Hosting build, then enable `APP_CHECK_ENFORCE_AUTH_WRITES` + smoke bypass; finish TV Time Phase 1 acceptance (hosted smoke evidence, soak, lifecycle, ZIP-arch).
+
 ### 2026-07-15 (rebaseline to b147545 — Phase 1 closeout gate)
 
 * Canonical tip set to `b147545` on `main` / `origin/main`.
