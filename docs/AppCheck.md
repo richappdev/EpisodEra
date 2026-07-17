@@ -159,7 +159,7 @@ requireAppCheck  -> 401/403 only after Phase 3 flip
 ### CI / smoke
 
 - [x] Document App Check smoke bypass (`SMOKE_BYPASS_APP_CHECK` + `EPISODERA_SMOKE_APP_CHECK_BYPASS`)
-- [x] Confirm `Production Smoke` workflow still passes after enabling Phase 3 in production (local tip smoke PASS with bypass; set GitHub secret `EPISODERA_SMOKE_APP_CHECK_BYPASS` manually — CLI returned 403)
+- [x] Confirm `Production Smoke` workflow still passes after enabling Phase 3 in production ([run 29565696402](https://github.com/richappdev/EpisodEra/actions/runs/29565696402) PASS; bypass secret name `SMOKE_BYPASS_APP_CHECK_SECRET` accepted by workflow fallback)
 
 ### Docs
 

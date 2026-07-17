@@ -377,8 +377,8 @@ These limitations affect resource synchronization only. They do not change produ
 ### 2026-07-17 (App Check Phase 3 enforce live)
 
 * Hosting redeployed with `VITE_FIREBASE_APP_CHECK_RECAPTCHA_SITE_KEY`; Functions redeployed with `APP_CHECK_ENFORCE_AUTH_WRITES=true` + smoke bypass.
-* Local production smoke **PASS** under enforcement (bypass header). GitHub secret sync via `gh` returned 403 — set `EPISODERA_SMOKE_APP_CHECK_BYPASS` in repo settings manually.
-* Next product gate unchanged: TV Time Phase 1 acceptance (hosted smoke evidence, soak, lifecycle, ZIP-arch).
+* Local production smoke **PASS** under enforcement (bypass header). Hosted Production Smoke **PASS** at [run 29565696402](https://github.com/richappdev/EpisodEra/actions/runs/29565696402) using repo secret `SMOKE_BYPASS_APP_CHECK_SECRET` (workflow accepts that name or `EPISODERA_SMOKE_APP_CHECK_BYPASS`).
+* Next product gate unchanged: TV Time Phase 1 acceptance (soak, lifecycle, ZIP-arch).
 
 ### 2026-07-17 (App Check Phase 2 deploy + friendCode rules)
 
