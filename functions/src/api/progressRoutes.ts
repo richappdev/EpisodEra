@@ -1,5 +1,6 @@
 import {Router} from "express";
 import {parsePaginationQuery} from "../lib/pagination";
+import {requireAppCheck} from "../middleware/appCheck";
 import {AuthenticatedRequest, requireAuth} from "../middleware/auth";
 import {
   parseBatchEpisodeProgressInput,
@@ -11,7 +12,7 @@ import {HttpError} from "../lib/httpError";
 
 export const progressRouter = Router();
 
-progressRouter.use(requireAuth);
+progressRouter.use(requireAuth, requireAppCheck);
 
 progressRouter.get("/progress", async (req: AuthenticatedRequest, res, next) => {
   try {

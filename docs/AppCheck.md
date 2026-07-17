@@ -106,9 +106,10 @@ requireAppCheck  -> 401/403 only after Phase 3 flip
 
 **Smoke test impact:**
 
-- Production smoke uses Firebase Auth REST, not the web SDK. Either:
-  - Add a CI-only App Check debug token to the smoke script headers, or
-  - Exempt smoke automation via a dedicated internal header checked only when `SMOKE_BYPASS_APP_CHECK=true` in Functions config (short-lived, secret-gated; prefer debug token).
+- Production smoke uses Firebase Auth REST, not the web SDK. Configure:
+  - Functions: `SMOKE_BYPASS_APP_CHECK=true` and `SMOKE_BYPASS_APP_CHECK_SECRET=<secret>`
+  - Smoke / GitHub Actions: `EPISODERA_SMOKE_APP_CHECK_BYPASS=<same secret>` (sent as `X-EpisodEra-Smoke-Bypass`)
+- Browser clients should keep using reCAPTCHA / App Check debug tokens; do not ship the smoke bypass secret to Hosting.
 
 **Exit criteria:** No increase in support issues; authenticated API abuse metrics flat or down.
 
@@ -149,21 +150,22 @@ requireAppCheck  -> 401/403 only after Phase 3 flip
 
 ### Functions (`functions/`)
 
-- [ ] `verifyToken()` middleware using Admin App Check
-- [ ] Feature flags: `APP_CHECK_ENFORCE_AUTH_WRITES`, `APP_CHECK_ENFORCE_PUBLIC_READS`
-- [ ] Structured logs for missing/invalid tokens
-- [ ] Tests for middleware (valid, missing, invalid)
+- [x] `verifyToken()` middleware using Admin App Check (`optionalAppCheck` / `requireAppCheck`)
+- [x] Feature flags: `APP_CHECK_ENFORCE_AUTH_WRITES`, `APP_CHECK_ENFORCE_PUBLIC_READS`
+- [x] Structured logs for missing (authenticated requests) / invalid tokens
+- [x] Tests for middleware (valid, missing, invalid, smoke bypass)
+- [ ] Mount `requireAppCheckPublic` on discovery routes when enabling Phase 4
 
 ### CI / smoke
 
-- [ ] Document App Check debug token secret for GitHub Actions if smoke sends App Check headers
-- [ ] Confirm `Production Smoke` workflow still passes after Phase 3
+- [x] Document App Check smoke bypass (`SMOKE_BYPASS_APP_CHECK` + `EPISODERA_SMOKE_APP_CHECK_BYPASS`)
+- [ ] Confirm `Production Smoke` workflow still passes after enabling Phase 3 in production
 
 ### Docs
 
-- [ ] Update `docs/Authentication.md` with App Check flow
-- [ ] Update `docs/Deployment.md` pre-deploy checklist
-- [ ] Update `README.md` known gaps when enforcement is live
+- [x] Update `docs/Authentication.md` with App Check flow
+- [x] Update `docs/Deployment.md` pre-deploy checklist
+- [x] Update `README.md` known gaps when enforcement is live
 
 ## Rollback
 

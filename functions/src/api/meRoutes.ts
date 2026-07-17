@@ -1,5 +1,6 @@
 import {Router} from "express";
 import {parsePaginationQuery} from "../lib/pagination";
+import {requireAppCheck} from "../middleware/appCheck";
 import {AuthenticatedRequest, requireAuth} from "../middleware/auth";
 import {accountDeletionService} from "../services/accountDeletionService";
 import {historyService, parseUpdateHistoryInput} from "../services/historyService";
@@ -26,7 +27,7 @@ import {HttpError} from "../lib/httpError";
 
 export const meRouter = Router();
 
-meRouter.use(requireAuth);
+meRouter.use(requireAuth, requireAppCheck);
 
 meRouter.get("/me/stats", async (req: AuthenticatedRequest, res, next) => {
   try {

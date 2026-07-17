@@ -1,5 +1,6 @@
 import {Router} from "express";
 import {parsePaginationQuery} from "../lib/pagination";
+import {requireAppCheck} from "../middleware/appCheck";
 import {AuthenticatedRequest, requireAuth} from "../middleware/auth";
 import {
   parseAddWatchlistItemInput,
@@ -9,7 +10,7 @@ import {
 
 export const watchlistRouter = Router();
 
-watchlistRouter.use(requireAuth);
+watchlistRouter.use(requireAuth, requireAppCheck);
 
 watchlistRouter.get("/watchlist", async (req: AuthenticatedRequest, res, next) => {
   try {

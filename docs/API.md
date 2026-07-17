@@ -22,6 +22,8 @@ Authorization: Bearer <firebase-id-token>
 
 Missing, malformed, expired, and otherwise invalid tokens all produce the same `401 unauthenticated` response on protected routes. Public routes ignore invalid bearer tokens.
 
+When `APP_CHECK_ENFORCE_AUTH_WRITES=true`, protected routes also require a valid Firebase App Check token in `X-Firebase-AppCheck` (or a configured smoke bypass header). Missing App Check yields `401 app_check_required`; a present-but-invalid token yields `401 app_check_invalid`. Public discovery routes stay on monitor-only App Check until Phase 4 (`APP_CHECK_ENFORCE_PUBLIC_READS`).
+
 Requests that pass CORS processing receive an `x-request-id` response header. If the request supplies an `x-request-id` header, the API echoes it; otherwise the API generates a UUID. This identifier is also included in the structured server log for the request.
 
 Set `CORS_ORIGINS` to a comma-separated allowlist for deployed environments. When omitted, the API allows all origins for local development.
@@ -980,6 +982,8 @@ Defined error codes:
 | `400` | `invalid_watchlist_payload` | A watchlist request body failed validation. |
 | `400` | `unsupported_language` | A settings update used a language other than `en-US` or `zh-TW`. |
 | `401` | `unauthenticated` | A protected endpoint was called without a valid user. |
+| `401` | `app_check_required` | App Check enforcement is on and `X-Firebase-AppCheck` was missing. |
+| `401` | `app_check_invalid` | App Check enforcement is on and `X-Firebase-AppCheck` failed verification. |
 | `403` | `origin_not_allowed` | The browser request origin is not in `CORS_ORIGINS`. |
 | `404` | `episode_not_found` | A requested season/episode does not exist in the canonical TMDb show metadata. |
 | `404` | `watchlist_item_not_found` | A watchlist item was not found for the signed-in user. |

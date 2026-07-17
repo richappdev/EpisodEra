@@ -2,9 +2,14 @@ import {NextFunction, Request, Response} from "express";
 import {getAuth} from "firebase-admin/auth";
 
 export interface AuthenticatedRequest extends Request {
+  requestId?: string;
   user?: {
     uid: string;
     email?: string;
+  };
+  appCheck?: {
+    appId: string;
+    source: "token" | "smoke_bypass";
   };
 }
 

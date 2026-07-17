@@ -75,7 +75,7 @@ npm run build:prod
 
 `npm run build:prod` validates `web/.env.production` before building. A plain `npm run build` without `.env.production` will produce a bundle missing Firebase client config.
 
-Optional App Check Phase 1: set `VITE_FIREBASE_APP_CHECK_RECAPTCHA_SITE_KEY` in `web/.env.production` after registering reCAPTCHA v3 in Firebase Console. The client attaches `X-Firebase-AppCheck` on API requests; backend enforcement is not active until Phase 2+ (`docs/AppCheck.md`).
+Optional App Check: set `VITE_FIREBASE_APP_CHECK_RECAPTCHA_SITE_KEY` in `web/.env.production` after registering reCAPTCHA v3 in Firebase Console. The client attaches `X-Firebase-AppCheck` on API requests. Functions always run App Check in monitor mode (`optionalAppCheck`). To enforce on authenticated routes (Phase 3), set `APP_CHECK_ENFORCE_AUTH_WRITES=true` in `functions/.env.episodera` and redeploy Functions. See `docs/AppCheck.md`.
 
 ## Web hosting deployment
 
@@ -200,4 +200,5 @@ The production smoke path intentionally does not delete accounts. Validate accou
 - Firestore rules deployed
 - Production `VITE_API_BASE_URL` points to the deployed API (`https://api-m74gmd4u4a-uc.a.run.app`)
 - Firebase Hosting deployed from `web/dist`
-- Review `docs/AppCheck.md` before enabling App Check enforcement
+- Before enabling `APP_CHECK_ENFORCE_AUTH_WRITES=true`: confirm web builds send App Check headers, set `SMOKE_BYPASS_APP_CHECK` + secret for CI smoke, and add repository secret `EPISODERA_SMOKE_APP_CHECK_BYPASS`
+- Review `docs/AppCheck.md` for Phase 4 public-read enforcement

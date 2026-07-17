@@ -112,6 +112,10 @@ const rawRequest = async (
     if (origin) {
       headers.set("Origin", origin);
     }
+    const smokeBypass = normalizeEnv(process.env.EPISODERA_SMOKE_APP_CHECK_BYPASS);
+    if (smokeBypass) {
+      headers.set("X-EpisodEra-Smoke-Bypass", smokeBypass);
+    }
     if (body !== undefined) {
       headers.set("Content-Type", "application/json");
     }

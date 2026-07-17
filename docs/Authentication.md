@@ -67,12 +67,14 @@ For local emulator runs, provide the secret through the Firebase emulator secret
 3. User signs up or signs in with email/password.
 4. The app listens to Firebase auth state.
 5. API calls include `Authorization: Bearer <idToken>` when a user is signed in.
-6. Backend middleware verifies the token with Firebase Admin and attaches `req.user`.
+6. When configured, the web client also attaches `X-Firebase-AppCheck` (reCAPTCHA v3).
+7. Backend middleware verifies the ID token with Firebase Admin and attaches `req.user`.
+8. Backend `optionalAppCheck` verifies App Check tokens in monitor mode. When `APP_CHECK_ENFORCE_AUTH_WRITES=true`, `requireAppCheck` rejects protected routes without a valid App Check token.
 
 ## Backend behavior
 
 - Discovery endpoints are public today and use optional auth.
-- User-owned endpoints must use `requireAuth`.
+- User-owned endpoints must use `requireAuth` (and `requireAppCheck` when Phase 3 enforcement is enabled).
 - Firestore writes must use `req.user.uid` as the owner path.
 - The backend should not trust user IDs sent in request bodies.
 
@@ -86,6 +88,6 @@ For local emulator runs, provide the secret through the Firebase emulator secret
 - API requests include an ID token for signed-in users.
 - Signed-out users can still browse public discovery pages.
 
-## Future hardening
+## App Check
 
-See `docs/AppCheck.md` for the phased App Check rollout plan (reCAPTCHA v3, monitor mode, enforced API routes).
+See `docs/AppCheck.md` for the phased rollout. Phase 2 (backend monitor) and Phase 3 (enforce on `requireAuth` routes behind `APP_CHECK_ENFORCE_AUTH_WRITES`) are implemented in Functions. Public-read enforcement remains Phase 4.

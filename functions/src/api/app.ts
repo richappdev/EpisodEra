@@ -3,7 +3,8 @@ import express, {ErrorRequestHandler} from "express";
 import crypto from "node:crypto";
 import {authenticatedWriteRateLimit, corsOrigins, publicReadRateLimit} from "../config/env";
 import {HttpError} from "../lib/httpError";
-import {optionalAuth} from "../middleware/auth";
+import {optionalAppCheck} from "../middleware/appCheck";
+import {AuthenticatedRequest, optionalAuth} from "../middleware/auth";
 import {
   authenticatedWriteRateLimitKey,
   publicReadRateLimitKey,
@@ -31,6 +32,7 @@ app.use(express.json({limit: "256kb"}));
 app.use((req, res, next) => {
   const requestId = req.header("x-request-id") ?? crypto.randomUUID();
   const startedAt = Date.now();
+  (req as AuthenticatedRequest).requestId = requestId;
 
   res.setHeader("x-request-id", requestId);
   res.on("finish", () => {
@@ -45,6 +47,7 @@ app.use((req, res, next) => {
   next();
 });
 app.use(optionalAuth);
+app.use(optionalAppCheck);
 app.use(rateLimit({
   key: publicReadRateLimitKey,
   maxRequests: publicReadRateLimit.maxRequests,

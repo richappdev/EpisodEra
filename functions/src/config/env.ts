@@ -22,3 +22,26 @@ export const authenticatedWriteRateLimit = {
   maxRequests: positiveIntegerFromEnv("AUTH_WRITE_RATE_LIMIT_MAX", 60),
   windowMs: positiveIntegerFromEnv("AUTH_WRITE_RATE_LIMIT_WINDOW_MS", 60_000),
 };
+
+const booleanFromEnv = (name: string, fallback = false) => {
+  const value = (process.env[name] ?? "").trim().toLowerCase();
+  if (!value) {
+    return fallback;
+  }
+
+  return value === "1" || value === "true" || value === "yes" || value === "on";
+};
+
+/** Phase 3: require App Check on all requireAuth routes when true. */
+export const isAppCheckEnforceAuthWrites = () => booleanFromEnv("APP_CHECK_ENFORCE_AUTH_WRITES");
+
+/** Phase 4: require App Check on public read routes when true (middleware ready, not mounted). */
+export const isAppCheckEnforcePublicReads = () => booleanFromEnv("APP_CHECK_ENFORCE_PUBLIC_READS");
+
+/**
+ * Opt-in smoke bypass for production-smoke.mjs (Auth REST, no web SDK).
+ * Requires SMOKE_BYPASS_APP_CHECK=true and a non-empty SMOKE_BYPASS_APP_CHECK_SECRET.
+ * Prefer App Check debug tokens for browser clients; use this only for CI smoke.
+ */
+export const isSmokeBypassAppCheck = () => booleanFromEnv("SMOKE_BYPASS_APP_CHECK");
+export const smokeBypassAppCheckSecret = () => (process.env.SMOKE_BYPASS_APP_CHECK_SECRET ?? "").trim();

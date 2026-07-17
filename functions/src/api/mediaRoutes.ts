@@ -1,5 +1,6 @@
 import {Router} from "express";
 import {HttpError} from "../lib/httpError";
+import {requireAppCheck} from "../middleware/appCheck";
 import {AuthenticatedRequest, requireAuth} from "../middleware/auth";
 import {SupportedLanguage, supportedLanguages} from "../models/settings";
 import {discussionService} from "../services/discussionService";
@@ -111,7 +112,7 @@ mediaRouter.get("/discussions/:mediaType/:id", async (req: AuthenticatedRequest,
   }
 });
 
-mediaRouter.post("/discussions/:mediaType/:id", requireAuth, async (req: AuthenticatedRequest, res, next) => {
+mediaRouter.post("/discussions/:mediaType/:id", requireAuth, requireAppCheck, async (req: AuthenticatedRequest, res, next) => {
   try {
     const mediaType = req.params.mediaType;
     if (mediaType !== "movie" && mediaType !== "tv") {
