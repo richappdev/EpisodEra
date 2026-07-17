@@ -31,6 +31,7 @@ import {
   ResolveTvTimeShowInput,
   ResolveTvTimeShowsResponse,
 } from "../types/import";
+import {UserDataExport} from "../types/export";
 import {getAppCheckToken} from "../firebase";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:5001/episodera/us-central1/api";
@@ -116,6 +117,7 @@ export const api = {
     request<ProgressResponse>(`/progress/${showId}/episode/${episodeKey}`, {method: "DELETE"}),
   meHistory: (pagination?: PaginationParams) =>
     request<HistoryResponse>(withPagination("/me/history", pagination)),
+  meExport: () => request<UserDataExport>("/me/export"),
   updateHistoryEntry: (historyId: string, input: UpdateHistoryInput) =>
     request<HistoryEntry>(`/me/history/${encodeURIComponent(historyId)}`, {method: "PATCH", body: input}),
   deleteHistoryEntry: (historyId: string) =>

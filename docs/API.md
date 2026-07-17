@@ -68,6 +68,7 @@ TMDb detail and TV season reads use a 24-hour per-Functions-instance in-memory T
 | `GET` | `/franchises/:slug` | Optional | `200` |
 | `GET` | `/discover/suggestions` | Optional | `200` |
 | `GET` | `/me/history` | Firebase ID token | `200` |
+| `GET` | `/me/export` | Firebase ID token | `200` |
 | `GET` | `/me/profile` | Firebase ID token | `200` |
 | `PATCH` | `/me/profile` | Firebase ID token | `200` |
 | `GET` | `/me/settings` | Firebase ID token | `200` |
@@ -747,6 +748,37 @@ Response:
 ```
 
 Movie history entries use `mediaType: "movie"` and return `null` for episode fields.
+
+## Personal data export
+
+```http
+GET /me/export
+```
+
+Builds a complete personal library snapshot for the signed-in user: watching history, per-show progress (including episode docs), and watchlist. Requires authentication (and App Check when auth-write enforcement is enabled).
+
+Response:
+
+```json
+{
+  "manifest": {
+    "schemaVersion": 1,
+    "exportedAt": "2026-07-17T12:00:00.000Z",
+    "userId": "firebase-uid",
+    "counts": {
+      "history": 18,
+      "progressShows": 3,
+      "progressEpisodes": 42,
+      "watchlist": 12
+    }
+  },
+  "history": [],
+  "progress": [],
+  "watchlist": []
+}
+```
+
+The Settings UI downloads this payload as a multi-file ZIP (`manifest.json`, `history.json`, `progress.json`, `watchlist.json`). See [ExportFormat.md](./ExportFormat.md) for the on-disk layout.
 
 ## Profile and User Settings
 

@@ -3,6 +3,7 @@ import {parsePaginationQuery} from "../lib/pagination";
 import {requireAppCheck} from "../middleware/appCheck";
 import {AuthenticatedRequest, requireAuth} from "../middleware/auth";
 import {accountDeletionService} from "../services/accountDeletionService";
+import {exportService} from "../services/exportService";
 import {historyService, parseUpdateHistoryInput} from "../services/historyService";
 import {progressService} from "../services/progressService";
 import {parseProfileInput, profileService} from "../services/profileService";
@@ -115,6 +116,14 @@ meRouter.get("/me/challenges", async (req: AuthenticatedRequest, res, next) => {
   try {
     const friendUserId = typeof req.query.friendUserId === "string" ? req.query.friendUserId : undefined;
     res.json(await challengeService.list(req.user!.uid, friendUserId));
+  } catch (error) {
+    next(error);
+  }
+});
+
+meRouter.get("/me/export", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    res.json(await exportService.build(req.user!.uid));
   } catch (error) {
     next(error);
   }

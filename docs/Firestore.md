@@ -279,6 +279,7 @@ Document ID format: `{provider}_{mediaType}_{externalId}` (e.g. `tv_time_tv_200`
 
 - Franchise catalogs: `functions/src/data/franchises.ts` (`star-wars`, `mcu-phase-one`)
 - Achievements, challenges, year recap, discovery suggestions: computed in Cloud Functions
+- Personal data export (`GET /me/export`): assembled on demand from history, progress, and watchlist — see [ExportFormat.md](./ExportFormat.md)
 - Append-only `watchEvents`: planned (Data Schema Phase 2), not shipped
 
 ## Security Rules
