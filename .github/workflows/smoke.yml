@@ -30,7 +30,8 @@ jobs:
       EPISODERA_FIREBASE_API_KEY: ${{ secrets.EPISODERA_FIREBASE_API_KEY }}
       EPISODERA_SMOKE_EMAIL: ${{ secrets.EPISODERA_SMOKE_EMAIL }}
       EPISODERA_SMOKE_PASSWORD: ${{ secrets.EPISODERA_SMOKE_PASSWORD }}
-      EPISODERA_SMOKE_APP_CHECK_BYPASS: ${{ secrets.EPISODERA_SMOKE_APP_CHECK_BYPASS }}
+      # Prefer EPISODERA_SMOKE_APP_CHECK_BYPASS; fall back to SMOKE_BYPASS_APP_CHECK_SECRET if that is what was registered.
+      EPISODERA_SMOKE_APP_CHECK_BYPASS: ${{ secrets.EPISODERA_SMOKE_APP_CHECK_BYPASS || secrets.SMOKE_BYPASS_APP_CHECK_SECRET }}
       EPISODERA_PROD_API_BASE_URL: ${{ inputs.api_base_url || 'https://api-m74gmd4u4a-uc.a.run.app' }}
       EPISODERA_SMOKE_SHOW_ID: ${{ inputs.smoke_show_id || '125988' }}
     steps:
