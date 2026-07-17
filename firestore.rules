@@ -32,7 +32,7 @@ service cloud.firestore {
 
     function validUserProfile() {
       return request.resource.data.keys().hasOnly([
-          'firstName', 'lastName', 'email', 'displayName', 'photoURL', 'bio', 'country', 'timezone', 'friendCode', 'createdAt', 'updatedAt'
+          'firstName', 'lastName', 'email', 'displayName', 'photoURL', 'bio', 'country', 'timezone', 'createdAt', 'updatedAt'
         ])
         && request.resource.data.keys().hasAll(['firstName', 'lastName', 'email'])
         && request.resource.data.firstName is string
@@ -44,8 +44,7 @@ service cloud.firestore {
         && (!('photoURL' in request.resource.data) || isNullableString(request.resource.data.photoURL))
         && (!('bio' in request.resource.data) || isNullableString(request.resource.data.bio))
         && (!('country' in request.resource.data) || isNullableString(request.resource.data.country))
-        && (!('timezone' in request.resource.data) || isNullableString(request.resource.data.timezone))
-        && (!('friendCode' in request.resource.data) || isNullableString(request.resource.data.friendCode));
+        && (!('timezone' in request.resource.data) || isNullableString(request.resource.data.timezone));
     }
 
     function validWatchlistItem(itemId) {

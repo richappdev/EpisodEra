@@ -2,7 +2,7 @@
 
 Firestore stores user-owned application state. TMDb remains the source of truth for media metadata, so documents should reference TMDb IDs and cache only the fields needed for display or offline convenience.
 
-**Baseline:** tip after TV Time import Phase 1 (ZIP resolve + mapping review + `mediaMappings`). Franchises, achievements, challenges, year recap, and discovery suggestions are computed in Cloud Functions (or in-code catalogs) — not stored as Firestore collections. Append-only `watchEvents` remains planned (Data Schema Phase 2); see Notion *TV Time Data Schema Analysis*.
+**Baseline:** tip `b147545` after TV Time import Phase 1 **code** (ZIP resolve + mapping review + `mediaMappings` + staging/run). Phase 1 acceptance (tip smoke, soak, lifecycle, ZIP-arch decision) remains open before Phase 2. Franchises, achievements, challenges, year recap, and discovery suggestions are computed in Cloud Functions (or in-code catalogs) — not stored as Firestore collections. Append-only `watchEvents` remains planned (Data Schema Phase 2); see Notion *TV Time Data Schema Analysis*.
 
 ## Collections
 
@@ -43,7 +43,8 @@ User profile document. The document ID must match the Firebase Auth UID.
 }
 ```
 
-`firstName`, `lastName`, and `email` are required for newly written profile documents. Optional personal fields may be omitted or stored as `null`. `friendCode` is a server-managed 6-character uppercase code used for friend requests.
+`firstName`, `lastName`, and `email` are required for newly written profile documents. Optional personal fields may be omitted or stored as `null`. `friendCode` is a server-managed 6-character uppercase code used for friend requests. Clients may read it on their own profile document but cannot create or update it through Firestore rules; Cloud Functions (Admin SDK) own writes.
+
 ## users/{userId}/watchlist/{mediaType_id}
 
 Tracks saved movies and TV shows.
@@ -284,7 +285,7 @@ Document ID format: `{provider}_{mediaType}_{externalId}` (e.g. `tv_time_tv_200`
 
 The current `firestore.rules` policy is intentionally narrow:
 
-- Users can create/read/update/delete only their own `users/{uid}` document.
+- Users can create/read/update/delete only their own `users/{uid}` document (`friendCode` is Admin-write only).
 - Users can read/write only their own `watchlist` and `ratings` subcollections.
 - Users can read/write only their own `progress` documents and nested `episodes`.
 - Users can read/write only their own `history` documents.

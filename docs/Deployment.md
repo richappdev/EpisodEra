@@ -73,7 +73,7 @@ cp .env.production.example .env.production
 npm run build:prod
 ```
 
-`npm run build:prod` validates `web/.env.production` before building. A plain `npm run build` without `.env.production` will produce a bundle missing Firebase client config.
+`npm run build:prod` validates `web/.env.production` before building, including `VITE_FIREBASE_APP_CHECK_RECAPTCHA_SITE_KEY` by default. A plain `npm run build` without `.env.production` will produce a bundle missing Firebase client config. Set `EPISODERA_REQUIRE_APP_CHECK_SITE_KEY=false` only for emergency Hosting builds without App Check.
 
 Optional App Check: set `VITE_FIREBASE_APP_CHECK_RECAPTCHA_SITE_KEY` in `web/.env.production` after registering reCAPTCHA v3 in Firebase Console. The client attaches `X-Firebase-AppCheck` on API requests. Functions always run App Check in monitor mode (`optionalAppCheck`). To enforce on authenticated routes (Phase 3), set `APP_CHECK_ENFORCE_AUTH_WRITES=true` in `functions/.env.episodera` and redeploy Functions. See `docs/AppCheck.md`.
 

@@ -358,8 +358,8 @@ A feature is complete only when all applicable conditions are met:
 
 | Resource              | Current status                                                                                                          |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| GitHub implementation | Tip `7fe1df9` (2026-07-15): MVP core + UX Phases 1–6. TV Time import **Phase 1** nearly complete (ZIP resolve, mapping review UI, `mediaMappings`). App Check **client** at `c97b0c3`. Remaining: `watchEvents` (Phase 2), App Check Phase 2+, compliance, deps, ops. |
-| Notion planning       | Parent + Firestore re-baselined to `7fe1df9` (2026-07-15); local smoke PASS same day; prior hosted smoke `c97b0c3` |
+| GitHub implementation | Tip `b147545` (2026-07-15): MVP core + UX Phases 1–6. TV Time import **Phase 1 code** shipped (ZIP resolve, mapping review, `mediaMappings`, staging/run); **acceptance open** (tip smoke + import path, 4.7k soak, ZIP-arch decision, lifecycle cleanup). App Check **client** at `c97b0c3`. Phase 2 `watchEvents` blocked until Phase 1 complete. |
+| Notion planning       | Parent + Firestore + Schema/Test/Reliability/UX pages re-baselined to `b147545` (2026-07-15 evening); hosted tip smoke PENDING |
 | Figma design          | Responsive screen system documented; direct latest-file verification pending when connector access allows |
 | Canva reporting       | Should distinguish implemented code, recorded smoke evidence, and beta-ready status; refresh after hosted smoke reruns |
 
@@ -374,13 +374,20 @@ At the time of this update:
 These limitations affect resource synchronization only. They do not change product scope or implementation status.
 
 ## Change Log
+### 2026-07-15 (rebaseline to b147545 — Phase 1 closeout gate)
+
+* Canonical tip set to `b147545` on `main` / `origin/main`.
+* Notion parent MVP, Firestore schema, TV Time Data Schema, Alignment, Reliability, UI Testing, and UX plan re-baselined; Firestore hierarchy corrected to include `imports/**` with TMDb-centric staged keys + top-level `mediaMappings/**`.
+* Product decision: **close Phase 1** (tip-matched hosted smoke + import deployed checks, ~4.7k soak, browser-ZIP architecture decision, staging lifecycle cleanup) **before** Phase 2 `watchEvents` or more UX work.
+* Parallel gates unchanged: App Check Phase 2+, WCAG depth, deps, observability, rollback. Bundle/Vite cleanup must not displace import acceptance.
+
 ### 2026-07-15 (TV Time import Phase 1 — mapping review + mediaMappings)
 
-* Canonical tip `7fe1df9` (web API client allows `PUT` for media-mappings upsert).
+* Feature tip `7fe1df9` (web API client allows `PUT` for media-mappings upsert); tip later advanced to `b147545`.
 
 * Shipped in-app mapping review for unmatched/ambiguous TV Time shows; user picks persist to Firestore `mediaMappings/{provider}_{mediaType}_{externalId}` via `PUT /me/imports/media-mappings` (Cloud Functions only writes).
 * ZIP resolve (`POST /me/imports/resolve-tv-time-shows`) consults shared overrides; Settings import flow includes review UI before staging/commit/run.
-* Product status: TV Time import Phase 1 nearly complete; append-only `watchEvents` remains Data Schema Phase 2.
+* Product status: TV Time import Phase 1 **code** shipped; acceptance (smoke/soak/lifecycle/arch decision) open before Phase 2 `watchEvents`.
 
 ### 2026-07-15 (baseline bump to 1d5ca30 + import track)
 

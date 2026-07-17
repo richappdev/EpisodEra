@@ -134,6 +134,20 @@ test("rules require valid user profile names and email", {
   }));
 });
 
+test("rules deny client writes to server-managed friendCode", {
+  skip: skipWithoutEmulator,
+}, async () => {
+  await clearData();
+  const db = await withAuthedDb("alice");
+
+  await assertFails(setDoc(doc(db, "users/alice"), {
+    firstName: "Ada",
+    lastName: "Viewer",
+    email: "ada@example.com",
+    friendCode: "AB12CD",
+  }));
+});
+
 test("rules validate progress summaries and nested episode documents", {
   skip: skipWithoutEmulator,
 }, async () => {

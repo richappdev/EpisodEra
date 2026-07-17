@@ -146,7 +146,7 @@ requireAppCheck  -> 401/403 only after Phase 3 flip
 - [x] Debug provider when `VITE_USE_FIREBASE_EMULATORS=true`
 - [x] API client sends `X-Firebase-AppCheck`
 - [x] `web/.env.production.example` documents new vars
-- [ ] `npm run build:prod` validation includes site key before Phase 3
+- [x] `npm run build:prod` validation includes site key before Phase 3 (`EPISODERA_REQUIRE_APP_CHECK_SITE_KEY`, default true)
 
 ### Functions (`functions/`)
 
