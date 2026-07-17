@@ -1,4 +1,4 @@
-import {strToU8, zipSync} from "fflate";
+﻿import {strToU8, zipSync} from "fflate";
 import {UserDataExport} from "../types/export";
 
 const dateStamp = (iso: string): string => {
@@ -27,7 +27,8 @@ export const buildExportZipBytes = (payload: UserDataExport): Uint8Array => {
 };
 
 export const triggerBrowserDownload = (bytes: Uint8Array, filename: string) => {
-  const blob = new Blob([bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)], {
+  const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  const blob = new Blob([ab], {
     type: "application/zip",
   });
   const url = URL.createObjectURL(blob);
