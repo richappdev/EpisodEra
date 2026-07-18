@@ -427,7 +427,7 @@ users/{uid}/progress/{showId}/episodes/{episodeKey}
 GET /progress?page={page}&pageSize={pageSize}
 ```
 
-Lists summary-only show progress documents for the signed-in user, sorted by most recently updated. This endpoint does not read each show's `episodes` subcollection.
+Lists summary-only show progress documents for the signed-in user, sorted by most recently updated. This endpoint does not read each show's `episodes` subcollection. Items with a missing `poster` are backfilled from TMDb on read and persisted to Firestore (without changing `updatedAt`). Failed TMDb lookups leave the existing null/blank values unchanged.
 
 Query parameters:
 
@@ -443,6 +443,7 @@ Response:
       "showId": "95396",
       "tmdbId": 95396,
       "title": "Severance",
+      "poster": "https://image.tmdb.org/t/p/w500/example.jpg",
       "totalEpisodes": 19,
       "watchedEpisodeCount": 2,
       "progressPercent": 10.53,
@@ -486,6 +487,7 @@ Response after watched episodes exist:
     "showId": "95396",
     "tmdbId": 95396,
     "title": "Severance",
+    "poster": "https://image.tmdb.org/t/p/w500/example.jpg",
     "totalEpisodes": 19,
     "watchedEpisodeCount": 1,
     "progressPercent": 5.26,
@@ -566,6 +568,7 @@ Response:
     "showId": "95396",
     "tmdbId": 95396,
     "title": "Severance",
+    "poster": "https://image.tmdb.org/t/p/w500/example.jpg",
     "totalEpisodes": 19,
     "watchedEpisodeCount": 1,
     "progressPercent": 5.26,

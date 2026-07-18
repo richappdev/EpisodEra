@@ -130,7 +130,7 @@ export const buildContinuationGroups = (
       key: watchlistItem?.itemId ?? `progress_${progress.showId}`,
       tmdbId: progress.tmdbId,
       title: watchlistItem?.title ?? progress.title,
-      poster: watchlistItem?.poster ?? null,
+      poster: watchlistItem?.poster ?? progress.poster ?? null,
       watchlistItem,
       progress,
       bucket: isDormantProgress(progress, now, dormantAfterDays) ? "dormant" : "continue",

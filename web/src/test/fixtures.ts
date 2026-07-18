@@ -92,6 +92,7 @@ export const progressSummary: ShowProgressSummary = {
   showId: String(tvDetail.id),
   tmdbId: tvDetail.id,
   title: tvDetail.title,
+  poster: null,
   totalEpisodes: 3,
   watchedEpisodeCount: 1,
   progressPercent: 33.33,

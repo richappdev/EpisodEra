@@ -13,6 +13,7 @@ const progressFixture: ShowProgress = {
   showId: "95396",
   tmdbId: 95396,
   title: "Severance",
+  poster: null,
   totalEpisodes: 3,
   watchedEpisodeCount: 1,
   progressPercent: 33.33,

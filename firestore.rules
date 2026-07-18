@@ -80,7 +80,7 @@ service cloud.firestore {
     function validProgress(showId) {
       return showId.matches('^[1-9][0-9]*$')
         && request.resource.data.keys().hasOnly([
-          'tmdbId', 'title', 'totalEpisodes', 'watchedEpisodeCount', 'progressPercent',
+          'tmdbId', 'title', 'poster', 'totalEpisodes', 'watchedEpisodeCount', 'progressPercent',
           'currentSeason', 'currentEpisode', 'nextEpisode', 'updatedAt'
         ])
         && request.resource.data.keys().hasAll([
@@ -90,6 +90,7 @@ service cloud.firestore {
         && request.resource.data.tmdbId is int
         && request.resource.data.tmdbId > 0
         && request.resource.data.title is string
+        && (!('poster' in request.resource.data) || isNullableString(request.resource.data.poster))
         && request.resource.data.totalEpisodes is int
         && request.resource.data.totalEpisodes >= 0
         && request.resource.data.watchedEpisodeCount is int

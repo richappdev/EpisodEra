@@ -76,6 +76,7 @@ describe("franchiseLogic", () => {
           showId: "3",
           tmdbId: 3,
           title: "Spin-off Show",
+          poster: null,
           totalEpisodes: 10,
           watchedEpisodeCount: 4,
           progressPercent: 40,

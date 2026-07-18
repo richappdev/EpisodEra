@@ -16,7 +16,9 @@ progressRouter.use(requireAuth, requireAppCheck);
 
 progressRouter.get("/progress", async (req: AuthenticatedRequest, res, next) => {
   try {
-    res.json(await progressService.list(req.user!.uid, parsePaginationQuery(req.query)));
+    const page = await progressService.list(req.user!.uid, parsePaginationQuery(req.query));
+    const items = await progressService.backfillMissingPosters(req.user!.uid, page.items);
+    res.json({...page, items});
   } catch (error) {
     next(error);
   }

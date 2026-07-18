@@ -80,6 +80,32 @@ describe("continuation", () => {
     expect(groups.continueWatching[0].watchlistItem).toBeNull();
   });
 
+  it("uses progress poster when the watchlist row has none", () => {
+    const withPoster = {
+      ...progressSummary,
+      poster: "https://image.tmdb.org/t/p/w500/love-me.jpg",
+    };
+    const watchlistWithoutPoster = {
+      ...watchlistItem,
+      poster: null,
+    };
+
+    const progressOnly = buildContinuationGroups([], [withPoster], now);
+    expect(progressOnly.continueWatching[0].poster).toBe(withPoster.poster);
+
+    const fromWatchlistFallback = buildContinuationGroups([watchlistWithoutPoster], [withPoster], now);
+    expect(fromWatchlistFallback.continueWatching[0].poster).toBe(withPoster.poster);
+
+    const prefersWatchlist = buildContinuationGroups(
+      [{...watchlistItem, poster: "https://image.tmdb.org/t/p/w500/watchlist.jpg"}],
+      [withPoster],
+      now,
+    );
+    expect(prefersWatchlist.continueWatching[0].poster).toBe(
+      "https://image.tmdb.org/t/p/w500/watchlist.jpg",
+    );
+  });
+
   it("builds library entries for stale, planned, and completed titles", () => {
     const dormantProgress = {
       ...progressSummary,

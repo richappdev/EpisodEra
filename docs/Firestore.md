@@ -97,6 +97,7 @@ Shape:
 {
   "tmdbId": 95396,
   "title": "Severance",
+  "poster": "https://image.tmdb.org/t/p/w500/example.jpg",
   "totalEpisodes": 19,
   "watchedEpisodeCount": 2,
   "progressPercent": 10.53,
@@ -112,7 +113,7 @@ Shape:
 }
 ```
 
-`progressPercent` is rounded to two decimal places by the backend.
+`progressPercent` is rounded to two decimal places by the backend. `poster` is optional; missing posters are backfilled from TMDb on `GET /progress` and persisted without changing `updatedAt`.
 
 ## users/{userId}/progress/{showId}/episodes/{episodeKey}
 

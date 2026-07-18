@@ -486,6 +486,7 @@ const progressFromWatchedEpisodes = (watchedEpisodeNumbers: number[]) => {
     showId: String(showId),
     tmdbId: showId,
     title: showSummary.title,
+    poster: showSummary.images.poster,
     totalEpisodes: seasonOne.episodeCount,
     watchedEpisodeCount: watched.length,
     progressPercent: Number(((watched.length / seasonOne.episodeCount) * 100).toFixed(2)),

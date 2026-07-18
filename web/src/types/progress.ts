@@ -21,6 +21,7 @@ export interface ShowProgressSummary {
   showId: string;
   tmdbId: number;
   title: string;
+  poster: string | null;
   totalEpisodes: number;
   watchedEpisodeCount: number;
   progressPercent: number;

@@ -28,6 +28,7 @@ const progressSummary: ShowProgressSummary = {
   showId: "95396",
   tmdbId: 95396,
   title: "Severance",
+  poster: null,
   totalEpisodes: 10,
   watchedEpisodeCount: 1,
   progressPercent: 10,

@@ -20,11 +20,13 @@ import {
   toEpisodePointer,
 } from "./progressLogic";
 import {tmdbService} from "./tmdbService";
+import {mapInChunks, needsImageUrl, normalizeImageUrl, preferImageUrl} from "./watchlistPosterLogic";
 import {watchlistService} from "./watchlistService";
 
 interface ProgressDocument {
   tmdbId: number;
   title: string;
+  poster?: string | null;
   totalEpisodes: number;
   watchedEpisodeCount: number;
   progressPercent: number;
@@ -53,6 +55,7 @@ interface CanonicalProgressMetadata {
 }
 
 const maxBatchEpisodeCount = 100;
+const POSTER_BACKFILL_CONCURRENCY = 5;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -148,6 +151,38 @@ class ProgressService {
     );
   }
 
+  /**
+   * Fill missing progress posters from TMDb and persist them.
+   * Does not bump updatedAt so list order stays stable.
+   */
+  async backfillMissingPosters(
+    userId: string,
+    items: ShowProgressSummary[],
+  ): Promise<ShowProgressSummary[]> {
+    const missing = items.filter((item) => needsImageUrl(item.poster));
+    if (missing.length === 0) {
+      return items;
+    }
+
+    const updates = await mapInChunks(missing, POSTER_BACKFILL_CONCURRENCY, async (item) => {
+      try {
+        const detail = await tmdbService.tvDetail(item.tmdbId);
+        const poster = normalizeImageUrl(detail.images.poster);
+        if (!poster || poster === item.poster) {
+          return item;
+        }
+
+        await this.collection(userId).doc(item.showId).update({poster});
+        return {...item, poster};
+      } catch {
+        return item;
+      }
+    });
+
+    const byId = new Map(updates.map((item) => [item.showId, item]));
+    return items.map((item) => byId.get(item.showId) ?? item);
+  }
+
   async get(userId: string, showId: string): Promise<ShowProgress | null> {
     const progressRef = this.collection(userId).doc(showId);
     const progressSnapshot = await progressRef.get();
@@ -205,9 +240,13 @@ class ProgressService {
     const historyCollection = this.historyCollection(userId);
 
     await getFirestore().runTransaction(async (transaction) => {
+      const existingProgressSnapshot = await transaction.get(progressRef);
       const existingEpisodesSnapshot = await transaction.get(progressRef.collection("episodes"));
       const finalEpisodeKeys = new Set(existingEpisodesSnapshot.docs.map((doc) => doc.id));
       const existingEpisodesByKey = new Map(existingEpisodesSnapshot.docs.map((doc) => [doc.id, doc]));
+      const existingPoster = existingProgressSnapshot.exists
+        ? (existingProgressSnapshot.data() as ProgressDocument | undefined)?.poster
+        : null;
 
       for (const episode of requested) {
         const episodeRef = progressRef.collection("episodes").doc(episode.episodeKey);
@@ -273,6 +312,7 @@ class ProgressService {
         {
           tmdbId,
           title: canonical.tvDetail.title,
+          poster: preferImageUrl(existingPoster, canonical.tvDetail.images.poster),
           totalEpisodes: canonical.totalEpisodes,
           watchedEpisodeCount: finalEpisodes.length,
           progressPercent: progressPercentFor(finalEpisodes.length, canonical.totalEpisodes),
@@ -339,9 +379,13 @@ class ProgressService {
     const now = new Date();
 
     await getFirestore().runTransaction(async (transaction) => {
+      const existingProgressSnapshot = await transaction.get(progressRef);
       const existingEpisodesSnapshot = await transaction.get(progressRef.collection("episodes"));
       const finalEpisodeKeys = new Set(existingEpisodesSnapshot.docs.map((doc) => doc.id));
       const existingEpisodesByKey = new Map(existingEpisodesSnapshot.docs.map((doc) => [doc.id, doc]));
+      const existingPoster = existingProgressSnapshot.exists
+        ? (existingProgressSnapshot.data() as ProgressDocument | undefined)?.poster
+        : null;
 
       for (const {metadata: episode, watchedAt: incomingWatchedAt} of requested) {
         const episodeRef = progressRef.collection("episodes").doc(episode.episodeKey);
@@ -425,6 +469,7 @@ class ProgressService {
         {
           tmdbId,
           title: canonical.tvDetail.title,
+          poster: preferImageUrl(existingPoster, canonical.tvDetail.images.poster),
           totalEpisodes: canonical.totalEpisodes,
           watchedEpisodeCount: finalEpisodes.length,
           progressPercent: progressPercentFor(finalEpisodes.length, canonical.totalEpisodes),
@@ -477,6 +522,7 @@ class ProgressService {
       showId,
       tmdbId: data.tmdbId,
       title: data.title,
+      poster: normalizeImageUrl(data.poster),
       totalEpisodes: data.totalEpisodes,
       watchedEpisodeCount: data.watchedEpisodeCount,
       progressPercent: data.progressPercent,

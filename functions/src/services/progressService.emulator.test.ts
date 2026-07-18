@@ -17,7 +17,7 @@ const tvDetail: MediaDetail = {
   releaseDate: "2022-02-17",
   voteAverage: 8.4,
   popularity: 100,
-  images: {poster: null, backdrop: null},
+  images: {poster: "https://image.tmdb.org/t/p/w500/severance.jpg", backdrop: null},
   genres: [],
   runtimeMinutes: null,
   status: "Returning Series",
@@ -105,6 +105,7 @@ test("progress service writes batch episode progress and history transactionally
     assert.equal(progress.progressPercent, 66.67);
     assert.equal(progress.currentEpisode, 3);
     assert.equal(progress.nextEpisode?.episodeKey, "s01e02");
+    assert.equal(progress.poster, "https://image.tmdb.org/t/p/w500/severance.jpg");
     assert.deepEqual(progress.episodes.map((episode) => episode.episodeKey), ["s01e01", "s01e03"]);
 
     const firestore = getFirestore();
