@@ -1,6 +1,6 @@
 # Episodera Resource Alignment
 
-Last updated: 2026-07-14
+Last updated: 2026-07-17
 
 ## Purpose
 
@@ -105,14 +105,14 @@ The implementation must remain the final authority for whether each capability i
 
 The highest-priority remaining work is:
 
-1. Repeat hosted `Production Smoke` on future release candidates and retain workflow evidence (latest hosted: `c97b0c3` — [workflow run 29303301272](https://github.com/richappdev/EpisodEra/actions/runs/29303301272); prior: `031cb35` — [workflow run 29232556051](https://github.com/richappdev/EpisodEra/actions/runs/29232556051))
-2. Staging Firebase environment separation and staging-specific smoke validation (optional)
-3. Broader WCAG-focused accessibility audit beyond current Playwright smoke assertions
-4. Real-auth deployed E2E cases (signup, token refresh/expiry, deleted-account session, sign-out during write)
-5. Legal review of privacy policy copy and formal TMDb terms/image compliance checklist
-6. Dependency major-upgrade and production-risk decision (`firebase-admin`, `firebase-functions`, Vite)
-7. App Check Phase 2+ backend monitor/enforcement and distributed quota evaluation beyond per-Functions-instance rate limits
-8. Observability dashboards, release monitoring, and rollback procedures
+1. **Close TV Time Import Phase 1 acceptance** — evidence ledger [`docs/TvTimeImportPhase1Acceptance.md`](./TvTimeImportPhase1Acceptance.md) (A1 tip-matched smoke, A2 deployed import path, A3 ~4.7k soak, A4–A7 gaps, A9 staging cleanup; A8 browser-ZIP **PASS**)
+2. Repeat hosted `Production Smoke` on the acceptance tip and retain workflow evidence (latest hosted PASS: `5a9ecf9` — [run 29565696402](https://github.com/richappdev/EpisodEra/actions/runs/29565696402); prior: `0518525`, `c97b0c3`)
+3. Staging Firebase environment separation and staging-specific smoke validation (optional)
+4. Broader WCAG-focused accessibility audit beyond current Playwright smoke assertions
+5. Real-auth deployed E2E cases (signup, token refresh/expiry, deleted-account session, sign-out during write)
+6. Legal review of privacy policy copy and formal TMDb terms/image compliance checklist
+7. Dependency major-upgrade and production-risk decision (`firebase-admin`, `firebase-functions`, Vite)
+8. Observability dashboards, release monitoring, and rollback procedures (include per-import Firestore/TMDb/Functions cost)
 9. Final beta-readiness acceptance review
 
 Account lifecycle implementation is complete (`DELETE /me/account`, Settings UI, emulator test). Manual throwaway-account deletion validation passed on 2026-07-13. Do not delete the smoke automation account during smoke runs.
@@ -358,8 +358,8 @@ A feature is complete only when all applicable conditions are met:
 
 | Resource              | Current status                                                                                                          |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| GitHub implementation | Tip `5d70afe`+ (2026-07-17): App Check **Phase 3 enforce live** (`APP_CHECK_ENFORCE_AUTH_WRITES=true`); Hosting rebuilt with reCAPTCHA site key; `friendCode` Admin-write-only. TV Time Phase 1 acceptance still needs hosted workflow evidence + soak/lifecycle/ZIP-arch. |
-| Notion planning       | Re-baseline after recording Phase 3 enforce + local tip smoke PASS; add GitHub Actions secret `EPISODERA_SMOKE_APP_CHECK_BYPASS` for hosted smoke |
+| GitHub implementation | Tip `5a72102` (2026-07-17): App Check Phase 3 enforce live; personal export + watchlist hygiene landed. TV Time Phase 1 acceptance **OPEN** — ledger [`docs/TvTimeImportPhase1Acceptance.md`](./TvTimeImportPhase1Acceptance.md) (A8 PASS; A1/A3/A9 open; A2/A4–A7 partial). Latest hosted smoke PASS is `5a9ecf9` ([run 29565696402](https://github.com/richappdev/EpisodEra/actions/runs/29565696402)), **not** tip-matched. |
+| Notion planning       | Mirror acceptance ledger statuses; drop stale exact-tip requirement `b147545` in favor of current tip at closeout |
 | Figma design          | Responsive screen system documented; direct latest-file verification pending when connector access allows |
 | Canva reporting       | Should distinguish implemented code, recorded smoke evidence, and beta-ready status; refresh after hosted smoke reruns |
 
@@ -374,6 +374,13 @@ At the time of this update:
 These limitations affect resource synchronization only. They do not change product scope or implementation status.
 
 ## Change Log
+### 2026-07-17 (TV Time Phase 1 acceptance ledger)
+
+* Added [`docs/TvTimeImportPhase1Acceptance.md`](./TvTimeImportPhase1Acceptance.md) as the GitHub evidence SoT for Phase 1 closeout (aligned to Notion acceptance criteria).
+* Recorded **A8 browser-ZIP** architecture decision as **PASS** (client parse; no Cloud Storage primary path).
+* Audited live evidence: hosted smoke PASS on `5a9ecf9` only; tip `5a72102` unmatched; `production-smoke.mjs` has no `/me/imports` coverage; no ~4.7k import soak artifact; staging rows not deleted on complete (A9 open); weak client `sourceHash` fingerprint noted under A4.
+* Product gate unchanged: do not start Phase 2 `watchEvents` or promote import UX until A1–A9 are all PASS.
+
 ### 2026-07-17 (App Check Phase 3 enforce live)
 
 * Hosting redeployed with `VITE_FIREBASE_APP_CHECK_RECAPTCHA_SITE_KEY`; Functions redeployed with `APP_CHECK_ENFORCE_AUTH_WRITES=true` + smoke bypass.

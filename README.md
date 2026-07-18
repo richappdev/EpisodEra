@@ -70,7 +70,8 @@ The project is in MVP hardening. Core web features are implemented, progress-tra
 │   ├── Deployment.md
 │   ├── Firestore.md
 │   ├── Navigation.md
-│   └── ResourceAlignment.md
+│   ├── ResourceAlignment.md
+│   └── TvTimeImportPhase1Acceptance.md
 ├── functions/
 │   ├── src/
 │   │   ├── api/

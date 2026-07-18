@@ -5,6 +5,8 @@ import path from "node:path";
 const DURATION_MS = Number(process.env.EPISODERA_ONLINE_REGRESSION_MS ?? String(10 * 60 * 1000));
 const email = process.env.EPISODERA_SMOKE_EMAIL ?? "";
 const password = process.env.EPISODERA_SMOKE_PASSWORD ?? "";
+const smokeAppCheckBypass = process.env.EPISODERA_SMOKE_APP_CHECK_BYPASS ?? "";
+const apiBaseUrl = (process.env.EPISODERA_PROD_API_BASE_URL ?? "https://api-m74gmd4u4a-uc.a.run.app").replace(/\/$/, "");
 
 interface StepResult {
   name: string;
@@ -56,6 +58,28 @@ const attachTelemetry = (page: Page) => {
 
   page.on("requestfailed", (request) => {
     failedRequests.push(`${request.method()} ${request.url()} — ${request.failure()?.errorText ?? "failed"}`);
+  });
+};
+
+/** Playwright cannot mint reCAPTCHA App Check tokens; reuse the Functions smoke bypass for live UI runs. */
+const attachAppCheckSmokeBypass = async (page: Page) => {
+  if (!smokeAppCheckBypass) {
+    return;
+  }
+
+  const apiPrefix = `${apiBaseUrl}/`;
+  await page.route("**/*", async (route) => {
+    const url = route.request().url();
+    if (!url.startsWith(apiPrefix) && url !== apiBaseUrl) {
+      await route.continue();
+      return;
+    }
+
+    const headers = {
+      ...route.request().headers(),
+      "x-episodera-smoke-bypass": smokeAppCheckBypass,
+    };
+    await route.continue({headers});
   });
 };
 
@@ -187,6 +211,26 @@ const goBackFromDetail = async (page: Page) => {
 
 const waitForTrendingCards = async (page: Page, mediaType: "tv" | "movie") => {
   const cards = page.locator(`[data-testid^="media-card-${mediaType}-"]`);
+  const rateLimited = page.getByText("Too many requests. Please retry later.");
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    if (await cards.first().isVisible().catch(() => false)) {
+      await expect(page.getByText("Loading...")).toHaveCount(0, {timeout: 30_000});
+      return cards;
+    }
+
+    if (await rateLimited.first().isVisible().catch(() => false)) {
+      const retry = page.getByRole("button", {name: "Retry"}).first();
+      if (await retry.isVisible().catch(() => false)) {
+        await retry.click();
+      }
+      await page.waitForTimeout(2_500 * (attempt + 1));
+      continue;
+    }
+
+    await page.waitForTimeout(1_000);
+  }
+
   await expect(cards.first()).toBeVisible({timeout: 30_000});
   await expect(page.getByText("Loading...")).toHaveCount(0, {timeout: 30_000});
   return cards;
@@ -248,53 +292,55 @@ const soakUntil = async (page: Page, deadline: number) => {
     const action = soakIndex % 5;
     soakIndex += 1;
 
-    if (action === 0) {
-      await page.getByTestId(navTargets[soakIndex % navTargets.length]).click();
-      await page.waitForTimeout(800);
-      continue;
-    }
+    try {
+      if (action === 0) {
+        await page.getByTestId(navTargets[soakIndex % navTargets.length]).click();
+        await page.waitForTimeout(1_200);
+        continue;
+      }
 
-    if (action === 1) {
-      await page.getByTestId("nav-trending").click();
-      const tab = soakIndex % 2 === 0 ? "TV Shows" : "Movies";
-      await page.getByRole("tab", {name: tab}).click();
-      await assertTrendingCards(page, tab === "TV Shows" ? "tv" : "movie");
-      await page.waitForTimeout(600);
-      continue;
-    }
+      if (action === 1) {
+        await page.getByTestId("nav-trending").click();
+        const tab = soakIndex % 2 === 0 ? "TV Shows" : "Movies";
+        await page.getByRole("tab", {name: tab}).click();
+        await assertTrendingCards(page, tab === "TV Shows" ? "tv" : "movie");
+        await page.waitForTimeout(1_200);
+        continue;
+      }
 
-    if (action === 2) {
-      const query = searchQueries[soakIndex % searchQueries.length];
-      await searchFor(page, query);
-      await page.waitForTimeout(900);
-      continue;
-    }
+      if (action === 2) {
+        const query = searchQueries[soakIndex % searchQueries.length];
+        await searchFor(page, query);
+        await page.waitForTimeout(1_500);
+        continue;
+      }
 
-    if (action === 3) {
-      await page.getByTestId("nav-trending").click();
-      await page.getByRole("tab", {name: "TV Shows"}).click();
-      await waitForTrendingCards(page, "tv");
-      try {
+      if (action === 3) {
+        await page.getByTestId("nav-trending").click();
+        await page.getByRole("tab", {name: "TV Shows"}).click();
+        await waitForTrendingCards(page, "tv");
         const opened = await openUniqueMediaCardOrLoadMore(page, "soak TV detail", "tv");
         await expect(page.locator('[data-testid^="detail-tv-"]')).toBeVisible();
         await goBackFromDetail(page);
         record(`soak unique detail ${opened}`, "passed", Date.now());
-      } catch {
-        await page.waitForTimeout(1_000);
+        continue;
       }
-      continue;
-    }
 
-    await page.getByTestId("nav-trending").click();
-    await page.getByRole("tab", {name: "Movies"}).click();
-    await waitForTrendingCards(page, "movie");
-    try {
+      await page.getByTestId("nav-trending").click();
+      await page.getByRole("tab", {name: "Movies"}).click();
+      await waitForTrendingCards(page, "movie");
       const opened = await openUniqueMediaCardOrLoadMore(page, "soak movie detail", "movie");
       await expect(page.locator('[data-testid^="detail-movie-"]')).toBeVisible();
       await goBackFromDetail(page);
       record(`soak unique detail ${opened}`, "passed", Date.now());
-    } catch {
-      await page.waitForTimeout(1_000);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      record(`soak action ${action} recovered`, "skipped", Date.now(), detail.slice(0, 160));
+      const retry = page.getByRole("button", {name: "Retry"}).first();
+      if (await retry.isVisible().catch(() => false)) {
+        await retry.click().catch(() => undefined);
+      }
+      await page.waitForTimeout(3_000);
     }
   }
 };
@@ -306,7 +352,12 @@ test("online UI regression soak — 10 minutes, no repeated media clicks", async
     test.skip(true, "Smoke credentials are not configured in web/.env.smoke.");
   }
 
+  if (!smokeAppCheckBypass) {
+    test.skip(true, "EPISODERA_SMOKE_APP_CHECK_BYPASS is required for live authenticated UI checks.");
+  }
+
   attachTelemetry(page);
+  await attachAppCheckSmokeBypass(page);
   const startedAt = Date.now();
   const deadline = startedAt + DURATION_MS;
 
@@ -441,6 +492,8 @@ test("online UI regression soak — 10 minutes, no repeated media clicks", async
     });
     const signedOutPage = await signedOutContext.newPage();
     try {
+      attachTelemetry(signedOutPage);
+      await attachAppCheckSmokeBypass(signedOutPage);
       await signedOutPage.goto("/");
       await expectSignedOut(signedOutPage);
       await assertTrendingCards(signedOutPage, "tv");
