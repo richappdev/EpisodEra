@@ -2,8 +2,11 @@ import {MediaType} from "../types/media";
 import {ShowProgressSummary} from "../types/progress";
 import {
   WatchlistItem,
+  WatchlistStatus,
   isContinueEligibleStatus,
 } from "../types/watchlist";
+
+export type TvProgressStatusSuggestion = "watching" | "completed";
 
 /** Shows with no progress update for this many days move to the dormant / Library stale bucket. */
 export const DORMANT_AFTER_DAYS = 21;
@@ -243,8 +246,8 @@ export const optimisticMarkNextEpisode = (progress: ShowProgressSummary): ShowPr
 };
 
 export const suggestedWatchlistStatusForProgress = (
-  progress: ShowProgressSummary,
-): "watching" | "completed" | null => {
+  progress: Pick<ShowProgressSummary, "watchedEpisodeCount" | "totalEpisodes" | "nextEpisode">,
+): TvProgressStatusSuggestion | null => {
   if (progress.watchedEpisodeCount <= 0) {
     return null;
   }
@@ -254,4 +257,24 @@ export const suggestedWatchlistStatusForProgress = (
   }
 
   return "watching";
+};
+
+/** Auto-promotion only: planned → watching, planned|watching → completed. Never demotes. */
+export const promotedTvWatchlistStatus = (
+  currentStatus: WatchlistStatus,
+  suggested: TvProgressStatusSuggestion | null,
+): TvProgressStatusSuggestion | null => {
+  if (!suggested || currentStatus === suggested || currentStatus === "dropped") {
+    return null;
+  }
+
+  if (suggested === "watching" && currentStatus !== "planned") {
+    return null;
+  }
+
+  if (suggested === "completed" && currentStatus !== "watching" && currentStatus !== "planned") {
+    return null;
+  }
+
+  return suggested;
 };

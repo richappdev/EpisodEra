@@ -10,8 +10,13 @@ import {
   watchlistStatuses,
 } from "../models/watchlist";
 import {listPaginated, PaginatedResult, PaginationQuery} from "../lib/pagination";
+import {ShowProgressSummary} from "../models/progress";
 import {historyService} from "./historyService";
 import {mergeWatchlistStatus} from "./importLogic";
+import {
+  promotedTvWatchlistStatus,
+  suggestedWatchlistStatusForProgress,
+} from "./progressLogic";
 import {tmdbService} from "./tmdbService";
 import {
   itemNeedsImageBackfill,
@@ -305,6 +310,33 @@ class WatchlistService {
     }
 
     return this.get(userId, itemId);
+  }
+
+  /**
+   * Promote TV watchlist status from progress (planned → watching, planned|watching → completed).
+   * No-ops when the show is not on the watchlist or promotion rules do not apply.
+   */
+  async syncTvStatusFromProgress(
+    userId: string,
+    tmdbId: number,
+    progress: Pick<ShowProgressSummary, "watchedEpisodeCount" | "totalEpisodes" | "nextEpisode">,
+  ): Promise<WatchlistItem | null> {
+    const itemId = itemIdFor("tv", tmdbId);
+    const snapshot = await this.collection(userId).doc(itemId).get();
+    if (!snapshot.exists) {
+      return null;
+    }
+
+    const data = snapshot.data() as WatchlistDocument;
+    const nextStatus = promotedTvWatchlistStatus(
+      normalizeStatusForMediaType(data.mediaType, data.status),
+      suggestedWatchlistStatusForProgress(progress),
+    );
+    if (!nextStatus) {
+      return null;
+    }
+
+    return this.updateStatus(userId, itemId, nextStatus);
   }
 
   async remove(userId: string, itemId: string): Promise<void> {

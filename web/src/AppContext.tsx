@@ -7,7 +7,11 @@ import {useProfileStats} from "./hooks/useProfileStats";
 import {useProgress} from "./hooks/useProgress";
 import {useSettings} from "./hooks/useSettings";
 import {useWatchlist} from "./hooks/useWatchlist";
-import {suggestedWatchlistStatusForProgress, type ContinuationEntry} from "./lib/continuation";
+import {
+  promotedTvWatchlistStatus,
+  suggestedWatchlistStatusForProgress,
+  type ContinuationEntry,
+} from "./lib/continuation";
 import {setAnalyticsUserId} from "./firebase";
 import {HistoryEntry} from "./types/history";
 import {MediaDetail, MediaSummary} from "./types/media";
@@ -146,27 +150,22 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
   };
 
   const syncWatchlistStatusFromProgress = (updatedProgress: ShowProgressSummary) => {
-    const suggested = suggestedWatchlistStatusForProgress(updatedProgress);
-    if (!suggested) {
-      return;
-    }
-
     const item = watchlist.items.find(
       (candidate) => candidate.mediaType === "tv" && candidate.tmdbId === updatedProgress.tmdbId,
     );
-    if (!item || item.status === suggested || item.status === "dropped") {
+    if (!item) {
       return;
     }
 
-    // Only auto-promote planned → watching, or watching → completed.
-    if (suggested === "watching" && item.status !== "planned") {
-      return;
-    }
-    if (suggested === "completed" && item.status !== "watching" && item.status !== "planned") {
+    const nextStatus = promotedTvWatchlistStatus(
+      item.status,
+      suggestedWatchlistStatusForProgress(updatedProgress),
+    );
+    if (!nextStatus) {
       return;
     }
 
-    void watchlist.updateWatchlistStatus(item, suggested);
+    void watchlist.updateWatchlistStatus(item, nextStatus);
   };
 
   const markContinuationEpisodeWatched = async (entry: ContinuationEntry) => {

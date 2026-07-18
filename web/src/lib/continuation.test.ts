@@ -6,6 +6,7 @@ import {
   DORMANT_AFTER_DAYS,
   LIBRARY_MAX_ITEMS,
   optimisticMarkNextEpisode,
+  promotedTvWatchlistStatus,
   selectActiveWatchlistItems,
   suggestedWatchlistStatusForProgress,
 } from "./continuation";
@@ -130,5 +131,13 @@ describe("continuation", () => {
         nextEpisode: null,
       }),
     ).toBe("completed");
+  });
+
+  it("promotes watchlist status from progress without demoting", () => {
+    expect(promotedTvWatchlistStatus("planned", "watching")).toBe("watching");
+    expect(promotedTvWatchlistStatus("watching", "completed")).toBe("completed");
+    expect(promotedTvWatchlistStatus("planned", "completed")).toBe("completed");
+    expect(promotedTvWatchlistStatus("completed", "watching")).toBeNull();
+    expect(promotedTvWatchlistStatus("dropped", "completed")).toBeNull();
   });
 });

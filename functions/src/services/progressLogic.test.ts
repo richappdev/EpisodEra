@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {EpisodeSummary, TvSeasonDetail} from "../models/media";
-import {episodeKeyFor, findNextUnwatchedEpisode, progressPercentFor} from "./progressLogic";
+import {
+  episodeKeyFor,
+  findNextUnwatchedEpisode,
+  progressPercentFor,
+  promotedTvWatchlistStatus,
+  suggestedWatchlistStatusForProgress,
+} from "./progressLogic";
 
 const episode = (seasonNumber: number, episodeNumber: number): EpisodeSummary => ({
   id: seasonNumber * 100 + episodeNumber,
@@ -52,4 +58,59 @@ test("findNextUnwatchedEpisode advances across seasons", () => {
 
 test("progressPercentFor clamps precision to two decimals", () => {
   assert.equal(progressPercentFor(1, 3), 33.33);
+});
+
+test("suggestedWatchlistStatusForProgress returns watching for partial progress", () => {
+  assert.equal(
+    suggestedWatchlistStatusForProgress({
+      watchedEpisodeCount: 1,
+      totalEpisodes: 3,
+      nextEpisode: {
+        episodeKey: "s01e02",
+        seasonNumber: 1,
+        episodeNumber: 2,
+        episodeTitle: "Episode 2",
+      },
+    }),
+    "watching",
+  );
+});
+
+test("suggestedWatchlistStatusForProgress returns completed when fully watched", () => {
+  assert.equal(
+    suggestedWatchlistStatusForProgress({
+      watchedEpisodeCount: 3,
+      totalEpisodes: 3,
+      nextEpisode: null,
+    }),
+    "completed",
+  );
+});
+
+test("suggestedWatchlistStatusForProgress returns null with no watched episodes", () => {
+  assert.equal(
+    suggestedWatchlistStatusForProgress({
+      watchedEpisodeCount: 0,
+      totalEpisodes: 3,
+      nextEpisode: {
+        episodeKey: "s01e01",
+        seasonNumber: 1,
+        episodeNumber: 1,
+        episodeTitle: "Episode 1",
+      },
+    }),
+    null,
+  );
+});
+
+test("promotedTvWatchlistStatus promotes planned to watching and watching to completed", () => {
+  assert.equal(promotedTvWatchlistStatus("planned", "watching"), "watching");
+  assert.equal(promotedTvWatchlistStatus("watching", "completed"), "completed");
+  assert.equal(promotedTvWatchlistStatus("planned", "completed"), "completed");
+});
+
+test("promotedTvWatchlistStatus does not demote completed or touch dropped", () => {
+  assert.equal(promotedTvWatchlistStatus("completed", "watching"), null);
+  assert.equal(promotedTvWatchlistStatus("dropped", "completed"), null);
+  assert.equal(promotedTvWatchlistStatus("completed", "completed"), null);
 });

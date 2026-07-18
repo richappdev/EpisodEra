@@ -186,3 +186,45 @@ test("progress service duplicate writes are idempotent for counts", {
     await clearUser(userId);
   });
 });
+
+test("progress service promotes watchlist status to completed at 100%", {
+  skip: emulatorHost ? false : "Set FIRESTORE_EMULATOR_HOST to run Firestore emulator integration tests.",
+}, async () => {
+  ensureFirebaseApp();
+  await withMockedTmdb(async () => {
+    const userId = "progress-emulator-user-complete";
+    await clearUser(userId);
+
+    const firestore = getFirestore();
+    await firestore.collection("users").doc(userId).collection("watchlist").doc("tv_95396").set({
+      tmdbId: 95396,
+      mediaType: "tv",
+      title: "Severance",
+      poster: null,
+      backdrop: null,
+      status: "watching",
+      addedAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await progressService.updateEpisodes(userId, "95396", 95396, {
+      watched: true,
+      episodes: [
+        {seasonNumber: 1, episodeNumber: 1},
+        {seasonNumber: 1, episodeNumber: 2},
+        {seasonNumber: 1, episodeNumber: 3},
+      ],
+    });
+
+    const watchlist = await firestore
+      .collection("users")
+      .doc(userId)
+      .collection("watchlist")
+      .doc("tv_95396")
+      .get();
+
+    assert.equal(watchlist.get("status"), "completed");
+
+    await clearUser(userId);
+  });
+});

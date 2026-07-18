@@ -20,6 +20,7 @@ import {
   toEpisodePointer,
 } from "./progressLogic";
 import {tmdbService} from "./tmdbService";
+import {watchlistService} from "./watchlistService";
 
 interface ProgressDocument {
   tmdbId: number;
@@ -289,6 +290,7 @@ class ProgressService {
       throw new HttpError(500, "Progress could not be read after update.", "progress_update_failed");
     }
 
+    await watchlistService.syncTvStatusFromProgress(userId, tmdbId, progress);
     return progress;
   }
 
@@ -434,6 +436,11 @@ class ProgressService {
         {merge: true},
       );
     });
+
+    const progress = await this.get(userId, showId);
+    if (progress) {
+      await watchlistService.syncTvStatusFromProgress(userId, tmdbId, progress);
+    }
 
     return {imported, skipped, failedKeys};
   }
