@@ -7,9 +7,17 @@ export const watchlistStatuses = [...tvWatchlistStatuses, ...movieWatchlistStatu
 
 export type WatchlistStatus = (typeof watchlistStatuses)[number];
 
-/** Statuses that belong on the Watchlist / Continue Watching surfaces. */
+/** Statuses shown on the Watchlist Active tab (queue to manage). */
 export const isActiveWatchlistStatus = (status: WatchlistStatus) =>
+  status === "watching" || status === "unwatched";
+
+/** Statuses eligible for Continue Watching (Home resume rail). */
+export const isContinueEligibleStatus = (status: WatchlistStatus) =>
   status === "watching" || status === "planned" || status === "unwatched";
+
+/** Statuses that belong on the Library tab (archive / backlog). */
+export const isLibraryWatchlistStatus = (status: WatchlistStatus) =>
+  status === "planned" || status === "completed" || status === "watched";
 
 export interface WatchlistItem {
   itemId: string;

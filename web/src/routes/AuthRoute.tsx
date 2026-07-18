@@ -25,4 +25,4 @@ export const AuthRoute = ({mode}: AuthRouteProps) => {
   );
 };
 
-export const ContinueWatchingRoute = () => <Navigate replace to={`${paths.watchlist}#continue-watching`} />;
+export const ContinueWatchingRoute = () => <Navigate replace to={`${paths.home}#continue-watching`} />;

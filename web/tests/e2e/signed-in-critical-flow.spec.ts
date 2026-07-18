@@ -29,6 +29,9 @@ test("signed-in user can complete the core watchlist and episode progress flow",
 
   await page.getByTestId("nav-watchlist").click();
   await expect(page.getByTestId(`watchlist-item-${showId}`)).toContainText("Critical Flow Show");
+  await expect(page.getByTestId(`continue-card-${showId}`)).toHaveCount(0);
+
+  await page.getByTestId("nav-trending").click();
   await expect(page.getByTestId(`continue-card-${showId}`)).toContainText("1 of 3 watched");
   await expect(page.getByTestId(`continue-next-${showId}`)).toHaveText("Next up S1 E2");
 

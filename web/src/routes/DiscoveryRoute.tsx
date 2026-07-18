@@ -1,3 +1,4 @@
+import {useEffect} from "react";
 import {useNavigate, useSearchParams} from "react-router-dom";
 import {useAuth} from "../auth/AuthContext";
 import {useAppContext} from "../AppContext";
@@ -25,6 +26,17 @@ export const DiscoveryRoute = ({view}: DiscoveryRouteProps) => {
   } = useAppContext();
   const initialSearchQuery = view === "search" ? searchParams.get("q") : null;
   const nav: NavView = navFromPath(view === "search" ? paths.search : paths.home);
+
+  useEffect(() => {
+    if (view !== "trending" || window.location.hash !== "#continue-watching") {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById("continue-watching")?.scrollIntoView({behavior: "smooth", block: "start"});
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [view, progressItems, watchlistItems]);
 
   return (
     <DiscoveryPage

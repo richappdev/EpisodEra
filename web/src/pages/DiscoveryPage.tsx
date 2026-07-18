@@ -65,7 +65,7 @@ export const DiscoveryPage = ({
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const {continueWatching, dormant} = useMemo(
+  const {continueWatching} = useMemo(
     () => buildContinuationGroups(watchlistItems, progressItems),
     [progressItems, watchlistItems],
   );
@@ -257,27 +257,15 @@ export const DiscoveryPage = ({
       )}
 
       {view === "trending" && signedIn && onSelectContinuation && onNextEpisodeWatched && (
-        <>
-          <ContinueWatchingSection
-            id="home-continue-watching"
-            title="Continue watching"
-            subtitle={`${continueWatching.length} active`}
-            entries={continueWatching}
-            pendingShowIds={pendingShowIds}
-            onSelect={onSelectContinuation}
-            onNextEpisodeWatched={onNextEpisodeWatched}
-          />
-          <ContinueWatchingSection
-            id="home-dormant-watching"
-            title="Haven't watched for a while"
-            subtitle={`${dormant.length} dormant`}
-            testIdPrefix="home-dormant"
-            entries={dormant}
-            pendingShowIds={pendingShowIds}
-            onSelect={onSelectContinuation}
-            onNextEpisodeWatched={onNextEpisodeWatched}
-          />
-        </>
+        <ContinueWatchingSection
+          id="continue-watching"
+          title="Continue watching"
+          subtitle={`${continueWatching.length} active`}
+          entries={continueWatching}
+          pendingShowIds={pendingShowIds}
+          onSelect={onSelectContinuation}
+          onNextEpisodeWatched={onNextEpisodeWatched}
+        />
       )}
 
       {view === "trending" && (

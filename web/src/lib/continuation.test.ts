@@ -2,8 +2,11 @@ import {describe, expect, it} from "vitest";
 import {progressSummary, watchlistItem} from "../test/fixtures";
 import {
   buildContinuationGroups,
+  buildLibraryEntries,
   DORMANT_AFTER_DAYS,
+  LIBRARY_MAX_ITEMS,
   optimisticMarkNextEpisode,
+  selectActiveWatchlistItems,
   suggestedWatchlistStatusForProgress,
 } from "./continuation";
 
@@ -60,6 +63,56 @@ describe("continuation", () => {
     expect(groups.continueWatching).toHaveLength(1);
     expect(groups.continueWatching[0].title).toBe(progressSummary.title);
     expect(groups.continueWatching[0].watchlistItem).toBeNull();
+  });
+
+  it("builds library entries for stale, planned, and completed titles", () => {
+    const dormantProgress = {
+      ...progressSummary,
+      showId: "2002",
+      tmdbId: 2002,
+      title: "Dormant Show",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    };
+    const dormantWatchlist = {
+      ...watchlistItem,
+      itemId: "tv_2002",
+      tmdbId: 2002,
+      title: "Dormant Show",
+    };
+    const planned = {
+      ...watchlistItem,
+      itemId: "tv_3003",
+      tmdbId: 3003,
+      title: "Planned Show",
+      status: "planned" as const,
+    };
+    const completed = {
+      ...watchlistItem,
+      itemId: "tv_4004",
+      tmdbId: 4004,
+      title: "Finished Show",
+      status: "completed" as const,
+    };
+
+    const library = buildLibraryEntries(
+      [watchlistItem, dormantWatchlist, planned, completed],
+      [progressSummary, dormantProgress],
+      now,
+    );
+
+    expect(library.map((entry) => ({tmdbId: entry.tmdbId, reason: entry.reason}))).toEqual([
+      {tmdbId: 2002, reason: "stale"},
+      {tmdbId: 3003, reason: "planned"},
+      {tmdbId: 4004, reason: "completed"},
+    ]);
+    expect(library.length).toBeLessThanOrEqual(LIBRARY_MAX_ITEMS);
+
+    const active = selectActiveWatchlistItems(
+      [watchlistItem, dormantWatchlist, planned, completed],
+      [progressSummary, dormantProgress],
+      now,
+    );
+    expect(active.map((item) => item.tmdbId)).toEqual([1001]);
   });
 
   it("builds optimistic progress and suggested watchlist status", () => {

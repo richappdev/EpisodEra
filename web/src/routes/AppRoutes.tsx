@@ -45,10 +45,8 @@ const ScreenAnalytics = () => {
 const WatchlistRoute = () => {
   const {user} = useAuth();
   const {
-    markContinuationEpisodeWatched,
     openContinuationDetail,
     openMediaDetail,
-    pendingShowIds,
     progressItems,
     removeWatchlistItem,
     updateWatchlistStatus,
@@ -62,12 +60,6 @@ const WatchlistRoute = () => {
     reloadWatchlist,
   } = useAppContext();
 
-  useEffect(() => {
-    if (window.location.hash === "#continue-watching") {
-      document.getElementById("continue-watching")?.scrollIntoView({behavior: "smooth", block: "start"});
-    }
-  }, []);
-
   return (
     <WatchlistPage
       error={watchlistError}
@@ -75,7 +67,6 @@ const WatchlistRoute = () => {
       items={watchlistItems}
       loading={watchlistLoading}
       loadingMore={watchlistLoadingMore}
-      pendingShowIds={pendingShowIds}
       progressItems={progressItems}
       signedIn={Boolean(user)}
       totalCount={watchlistTotalCount}
@@ -83,9 +74,26 @@ const WatchlistRoute = () => {
       onRemove={removeWatchlistItem}
       onRetry={reloadWatchlist}
       onSelect={(item) => openMediaDetail(item, "watchlist")}
-      onSelectContinuation={(entry) => openContinuationDetail(entry, "watchlist")}
-      onNextEpisodeWatched={(entry) => {
-        void markContinuationEpisodeWatched(entry);
+      onSelectLibrary={(entry) => {
+        if (entry.watchlistItem) {
+          openMediaDetail(entry.watchlistItem, "watchlist");
+          return;
+        }
+        if (!entry.progress) {
+          return;
+        }
+        openContinuationDetail(
+          {
+            key: entry.key,
+            tmdbId: entry.tmdbId,
+            title: entry.title,
+            poster: entry.poster,
+            watchlistItem: null,
+            progress: entry.progress,
+            bucket: "dormant",
+          },
+          "watchlist",
+        );
       }}
       onStatusChange={updateWatchlistStatus}
     />

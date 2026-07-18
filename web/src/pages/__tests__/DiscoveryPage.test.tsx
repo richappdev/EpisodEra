@@ -72,7 +72,20 @@ describe("DiscoveryPage", () => {
     expect(await screen.findByText("No results found.")).toBeVisible();
   });
 
-  it("renders Continue Watching for signed-in home view", async () => {
+  it("renders Continue Watching for signed-in home view without dormant rail", async () => {
+    const dormantProgress = {
+      ...progressSummary,
+      showId: "2002",
+      tmdbId: 2002,
+      title: "Dormant Show",
+      updatedAt: "2025-01-01T00:00:00.000Z",
+    };
+    const dormantItem = {
+      ...watchlistItem,
+      itemId: "tv_2002",
+      tmdbId: 2002,
+      title: "Dormant Show",
+    };
     vi.mocked(api.trendingShows).mockResolvedValue(paged([tvDetail]));
 
     renderDiscovery(
@@ -80,8 +93,8 @@ describe("DiscoveryPage", () => {
         view="trending"
         language="en-US"
         signedIn
-        watchlistItems={[watchlistItem]}
-        progressItems={[progressSummary]}
+        watchlistItems={[watchlistItem, dormantItem]}
+        progressItems={[progressSummary, dormantProgress]}
         onSelect={vi.fn()}
         onSelectContinuation={vi.fn()}
         onNextEpisodeWatched={vi.fn()}
@@ -90,6 +103,10 @@ describe("DiscoveryPage", () => {
 
     expect(await screen.findByTestId("continue-card-1001")).toHaveTextContent("1 of 3 watched");
     expect(screen.getByTestId("continue-next-1001")).toHaveTextContent("Next up S1 E2");
+    expect(screen.getByTestId("continue-panel")).toBeVisible();
+    expect(document.getElementById("continue-watching")).not.toBeNull();
+    expect(screen.queryByTestId("home-dormant-card-2002")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", {name: "Haven't watched for a while"})).not.toBeInTheDocument();
   });
 
   it("loads mood suggestions and lets the user pick a mood", async () => {

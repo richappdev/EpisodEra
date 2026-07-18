@@ -1,10 +1,19 @@
+import {MediaType} from "../types/media";
 import {ShowProgressSummary} from "../types/progress";
-import {WatchlistItem, isActiveWatchlistStatus} from "../types/watchlist";
+import {
+  WatchlistItem,
+  isContinueEligibleStatus,
+} from "../types/watchlist";
 
-/** Shows with no progress update for this many days move to the dormant bucket. */
+/** Shows with no progress update for this many days move to the dormant / Library stale bucket. */
 export const DORMANT_AFTER_DAYS = 21;
 
+/** Cap for the Watchlist Library tab. */
+export const LIBRARY_MAX_ITEMS = 20;
+
 export type ContinuationBucket = "continue" | "dormant";
+
+export type LibraryReason = "planned" | "stale" | "completed";
 
 export interface ContinuationEntry {
   key: string;
@@ -19,6 +28,17 @@ export interface ContinuationEntry {
 export interface ContinuationGroups {
   continueWatching: ContinuationEntry[];
   dormant: ContinuationEntry[];
+}
+
+export interface LibraryEntry {
+  key: string;
+  tmdbId: number;
+  mediaType: MediaType;
+  title: string;
+  poster: string | null;
+  watchlistItem: WatchlistItem | null;
+  reason: LibraryReason;
+  progress: ShowProgressSummary | null;
 }
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -74,7 +94,7 @@ export const buildContinuationGroups = (
 
     const watchlistItem = watchlistByShowId.get(progress.showId) ?? null;
     // Exclude dropped/completed watchlist rows; allow watching, planned, or progress-only.
-    if (watchlistItem && !isActiveWatchlistStatus(watchlistItem.status)) {
+    if (watchlistItem && !isContinueEligibleStatus(watchlistItem.status)) {
       continue;
     }
 
@@ -99,6 +119,94 @@ export const buildContinuationGroups = (
   dormant.sort(sortByUpdatedAtDesc);
 
   return {continueWatching, dormant};
+};
+
+/**
+ * Library tab: stale (dormant) watching, planned, and completed/watched — capped.
+ * Stale titles are listed first so they surface for re-engagement.
+ */
+export const buildLibraryEntries = (
+  watchlistItems: WatchlistItem[],
+  progressItems: ShowProgressSummary[],
+  now: Date = new Date(),
+  maxItems = LIBRARY_MAX_ITEMS,
+  dormantAfterDays = DORMANT_AFTER_DAYS,
+): LibraryEntry[] => {
+  const {dormant} = buildContinuationGroups(watchlistItems, progressItems, now, dormantAfterDays);
+  const seen = new Set<string>();
+  const entries: LibraryEntry[] = [];
+
+  const add = (entry: LibraryEntry) => {
+    const id = `${entry.mediaType}_${entry.tmdbId}`;
+    if (seen.has(id) || entries.length >= maxItems) {
+      return;
+    }
+    seen.add(id);
+    entries.push(entry);
+  };
+
+  for (const entry of dormant) {
+    add({
+      key: entry.key,
+      tmdbId: entry.tmdbId,
+      mediaType: "tv",
+      title: entry.title,
+      poster: entry.poster,
+      watchlistItem: entry.watchlistItem,
+      reason: "stale",
+      progress: entry.progress,
+    });
+  }
+
+  for (const item of watchlistItems) {
+    if (item.status === "planned") {
+      add({
+        key: item.itemId,
+        tmdbId: item.tmdbId,
+        mediaType: item.mediaType,
+        title: item.title,
+        poster: item.poster,
+        watchlistItem: item,
+        reason: "planned",
+        progress: null,
+      });
+    }
+  }
+
+  for (const item of watchlistItems) {
+    if (item.status === "completed" || item.status === "watched") {
+      add({
+        key: item.itemId,
+        tmdbId: item.tmdbId,
+        mediaType: item.mediaType,
+        title: item.title,
+        poster: item.poster,
+        watchlistItem: item,
+        reason: "completed",
+        progress: null,
+      });
+    }
+  }
+
+  return entries;
+};
+
+/** Active queue: watching / unwatched, excluding dormant titles that belong in Library. */
+export const selectActiveWatchlistItems = (
+  watchlistItems: WatchlistItem[],
+  progressItems: ShowProgressSummary[],
+  now: Date = new Date(),
+  dormantAfterDays = DORMANT_AFTER_DAYS,
+) => {
+  const {dormant} = buildContinuationGroups(watchlistItems, progressItems, now, dormantAfterDays);
+  const dormantIds = new Set(dormant.map((entry) => entry.tmdbId));
+
+  return watchlistItems.filter((item) => {
+    if (item.mediaType === "tv" && dormantIds.has(item.tmdbId)) {
+      return false;
+    }
+    return item.status === "watching" || item.status === "unwatched";
+  });
 };
 
 export const nextEpisodeLabelFor = (progress: ShowProgressSummary) => {
