@@ -11,6 +11,7 @@ import {
   rateLimit,
 } from "../middleware/rateLimit";
 import {mediaRouter} from "./mediaRoutes";
+import {meExportRouter} from "./meExportRoutes";
 import {meRouter} from "./meRoutes";
 import {discoveryRouter} from "./discoveryRoutes";
 import {progressRouter} from "./progressRoutes";
@@ -67,6 +68,7 @@ app.use("/", mediaRouter);
 app.use("/", discoveryRouter);
 app.use("/", watchlistRouter);
 app.use("/", progressRouter);
+app.use("/", meExportRouter);
 app.use("/", meRouter);
 
 const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {

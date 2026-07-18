@@ -6,7 +6,7 @@ import express, {ErrorRequestHandler} from "express";
 import {AuthenticatedRequest} from "../middleware/auth";
 import {HttpError} from "../lib/httpError";
 import {EXPORT_SCHEMA_VERSION, UserDataExport} from "../models/export";
-import {meRouter} from "./meRoutes";
+import {meExportRouter} from "./meExportRoutes";
 import {exportService} from "../services/exportService";
 
 const exportFixture: UserDataExport = {
@@ -57,7 +57,7 @@ const createTestApp = (authenticated: boolean) => {
       next();
     });
   }
-  app.use("/", meRouter);
+  app.use("/", meExportRouter);
   app.use(errorHandler);
   return app;
 };
