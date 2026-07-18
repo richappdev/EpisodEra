@@ -56,7 +56,7 @@ const AppShell = () => {
     document.documentElement.dataset.canvas = canvas;
     const themeMeta = document.querySelector('meta[name="theme-color"]');
     if (themeMeta) {
-      themeMeta.setAttribute("content", canvas === "cinema" ? "#0B0E12" : "#F3F1EC");
+      themeMeta.setAttribute("content", "#0B0E12");
     }
   }, [canvas]);
 

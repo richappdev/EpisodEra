@@ -10,8 +10,8 @@ export type NavView =
   | "profile"
   | "settings";
 
-/** Cinema Memory dual canvas: dark discovery vs warm memory surfaces. */
-export type CanvasMode = "cinema" | "memory";
+/** Single product canvas — dark cinema across all routes. */
+export type CanvasMode = "cinema";
 
 export const paths = {
   home: "/",
@@ -67,17 +67,4 @@ export const navFromPath = (pathname: string): NavView => {
 export const isDetailPath = (pathname: string) =>
   pathname.startsWith("/movie/") || pathname.startsWith("/tv/");
 
-export const canvasFromPath = (pathname: string): CanvasMode => {
-  if (
-    pathname.startsWith(paths.watchlist) ||
-    pathname.startsWith(paths.timeline) ||
-    pathname.startsWith(paths.profile) ||
-    pathname.startsWith(paths.settings) ||
-    pathname.startsWith(paths.privacy) ||
-    pathname.startsWith(paths.social)
-  ) {
-    return "memory";
-  }
-
-  return "cinema";
-};
+export const canvasFromPath = (_pathname: string): CanvasMode => "cinema";

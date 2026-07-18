@@ -1,5 +1,5 @@
 :root {
-  /* Cinema Memory — default discovery canvas (dark cinema) */
+  /* Cinema Memory — single dark cinema canvas for all routes */
   --color-bg: #0b0e12;
   --color-surface: #141a22;
   --color-surface-muted: #1c2430;
@@ -32,28 +32,6 @@
   font-family: var(--font-body);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-}
-
-:root[data-canvas="memory"] {
-  /* Warm paper archive for timeline, profile, settings, library */
-  --color-bg: #f3f1ec;
-  --color-surface: #ffffff;
-  --color-surface-muted: #ece9df;
-  --color-border: #dedbd2;
-  --color-border-strong: #cfcbbf;
-  --color-text: #1a222c;
-  --color-text-soft: #434a55;
-  --color-muted: #68707c;
-  --color-primary: #1a9aa8;
-  --color-primary-soft: rgba(26, 154, 168, 0.12);
-  --color-primary-border: rgba(26, 154, 168, 0.4);
-  --color-on-primary: #ffffff;
-  --color-action: #e8913a;
-  --color-action-soft: rgba(232, 145, 58, 0.14);
-  --color-danger: #9a321f;
-  --color-danger-border: #d35d47;
-  --color-poster-empty: #d8e4df;
-  --shadow-focus: 0 0 0 3px rgba(26, 154, 168, 0.24);
 }
 
 * {
@@ -320,25 +298,6 @@ select:focus-visible {
 
 .auth-form input::placeholder {
   color: var(--color-muted);
-}
-
-:root[data-canvas="memory"] .auth-page {
-  background: var(--color-bg);
-  place-items: start center;
-}
-
-:root[data-canvas="memory"] .auth-panel {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  border-top: 1px solid var(--color-border);
-}
-
-:root[data-canvas="memory"] .auth-form input {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  padding: 0 12px;
 }
 
 .auth-form button {

@@ -14,15 +14,15 @@ The MVP uses **React Router 6** (`react-router-dom`) with browser history and sh
 | `/movie/:id` | Movie detail | Public | cinema | Full-bleed hero + status rail |
 | `/tv/:id` | TV detail | Public | cinema | Default season selected from show metadata |
 | `/tv/:id/season/:seasonNumber` | TV detail + season | Public | cinema | Shareable season deep link |
-| `/watchlist` | Collection Active + Library tabs | Required for data | memory | Continue Watching lives on Home |
+| `/watchlist` | Collection Active + Library tabs | Required for data | cinema | Continue Watching lives on Home |
 | `/continue-watching` | Redirect to `/#continue-watching` | Required for data | cinema | Alias for Home Continue Watching |
-| `/timeline` | Personal viewing timeline | Required for data | memory | Day/month/year diary spine |
+| `/timeline` | Personal viewing timeline | Required for data | cinema | Day/month/year diary spine |
 | `/franchises` | Franchise catalog | Public | cinema | Curated universes |
 | `/franchises/:slug` | Franchise progress | Public catalog; auth for progress | cinema | Release / chronological order |
-| `/social` | Friends, feed, challenges | Required for data | memory | Friend codes + compatibility |
-| `/profile` | Profile, statistics, history, Year Recap | Required for data | memory | Quiet figures; recap uses cinema band |
-| `/settings` | Settings | Optional | memory | Language, providers, privacy/social toggles, TV Time import, personal export, account deletion |
-| `/privacy` | Privacy policy | Public | memory | Static legal content |
+| `/social` | Friends, feed, challenges | Required for data | cinema | Friend codes + compatibility |
+| `/profile` | Profile, statistics, history, Year Recap | Required for data | cinema | Quiet figures; Year Recap band |
+| `/settings` | Settings | Optional | cinema | Language, providers, privacy/social toggles, TV Time import, personal export, account deletion |
+| `/privacy` | Privacy policy | Public | cinema | Static legal content |
 | `/login` | Sign in | Public | cinema | Cinematic auth panel |
 | `/signup` | Sign up | Public | cinema | Cinematic auth panel |
 
@@ -78,5 +78,5 @@ Firebase Hosting already rewrites unknown paths to `/index.html`, so direct load
 
 - Optional dedicated analytics mapping per canonical route segment
 - Broader Playwright coverage for direct URL loads and browser back/forward
-- Keep Figma Cinema Memory frames synced using [`docs/CinemaMemoryDesign.md`](./CinemaMemoryDesign.md)
+- Keep Figma Cinema Memory frames synced using [`docs/CinemaMemoryDesign.md`](./CinemaMemoryDesign.md) (single cinema canvas on all routes)
 - Optional query-driven trending tab selection (for example `/?tab=movies`)

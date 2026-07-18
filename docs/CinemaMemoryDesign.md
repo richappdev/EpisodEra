@@ -18,21 +18,20 @@ Figma must not invent product capabilities. Canva must not contradict shipped st
 
 ## Direction name
 
-**Cinema Memory** — dual-mood product UI:
+**Cinema Memory** — single dark cinema UI across the product.
 
 | Canvas | Mood | Routes |
 | --- | --- | --- |
-| `cinema` | Dark discovery / immersion | `/`, `/search`, `/login`, `/signup`, `/movie/*`, `/tv/*`, `/franchises*` |
-| `memory` | Warm paper archive | `/watchlist`, `/timeline`, `/profile`, `/settings`, `/privacy`, `/social` |
+| `cinema` | Dark discovery / immersion | All product routes (`/`, search, detail, watchlist, timeline, profile, settings, social, privacy, auth, franchises) |
 
-Routing helper: `canvasFromPath` in `web/src/routes/paths.ts`.  
-Attribute: `document.documentElement.dataset.canvas`.
+Routing helper: `canvasFromPath` in `web/src/routes/paths.ts` (always `"cinema"`).  
+Attribute: `document.documentElement.dataset.canvas="cinema"`.
 
 ## Design tokens
 
-Source: `:root` and `:root[data-canvas="memory"]` in `web/src/styles.css`.
+Source: `:root` in `web/src/styles.css` (one token set for every page).
 
-### Cinema (default)
+### Cinema (product-wide)
 
 | Token | Value | Role |
 | --- | --- | --- |
@@ -47,17 +46,6 @@ Source: `:root` and `:root[data-canvas="memory"]` in `web/src/styles.css`.
 | `--color-on-primary` | `#06242A` | Text on cyan |
 | `--color-action` | `#E8913A` | Warm secondary action |
 | `--color-danger` | `#D87C7C` | Errors |
-
-### Memory
-
-| Token | Value | Role |
-| --- | --- | --- |
-| `--color-bg` | `#F3F1EC` | Warm paper |
-| `--color-surface` | `#FFFFFF` | Surfaces |
-| `--color-text` | `#1A222C` | Ink |
-| `--color-primary` | `#1A9AA8` | Accent on light |
-| `--color-on-primary` | `#FFFFFF` | Text on accent |
-| `--color-danger` | `#9A321F` | Errors on light |
 
 ### Typography
 
@@ -102,32 +90,31 @@ Rebuild or update frames to match shipped behavior. Breakpoints: desktop ≥1024
 - Season list: ring per season, cyan expanded accent edge.
 - Episode rows: one-tap Mark watched / Watched with cyan active state.
 
-### Timeline (`/timeline`) — memory
+### Timeline (`/timeline`) — cinema
 
-- Warm paper archive.
+- Same dark cinema tokens as Home.
 - Display header “Timeline”.
 - Diary spine (left rule + cyan date dots).
 - Borderless entry rows; rewatch badge when applicable.
 - Filters remain interactive controls (search, media, group, rewatches).
 
-### Profile (`/profile`) — memory
+### Profile (`/profile`) — cinema
 
 - Quiet **figures** (no dashboard cards).
 - Secondary stats with cyan left rule.
 - Open lists for top shows/movies/genres.
 - Recent history as borderless archive rows.
 
-### Year Recap (on Profile) — cinema exception inside memory
+### Year Recap (on Profile) — cinema
 
-- Full-bleed dark band interrupting warm paper.
+- Full-bleed dark band consistent with the page.
 - Cyan top rule on share surface.
 - Display typography for headline stats.
 - Copy / Share actions.
 
-### Watchlist / Settings / Social / Privacy — memory
+### Watchlist / Settings / Social / Privacy — cinema
 
-- Use memory tokens; keep existing IA.
-- Do not restyle into cinema unless a dedicated phase is scoped.
+- Same cinema tokens and chrome as discovery surfaces; keep existing IA.
 
 ## Required UI states (unchanged contracts)
 
@@ -141,7 +128,7 @@ Figma must still cover ResourceAlignment states:
 
 Use this as the definition of “Figma reflects final behavior” for Cinema Memory:
 
-- [ ] Tokens page: cinema + memory color styles named to match CSS variables
+- [ ] Tokens page: cinema color styles named to match CSS variables
 - [ ] Text styles: Sora display + Source Sans 3 body (+ CJK note)
 - [ ] Auth frames (desktop + mobile) match underline/cyan-panel treatment
 - [ ] Home: CW first band; discovery below fold
@@ -158,8 +145,7 @@ Use this as the definition of “Figma reflects final behavior” for Cinema Mem
 
 Safe factual language for decks:
 
-- Visual system **Cinema Memory** shipped on web MVP (D0–D3).
-- Dual mood: cinema discovery vs warm personal memory archive.
+- Visual system **Cinema Memory** shipped on web MVP (D0–D3); all routes share one dark cinema canvas.
 - Live at https://episodera.web.app.
 - Core tracking, Continue Watching, timeline, profile, and Year Recap remain implemented.
 - TV Time Import **code** shipped; Phase 1 **acceptance** still open — do not claim import is accepted or beta-complete.
@@ -171,8 +157,8 @@ Avoid: fabricated metrics, “TV Time clone”, unsupported revenue/adoption cla
 
 | Concern | Code |
 | --- | --- |
-| Tokens / canvases | `web/src/styles.css` |
-| Canvas routing | `web/src/routes/paths.ts`, `web/src/App.tsx` |
+| Tokens (single canvas) | `web/src/styles.css` |
+| Canvas routing | `web/src/routes/paths.ts` (`canvasFromPath` → cinema), `web/src/App.tsx` |
 | Fonts | `web/index.html` |
 | Auth | `web/src/pages/AuthPage.tsx` |
 | Home / CW | `web/src/pages/DiscoveryPage.tsx`, `ContinueWatchingSection.tsx` |
