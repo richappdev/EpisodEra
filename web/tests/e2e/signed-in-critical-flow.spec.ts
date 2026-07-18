@@ -13,7 +13,8 @@ test("signed-in user can complete the core watchlist and episode progress flow",
   await expect(page.getByRole("heading", {name: "Critical Flow Show"})).toBeVisible();
 
   await page.getByTestId("detail-add-watchlist").click();
-  await expect(page.getByText("In watchlist")).toBeVisible();
+  await expect(page.getByTestId("detail-remove-watchlist")).toBeVisible();
+  await expect(page.getByTestId("detail-add-watchlist")).toHaveCount(0);
 
   await page.getByTestId("detail-watchlist-status").selectOption("watching");
   await expect(page.getByTestId("detail-watchlist-status")).toHaveValue("watching");
