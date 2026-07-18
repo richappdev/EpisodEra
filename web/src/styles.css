@@ -181,7 +181,12 @@ select:focus-visible {
 .detail-page {
   margin: 0 auto;
   max-width: var(--content-max);
+  min-width: 0;
   padding: 28px var(--page-pad) 56px;
+}
+
+.page-shell {
+  overflow-x: clip;
 }
 
 .tmdb-attribution {
@@ -368,6 +373,11 @@ select:focus-visible {
   margin-top: 30px;
 }
 
+.media-section--rail {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .section-header {
   align-items: baseline;
   display: flex;
@@ -394,7 +404,9 @@ select:focus-visible {
   display: flex;
   gap: 12px;
   margin: 0 calc(var(--page-pad) * -1);
+  max-width: calc(100% + var(--page-pad) * 2);
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   padding: 2px var(--page-pad) 10px;
   scroll-snap-type: x mandatory;
   scrollbar-width: thin;
@@ -1059,6 +1071,8 @@ select:focus-visible {
   display: grid;
   gap: 14px;
   margin-bottom: 0;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .continue-header h2 {
@@ -1073,7 +1087,9 @@ select:focus-visible {
   display: flex;
   gap: 14px;
   margin: 0 calc(var(--page-pad) * -1);
+  max-width: calc(100% + var(--page-pad) * 2);
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   padding: 2px var(--page-pad) 8px;
   scroll-snap-type: x mandatory;
   scrollbar-width: thin;
@@ -1130,6 +1146,7 @@ select:focus-visible {
 
 .home-hero {
   margin: 0 0 28px;
+  min-width: 0;
   padding-bottom: 8px;
 }
 
@@ -1137,6 +1154,7 @@ select:focus-visible {
   border-top: 1px solid var(--color-border);
   display: grid;
   gap: 8px;
+  min-width: 0;
   padding-top: 28px;
 }
 
@@ -1598,6 +1616,7 @@ select:focus-visible {
   display: grid;
   gap: 14px;
   margin-bottom: 24px;
+  min-width: 0;
 }
 
 .mood-chip-row,

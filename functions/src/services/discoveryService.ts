@@ -131,7 +131,7 @@ class DiscoveryService {
           id: "continue-franchise",
           title: "Continue an unfinished franchise",
           reason: "Next titles from franchises you have started or can pick up next.",
-          items: continueItems,
+          items: continueItems.slice(0, 10),
         });
       }
     }
@@ -157,7 +157,7 @@ class DiscoveryService {
         }),
       ]);
 
-      const moodItems = dedupeMediaSummaries([...movies.results, ...tv.results]).slice(0, 20);
+      const moodItems = dedupeMediaSummaries([...movies.results, ...tv.results]).slice(0, 10);
       if (moodItems.length > 0) {
         rails.push({
           id: mood ?? "for-you",
