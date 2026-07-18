@@ -22,7 +22,7 @@ Figma must not invent product capabilities. Canva must not contradict shipped st
 
 | Canvas | Mood | Routes |
 | --- | --- | --- |
-| `cinema` | Dark discovery / immersion | All product routes (`/`, search, detail, watchlist, timeline, profile, settings, social, privacy, auth, franchises, `/landing`) |
+| `cinema` | Dark discovery / immersion | All product routes (`/`, `/home`, search, detail, watchlist, timeline, profile, settings, social, privacy, auth, franchises) |
 
 Routing helper: `canvasFromPath` in `web/src/routes/paths.ts` (always `"cinema"`).  
 Attribute: `document.documentElement.dataset.canvas="cinema"`.
@@ -75,15 +75,17 @@ Rebuild or update frames to match shipped behavior. Breakpoints: desktop ≥1024
 - Underline inputs; solid cyan primary CTA.
 - One job: sign in / sign up.
 
-### Landing (`/landing`) — cinema
+### Landing (`/`) — cinema
 
 - Marketing surface; product TopBar hidden (`data-chrome="landing"`).
+- Signed-in visitors are redirected to `/home`.
 - Full-bleed poster plane + cinema veil as the hero visual.
 - Brand `Episodera` is the dominant first-viewport signal; one headline, one support line, CTA pair.
 - Below fold: Track / Remember / Discover sections (one job each), then close CTA.
 - Motions: poster fade-in, slow poster drift, section rise (respect `prefers-reduced-motion`).
+- Legacy `/landing` redirects to `/`.
 
-### Home (`/`) — cinema
+### Home (`/home`) — cinema
 
 - First content band: **Continue Watching** poster rail only (when signed-in entries exist).
 - Poster tile: title, episode code `S# E#`, progress bar, full-width **Watched**.

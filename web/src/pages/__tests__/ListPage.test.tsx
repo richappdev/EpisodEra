@@ -26,7 +26,7 @@ describe("ListPage", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByTestId("list-back")).toHaveAttribute("href", "/");
+    expect(screen.getByTestId("list-back")).toHaveAttribute("href", "/home");
     expect(screen.getByRole("heading", {name: "Something relaxing"})).toBeVisible();
     expect(screen.getByText("Popular titles matched to this mood or time budget.")).toBeVisible();
     expect(screen.getByTestId("media-card-movie-2001")).toBeVisible();

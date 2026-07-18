@@ -314,7 +314,7 @@ select:focus-visible {
   opacity: 0.62;
 }
 
-/* Landing — marketing surface at /landing (product TopBar hidden) */
+/* Landing — marketing surface at / (product TopBar hidden) */
 .landing-page {
   color: var(--color-text);
   overflow-x: clip;

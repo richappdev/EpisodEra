@@ -14,8 +14,10 @@ export type NavView =
 export type CanvasMode = "cinema";
 
 export const paths = {
-  home: "/",
-  landing: "/landing",
+  landing: "/",
+  home: "/home",
+  /** Legacy bookmark; redirects to `/`. */
+  landingLegacy: "/landing",
   search: "/search",
   searchQuery: (query: string) => `/search?q=${encodeURIComponent(query)}`,
   movie: (id: number | string) => `/movie/${id}`,
@@ -38,11 +40,14 @@ export const paths = {
 export const mediaPath = (item: Pick<MediaSummary, "mediaType" | "id">) =>
   item.mediaType === "movie" ? paths.movie(item.id) : paths.tv(item.id);
 
+export const isLandingPath = (pathname: string) =>
+  pathname === paths.landing || pathname === paths.landingLegacy;
+
 export const navFromPath = (pathname: string): NavView => {
   if (pathname.startsWith("/search")) {
     return "search";
   }
-  if (pathname.startsWith("/continue-watching")) {
+  if (pathname.startsWith("/continue-watching") || pathname === paths.home || pathname.startsWith(`${paths.home}/`)) {
     return "trending";
   }
   if (pathname.startsWith("/watchlist")) {

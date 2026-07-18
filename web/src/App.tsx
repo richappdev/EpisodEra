@@ -4,7 +4,7 @@ import {useAuth} from "./auth/AuthContext";
 import {AppProvider, useAppContext} from "./AppContext";
 import {TopBar} from "./components/TopBar";
 import {AppRoutes} from "./routes/AppRoutes";
-import {canvasFromPath, isDetailPath, navFromPath, paths, type NavView} from "./routes/paths";
+import {canvasFromPath, isDetailPath, isLandingPath, navFromPath, paths, type NavView} from "./routes/paths";
 import {legalCopy} from "./types/legal";
 import tmdbLogo from "./assets/tmdb-logo.svg";
 
@@ -54,7 +54,7 @@ const AppShell = () => {
   const location = useLocation();
   const activeView = resolveActiveView(location.pathname, location.state);
   const canvas = canvasFromPath(location.pathname);
-  const isLanding = location.pathname === paths.landing || location.pathname.startsWith(`${paths.landing}/`);
+  const isLanding = isLandingPath(location.pathname);
 
   useEffect(() => {
     document.documentElement.dataset.canvas = canvas;

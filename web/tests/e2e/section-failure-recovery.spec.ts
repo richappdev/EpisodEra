@@ -8,7 +8,7 @@ test("watchlist failure does not block profile stats and recovers on retry", asy
     initialWatchedEpisodes: [1],
   });
 
-  await page.goto("/");
+  await page.goto("/home");
   await expect(page.getByText("Welcome, E2E")).toBeVisible();
 
   await page.getByTestId("nav-watchlist").click();

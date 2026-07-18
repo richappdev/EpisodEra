@@ -4,7 +4,7 @@ import {installMockApi, openShowDetailFromSearch, showId} from "./support/mockAp
 test("signed-in user can complete the core watchlist and episode progress flow", async ({page}) => {
   const requests = await installMockApi(page);
 
-  await page.goto("/");
+  await page.goto("/home");
   await expect(page.getByText("Welcome, E2E")).toBeVisible();
 
   await openShowDetailFromSearch(page);

@@ -130,7 +130,7 @@ const signIn = async (page: Page) => {
 };
 
 const signOut = async (page: Page) => {
-  await page.goto("/");
+  await page.goto("/home");
   if (await isSignedIn(page)) {
     await page.getByTestId("account-button").click();
     await expect(page.getByText(/^Welcome,/)).toHaveCount(0, {timeout: 15_000}).catch(() => undefined);
@@ -138,7 +138,7 @@ const signOut = async (page: Page) => {
 
   // Firebase IndexedDB persistence can restore the session after a plain UI sign-out.
   await clearAuthPersistence(page);
-  await page.goto("/");
+  await page.goto("/home");
   await expectSignedOut(page);
 };
 
@@ -362,7 +362,7 @@ test("online UI regression soak — 10 minutes, no repeated media clicks", async
   const deadline = startedAt + DURATION_MS;
 
   await runStep("P0 load deployed app and trending shell", async () => {
-    await page.goto("/");
+    await page.goto("/home");
     await expect(page.getByRole("heading", {name: "Episodera"})).toBeVisible();
     await expect(page.getByTestId("nav-trending")).toBeVisible();
     await expect(page.getByRole("heading", {name: "Trending TV Shows"})).toBeVisible({timeout: 30_000});
@@ -464,14 +464,14 @@ test("online UI regression soak — 10 minutes, no repeated media clicks", async
 
   await runStep("P1 responsive desktop shell", async () => {
     await page.setViewportSize({width: 1280, height: 800});
-    await page.goto("/");
+    await page.goto("/home");
     await expect(page.getByTestId("nav-trending")).toBeVisible();
     await expect(page.getByRole("heading", {name: "Episodera"})).toBeVisible();
   });
 
   await runOptionalStep("P1 responsive mobile shell", async () => {
     await page.setViewportSize({width: 390, height: 844});
-    await page.goto("/");
+    await page.goto("/home");
     await expect(page.getByTestId("nav-trending")).toBeVisible();
     await expect(page.getByRole("heading", {name: "Episodera"})).toBeVisible();
   });
@@ -484,6 +484,13 @@ test("online UI regression soak — 10 minutes, no repeated media clicks", async
     await expectSignedOut(page);
   });
 
+  await runStep("P0 signed-out root shows marketing landing", async () => {
+    await page.goto("/");
+    await expect(page.getByTestId("nav-trending")).toHaveCount(0);
+    await expect(page.locator(".landing-brand-mark")).toBeVisible();
+    await expect(page.getByRole("link", {name: /Create free account|免費建立帳號/})).toBeVisible();
+  });
+
   await runStep("P1 signed-out trending remains public", async () => {
     // Fresh context avoids Firebase IndexedDB persistence races from the signed-in session.
     const signedOutContext = await browser.newContext({
@@ -494,7 +501,7 @@ test("online UI regression soak — 10 minutes, no repeated media clicks", async
     try {
       attachTelemetry(signedOutPage);
       await attachAppCheckSmokeBypass(signedOutPage);
-      await signedOutPage.goto("/");
+      await signedOutPage.goto("/home");
       await expectSignedOut(signedOutPage);
       await assertTrendingCards(signedOutPage, "tv");
       const opened = await openUniqueMediaCardOrLoadMore(signedOutPage, "signed-out detail", "tv");

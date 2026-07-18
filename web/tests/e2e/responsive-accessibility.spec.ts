@@ -14,7 +14,7 @@ test("signed-in shell keeps critical controls accessible on desktop and mobile",
     {width: 390, height: 844},
   ]) {
     await page.setViewportSize(viewport);
-    await page.goto("/");
+    await page.goto("/home");
 
     await expect(page.getByRole("banner")).toBeVisible();
     await expect(page.getByRole("heading", {name: "Episodera"})).toBeVisible();

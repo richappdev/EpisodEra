@@ -17,7 +17,7 @@ import {MediaDetailRoute} from "./DetailRoute";
 import {DiscoveryRoute} from "./DiscoveryRoute";
 import {FranchiseDetailRoute, FranchiseListRoute} from "./FranchiseRoute";
 import {ListRoute} from "./ListRoute";
-import {isDetailPath, navFromPath, paths} from "./paths";
+import {isDetailPath, isLandingPath, navFromPath, paths} from "./paths";
 
 const ScreenAnalytics = () => {
   const location = useLocation();
@@ -33,7 +33,7 @@ const ScreenAnalytics = () => {
         ? "auth"
         : location.pathname.startsWith(paths.privacy)
           ? "privacy"
-          : location.pathname.startsWith(paths.landing)
+          : isLandingPath(location.pathname)
             ? "landing"
             : navFromPath(location.pathname);
 
@@ -44,6 +44,14 @@ const ScreenAnalytics = () => {
   }, [location.pathname]);
 
   return null;
+};
+
+const RootRoute = () => {
+  const {user} = useAuth();
+  if (user) {
+    return <Navigate replace to={paths.home} />;
+  }
+  return <LandingPage />;
 };
 
 const WatchlistRoute = () => {
@@ -267,7 +275,7 @@ const SettingsRoute = () => {
       await api.deleteAccount();
       setAnalyticsUserId(null);
       await signOutUser();
-      navigate(paths.home);
+      navigate(paths.landing);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Could not delete account.";
       setAccountDeletionError(message);
@@ -316,8 +324,9 @@ export const AppRoutes = () => (
   <>
     <ScreenAnalytics />
     <Routes>
+      <Route element={<RootRoute />} path={paths.landing} />
+      <Route element={<Navigate replace to={paths.landing} />} path={paths.landingLegacy} />
       <Route element={<DiscoveryRoute view="trending" />} path={paths.home} />
-      <Route element={<LandingPage />} path={paths.landing} />
       <Route element={<DiscoveryRoute view="search" />} path={paths.search} />
       <Route element={<MediaDetailRoute mediaType="movie" />} path="/movie/:id" />
       <Route element={<MediaDetailRoute mediaType="tv" />} path="/tv/:id" />
@@ -334,7 +343,7 @@ export const AppRoutes = () => (
       <Route element={<PrivacyRoute />} path={paths.privacy} />
       <Route element={<AuthRoute mode="signin" />} path={paths.login} />
       <Route element={<AuthRoute mode="signup" />} path={paths.signup} />
-      <Route element={<Navigate replace to={paths.home} />} path="*" />
+      <Route element={<Navigate replace to={paths.landing} />} path="*" />
     </Routes>
   </>
 );

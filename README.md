@@ -44,7 +44,7 @@ The project is in MVP hardening. Core web features are implemented, progress-tra
 - GitHub Actions CI for backend build, backend lint, backend unit tests with coverage enforcement, Java-backed Firestore emulator tests, frontend build, frontend component coverage enforcement, and Playwright critical-flow, progress edge-case, and responsive/accessibility smoke coverage.
 - GitHub Actions `Production Smoke` workflow for manual-dispatch or scheduled deployed signed-in validation using protected repository secrets.
 - Account deletion manually validated on 2026-07-13 against the deployed app (`DELETE /me/account`, Auth removal, Firestore cleanup) using a throwaway account.
-- URL routing and shareable deep links with React Router (`/`, `/search`, `/movie/:id`, `/tv/:id`, `/watchlist`, `/profile`, `/settings`, `/login`, `/signup`).
+- URL routing and shareable deep links with React Router (`/`, `/home`, `/search`, `/movie/:id`, `/tv/:id`, `/watchlist`, `/profile`, `/settings`, `/login`, `/signup`).
 - Project documentation for architecture, API contracts, Firestore schema, auth, navigation, deployment, coding standards, and dependency audit posture.
 
 ## Tech Stack

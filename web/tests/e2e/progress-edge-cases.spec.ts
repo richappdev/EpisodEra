@@ -7,7 +7,7 @@ test("continue watching resolves the first unwatched gap and sends a canonical e
     initialWatchlistStatus: "watching",
   });
 
-  await page.goto("/");
+  await page.goto("/home");
 
   await expect(page.getByTestId(`continue-card-${showId}`)).toBeVisible();
   await expect(page.getByTestId(`continue-next-${showId}`)).toHaveText("S1 E2");
@@ -24,7 +24,7 @@ test("continue watching resolves the first unwatched gap and sends a canonical e
 test("mark season watched batches all available unwatched episodes", async ({page}) => {
   const requests = await installMockApi(page);
 
-  await page.goto("/");
+  await page.goto("/home");
   await openShowDetailFromSearch(page);
 
   page.on("dialog", (dialog) => dialog.accept());
@@ -44,7 +44,7 @@ test("mark season watched batches all available unwatched episodes", async ({pag
 test("failed episode progress write preserves current watched state and surfaces the API error", async ({page}) => {
   const requests = await installMockApi(page, {initialWatchedEpisodes: [1]});
 
-  await page.goto("/");
+  await page.goto("/home");
   await openShowDetailFromSearch(page);
 
   await expect(page.getByText("1 of 3 watched · 2 remaining")).toBeVisible();
@@ -64,7 +64,7 @@ test("failed episode progress write preserves current watched state and surfaces
 test("offline progress write can be retried without corrupting watched state", async ({page}) => {
   const requests = await installMockApi(page);
 
-  await page.goto("/");
+  await page.goto("/home");
   await openShowDetailFromSearch(page);
 
   requests.abortNextProgressWrite();
@@ -87,7 +87,7 @@ test("offline progress write can be retried without corrupting watched state", a
 test("pending progress write disables duplicate episode actions", async ({page}) => {
   const requests = await installMockApi(page);
 
-  await page.goto("/");
+  await page.goto("/home");
   await openShowDetailFromSearch(page);
 
   requests.holdNextProgressWrite();
@@ -116,7 +116,7 @@ test("concurrent browser progress writes converge to a consistent final summary"
   const requestsA = await installMockApi(pageA, {state});
   await installMockApi(pageB, {state});
 
-  await Promise.all([pageA.goto(baseURL ?? "/"), pageB.goto(baseURL ?? "/")]);
+  await Promise.all([pageA.goto(baseURL ? `${baseURL.replace(/\/$/, "")}/home` : "/home"), pageB.goto(baseURL ? `${baseURL.replace(/\/$/, "")}/home` : "/home")]);
   await Promise.all([openShowDetailFromSearch(pageA), openShowDetailFromSearch(pageB)]);
 
   await Promise.all([

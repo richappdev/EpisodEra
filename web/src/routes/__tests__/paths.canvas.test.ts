@@ -1,8 +1,9 @@
 import {describe, expect, it} from "vitest";
-import {canvasFromPath, paths} from "../paths";
+import {canvasFromPath, isLandingPath, navFromPath, paths} from "../paths";
 
 describe("canvasFromPath", () => {
   it("uses cinema canvas for every product route", () => {
+    expect(canvasFromPath(paths.landing)).toBe("cinema");
     expect(canvasFromPath(paths.home)).toBe("cinema");
     expect(canvasFromPath(paths.search)).toBe("cinema");
     expect(canvasFromPath(paths.login)).toBe("cinema");
@@ -16,5 +17,19 @@ describe("canvasFromPath", () => {
     expect(canvasFromPath(paths.settings)).toBe("cinema");
     expect(canvasFromPath(paths.privacy)).toBe("cinema");
     expect(canvasFromPath(paths.social)).toBe("cinema");
+  });
+});
+
+describe("landing and home paths", () => {
+  it("treats / and /landing as landing chrome paths", () => {
+    expect(isLandingPath("/")).toBe(true);
+    expect(isLandingPath("/landing")).toBe(true);
+    expect(isLandingPath("/home")).toBe(false);
+  });
+
+  it("maps /home to trending nav and not bare /", () => {
+    expect(navFromPath("/home")).toBe("trending");
+    expect(paths.landing).toBe("/");
+    expect(paths.home).toBe("/home");
   });
 });

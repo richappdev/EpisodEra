@@ -136,7 +136,7 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
 
   const signOutAndReset = async () => {
     await signOutUser();
-    navigate(paths.home);
+    navigate(paths.landing);
   };
 
   const addToWatchlist = (selectedDetail: MediaDetail) => {
