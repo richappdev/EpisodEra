@@ -9,6 +9,7 @@ The MVP uses **React Router 6** (`react-router-dom`) with browser history and sh
 | Route | Screen | Auth | Canvas | Notes |
 | --- | --- | --- | --- | --- |
 | `/` | Home / Trending (TV Shows tab default) + Continue Watching when signed in | Public | cinema | CW poster rail is first band; discovery below fold |
+| `/landing` | Marketing introduction | Public | cinema | Product TopBar hidden; CTAs to `/signup`, `/login`, `/` |
 | `/search` | Search | Public | cinema | Empty prompt when no `q` query param |
 | `/search?q={query}` | Search results | Public | cinema | Query persists in the URL |
 | `/movie/:id` | Movie detail | Public | cinema | Full-bleed hero + status rail |
@@ -35,6 +36,7 @@ Unknown paths redirect to `/`.
 | --- | --- | --- | --- |
 | Account loading | App bootstrap | Application state | Firebase Auth |
 | Auth | `/login`, `/signup` | `AuthPage` | Firebase Auth |
+| Landing | `/landing` | `LandingPage` | Static copy + public trending posters |
 | Trending / Home | `/` | `DiscoveryPage` | `GET /trending/tv` or `GET /trending/movie`, `GET /discover/suggestions` |
 | Discovery list | `/list/:listId` | `ListPage` via `ListRoute` | `GET /discover/lists/:listId` |
 | Search | `/search`, `/search?q=` | `DiscoveryPage` | `GET /search?q=` |

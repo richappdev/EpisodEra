@@ -22,7 +22,7 @@ Figma must not invent product capabilities. Canva must not contradict shipped st
 
 | Canvas | Mood | Routes |
 | --- | --- | --- |
-| `cinema` | Dark discovery / immersion | All product routes (`/`, search, detail, watchlist, timeline, profile, settings, social, privacy, auth, franchises) |
+| `cinema` | Dark discovery / immersion | All product routes (`/`, search, detail, watchlist, timeline, profile, settings, social, privacy, auth, franchises, `/landing`) |
 
 Routing helper: `canvasFromPath` in `web/src/routes/paths.ts` (always `"cinema"`).  
 Attribute: `document.documentElement.dataset.canvas="cinema"`.
@@ -74,6 +74,14 @@ Rebuild or update frames to match shipped behavior. Breakpoints: desktop ≥1024
 - Translucent panel, **2px cyan top rule**, no heavy card chrome.
 - Underline inputs; solid cyan primary CTA.
 - One job: sign in / sign up.
+
+### Landing (`/landing`) — cinema
+
+- Marketing surface; product TopBar hidden (`data-chrome="landing"`).
+- Full-bleed poster plane + cinema veil as the hero visual.
+- Brand `Episodera` is the dominant first-viewport signal; one headline, one support line, CTA pair.
+- Below fold: Track / Remember / Discover sections (one job each), then close CTA.
+- Motions: poster fade-in, slow poster drift, section rise (respect `prefers-reduced-motion`).
 
 ### Home (`/`) — cinema
 
@@ -161,6 +169,7 @@ Avoid: fabricated metrics, “TV Time clone”, unsupported revenue/adoption cla
 | Canvas routing | `web/src/routes/paths.ts` (`canvasFromPath` → cinema), `web/src/App.tsx` |
 | Fonts | `web/index.html` |
 | Auth | `web/src/pages/AuthPage.tsx` |
+| Landing | `web/src/pages/LandingPage.tsx`, `web/src/types/landing.ts` |
 | Home / CW | `web/src/pages/DiscoveryPage.tsx`, `ContinueWatchingSection.tsx` |
 | Detail | `web/src/pages/DetailPage.tsx`, `ProgressRing.tsx` |
 | Timeline | `web/src/pages/TimelinePage.tsx` |

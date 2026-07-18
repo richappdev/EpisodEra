@@ -15,6 +15,7 @@ export type CanvasMode = "cinema";
 
 export const paths = {
   home: "/",
+  landing: "/landing",
   search: "/search",
   searchQuery: (query: string) => `/search?q=${encodeURIComponent(query)}`,
   movie: (id: number | string) => `/movie/${id}`,

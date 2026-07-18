@@ -4,6 +4,7 @@ import {useAuth} from "../auth/AuthContext";
 import {useAppContext} from "../AppContext";
 import {api} from "../api/client";
 import {setAnalyticsUserId, trackEvent} from "../firebase";
+import {LandingPage} from "../pages/LandingPage";
 import {PrivacyPage} from "../pages/PrivacyPage";
 import {ProfilePage} from "../pages/ProfilePage";
 import {SettingsPage} from "../pages/SettingsPage";
@@ -32,7 +33,9 @@ const ScreenAnalytics = () => {
         ? "auth"
         : location.pathname.startsWith(paths.privacy)
           ? "privacy"
-          : navFromPath(location.pathname);
+          : location.pathname.startsWith(paths.landing)
+            ? "landing"
+            : navFromPath(location.pathname);
 
     trackEvent("screen_view", {
       firebase_screen: screen,
@@ -314,6 +317,7 @@ export const AppRoutes = () => (
     <ScreenAnalytics />
     <Routes>
       <Route element={<DiscoveryRoute view="trending" />} path={paths.home} />
+      <Route element={<LandingPage />} path={paths.landing} />
       <Route element={<DiscoveryRoute view="search" />} path={paths.search} />
       <Route element={<MediaDetailRoute mediaType="movie" />} path="/movie/:id" />
       <Route element={<MediaDetailRoute mediaType="tv" />} path="/tv/:id" />
