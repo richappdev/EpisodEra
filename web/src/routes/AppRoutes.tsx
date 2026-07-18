@@ -15,6 +15,7 @@ import {AuthRoute, ContinueWatchingRoute} from "./AuthRoute";
 import {MediaDetailRoute} from "./DetailRoute";
 import {DiscoveryRoute} from "./DiscoveryRoute";
 import {FranchiseDetailRoute, FranchiseListRoute} from "./FranchiseRoute";
+import {ListRoute} from "./ListRoute";
 import {isDetailPath, navFromPath, paths} from "./paths";
 
 const ScreenAnalytics = () => {
@@ -322,6 +323,7 @@ export const AppRoutes = () => (
       <Route element={<TimelineRoute />} path={paths.timeline} />
       <Route element={<FranchiseListRoute />} path={paths.franchises} />
       <Route element={<FranchiseDetailRoute />} path="/franchises/:slug" />
+      <Route element={<ListRoute />} path="/list/:listId" />
       <Route element={<ProfileRoute />} path={paths.profile} />
       <Route element={<SocialRoute />} path={paths.social} />
       <Route element={<SettingsRoute />} path={paths.settings} />

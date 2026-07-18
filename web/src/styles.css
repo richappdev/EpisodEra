@@ -418,6 +418,40 @@ select:focus-visible {
   width: 128px;
 }
 
+.media-rail-more {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-surface) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  display: flex;
+  flex: 0 0 128px;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  min-height: 192px;
+  scroll-snap-align: start;
+  text-decoration: none;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+  width: 128px;
+}
+
+.media-rail-more span {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.list-back-link {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
 .media-card {
   background: transparent;
   border: 0;
@@ -2254,6 +2288,11 @@ select:focus-visible {
   .watchlist-poster:hover {
     box-shadow: 0 10px 24px rgba(25, 32, 42, 0.14);
     transform: translateY(-2px);
+  }
+
+  .media-rail-more:hover {
+    background: color-mix(in srgb, var(--color-surface-muted) 88%, transparent);
+    border-color: var(--color-primary-border);
   }
 
   .media-card:hover strong,

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import {afterEach, describe, it} from "node:test";
-import {MediaDetail} from "../models/media";
-import {hydrateFranchiseTitle} from "./discoveryService";
+import {HttpError} from "../lib/httpError";
+import {MediaDetail, MediaSummary} from "../models/media";
+import {discoveryService, hydrateFranchiseTitle} from "./discoveryService";
 import {tmdbService} from "./tmdbService";
 
 const movieDetail: MediaDetail = {
@@ -22,6 +23,24 @@ const movieDetail: MediaDetail = {
   originalLanguage: "en",
   homepage: null,
 };
+
+const movieSummary: MediaSummary = {
+  id: 1726,
+  mediaType: "movie",
+  title: "Iron Man",
+  overview: "After being held captive...",
+  releaseDate: "2008-05-02",
+  voteAverage: 7.6,
+  popularity: 100,
+  images: movieDetail.images,
+};
+
+const paged = (results: MediaSummary[], page = 1) => ({
+  page,
+  totalPages: 2,
+  totalResults: results.length + 10,
+  results,
+});
 
 describe("hydrateFranchiseTitle", () => {
   const originalMovieDetail = tmdbService.movieDetail;
@@ -69,5 +88,35 @@ describe("hydrateFranchiseTitle", () => {
       popularity: 0,
       images: {poster: null, backdrop: null},
     });
+  });
+});
+
+describe("discoveryService.list", () => {
+  const originalDiscoverMovies = tmdbService.discoverMovies;
+  const originalDiscoverTv = tmdbService.discoverTv;
+
+  afterEach(() => {
+    tmdbService.discoverMovies = originalDiscoverMovies;
+    tmdbService.discoverTv = originalDiscoverTv;
+  });
+
+  it("returns a paginated mood list", async () => {
+    tmdbService.discoverMovies = async () => paged([movieSummary], 2);
+    tmdbService.discoverTv = async () => paged([], 2);
+
+    const response = await discoveryService.list({} as never, "relaxing", {page: 2, language: "en-US"});
+
+    assert.equal(response.id, "relaxing");
+    assert.equal(response.title, "Something relaxing");
+    assert.equal(response.page, 2);
+    assert.equal(response.totalPages, 2);
+    assert.equal(response.results[0]?.id, 1726);
+  });
+
+  it("rejects unknown list ids", async () => {
+    await assert.rejects(
+      () => discoveryService.list({} as never, "not-a-real-list", {}),
+      (error: unknown) => error instanceof HttpError && error.status === 404,
+    );
   });
 });

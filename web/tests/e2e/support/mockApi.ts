@@ -329,6 +329,19 @@ export const installMockApi = async (page: Page, options: MockApiOptions = {}) =
       });
     }
 
+    if (method === "GET" && path.startsWith("/discover/lists/")) {
+      const listId = path.slice("/discover/lists/".length);
+      return json(route, {
+        id: listId,
+        title: listId === "relaxing" ? "Something relaxing" : "Suggested for you",
+        reason: "Popular titles matched to this mood or time budget.",
+        page: 1,
+        totalPages: 1,
+        totalResults: 1,
+        results: [showSummary],
+      });
+    }
+
     if (method === "GET" && path === "/me/history") {
       if (consumeFailOnce("history")) {
         return json(route, {error: {message: "Temporary history outage."}}, 503);

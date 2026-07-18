@@ -308,7 +308,14 @@ export const DiscoveryPage = ({
             {!suggestionsLoading &&
               !suggestionsError &&
               suggestions?.rails.map((rail) => (
-                <MediaSection key={rail.id} title={rail.title} items={rail.items} layout="rail" onSelect={onSelect} />
+                <MediaSection
+                  key={rail.id}
+                  title={rail.title}
+                  items={rail.items}
+                  layout="rail"
+                  listId={rail.id}
+                  onSelect={onSelect}
+                />
               ))}
           </section>
 

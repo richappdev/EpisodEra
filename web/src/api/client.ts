@@ -1,6 +1,6 @@
 import {DiscoveryResponse, MediaDetail, MediaType, TvSeasonDetail} from "../types/media";
 import {PaginationParams, withPagination} from "../types/pagination";
-import {DiscoverySuggestionsResponse} from "../types/discovery";
+import {DiscoveryListResponse, DiscoverySuggestionsResponse} from "../types/discovery";
 import {FranchiseCatalog, FranchiseOrder, FranchiseProgress, FranchiseSummary} from "../types/franchise";
 import {HistoryEntry, HistoryResponse, UpdateHistoryInput} from "../types/history";
 import {ProfileResponse, UpdateUserProfileInput, UserProfile} from "../types/profile";
@@ -181,6 +181,29 @@ export const api = {
       params.set("region", options.region);
     }
     return request<DiscoverySuggestionsResponse>(`/discover/suggestions?${params.toString()}`);
+  },
+  discoverList: (
+    listId: string,
+    language: SupportedLanguage,
+    options?: {page?: number; maxMinutes?: number; providers?: number[]; region?: string},
+  ) => {
+    const params = new URLSearchParams();
+    params.set("language", language);
+    if (options?.page != null) {
+      params.set("page", String(options.page));
+    }
+    if (options?.maxMinutes != null) {
+      params.set("maxMinutes", String(options.maxMinutes));
+    }
+    if (options?.providers && options.providers.length > 0) {
+      params.set("providers", options.providers.join(","));
+    }
+    if (options?.region) {
+      params.set("region", options.region);
+    }
+    return request<DiscoveryListResponse>(
+      `/discover/lists/${encodeURIComponent(listId)}?${params.toString()}`,
+    );
   },
   listWatchlist: (pagination?: PaginationParams) =>
     request<WatchlistResponse>(withPagination("/watchlist", pagination)),

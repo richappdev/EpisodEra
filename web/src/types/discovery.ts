@@ -30,3 +30,13 @@ export interface DiscoverySuggestionsResponse {
   moods: MoodDefinition[];
   providers: StreamingProviderOption[];
 }
+
+export interface DiscoveryListResponse {
+  id: string;
+  title: string;
+  reason: string;
+  page: number;
+  totalPages: number;
+  totalResults: number;
+  results: MediaSummary[];
+}

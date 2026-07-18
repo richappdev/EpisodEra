@@ -67,6 +67,7 @@ TMDb detail and TV season reads use a 24-hour per-Functions-instance in-memory T
 | `GET` | `/franchises` | Optional | `200` |
 | `GET` | `/franchises/:slug` | Optional | `200` |
 | `GET` | `/discover/suggestions` | Optional | `200` |
+| `GET` | `/discover/lists/:listId` | Optional | `200` |
 | `GET` | `/me/history` | Firebase ID token | `200` |
 | `GET` | `/me/export` | Firebase ID token | `200` |
 | `GET` | `/me/profile` | Firebase ID token | `200` |
@@ -702,9 +703,12 @@ GET /franchises
 GET /franchises/:slug
 GET /me/franchises/:slug/progress?order=release|chronological
 GET /discover/suggestions?mood={mood}&maxMinutes={minutes}&providers={ids}&region={cc}&language={lang}
+GET /discover/lists/:listId?page={page}&maxMinutes={minutes}&providers={ids}&region={cc}&language={lang}
 ```
 
 `mood` supports `relaxing`, `mind-bending`, `emotional`, `epic`, and `quick-watch`. When signed in, suggestions may include unfinished franchise next titles and will use saved `preferredProviderIds` / `watchRegion` from settings when query params are omitted.
+
+`listId` supports the same mood ids, plus `for-you` (default suggestions) and `continue-franchise` (signed-in unfinished franchise next titles; empty when signed out). Home rails link to this endpoint via **More**.
 
 Settings also accept:
 

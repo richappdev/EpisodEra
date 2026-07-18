@@ -25,6 +25,7 @@ export const paths = {
   timeline: "/timeline",
   franchises: "/franchises",
   franchise: (slug: string) => `/franchises/${encodeURIComponent(slug)}`,
+  list: (listId: string) => `/list/${encodeURIComponent(listId)}`,
   social: "/social",
   profile: "/profile",
   settings: "/settings",
@@ -51,6 +52,9 @@ export const navFromPath = (pathname: string): NavView => {
   }
   if (pathname.startsWith("/franchises")) {
     return "franchises";
+  }
+  if (pathname.startsWith("/list/")) {
+    return "trending";
   }
   if (pathname.startsWith("/social")) {
     return "social";

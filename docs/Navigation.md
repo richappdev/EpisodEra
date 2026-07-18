@@ -19,6 +19,7 @@ The MVP uses **React Router 6** (`react-router-dom`) with browser history and sh
 | `/timeline` | Personal viewing timeline | Required for data | cinema | Day/month/year diary spine |
 | `/franchises` | Franchise catalog | Public | cinema | Curated universes |
 | `/franchises/:slug` | Franchise progress | Public catalog; auth for progress | cinema | Release / chronological order |
+| `/list/:listId` | Discovery list (full grid) | Public; franchise continuation richer when signed in | cinema | Opened from Home rail **More** |
 | `/social` | Friends, feed, challenges | Required for data | cinema | Friend codes + compatibility |
 | `/profile` | Profile, statistics, history, Year Recap | Required for data | cinema | Quiet figures; Year Recap band |
 | `/settings` | Settings | Optional | cinema | Language, providers, privacy/social toggles, TV Time import, personal export, account deletion |
@@ -35,6 +36,7 @@ Unknown paths redirect to `/`.
 | Account loading | App bootstrap | Application state | Firebase Auth |
 | Auth | `/login`, `/signup` | `AuthPage` | Firebase Auth |
 | Trending / Home | `/` | `DiscoveryPage` | `GET /trending/tv` or `GET /trending/movie`, `GET /discover/suggestions` |
+| Discovery list | `/list/:listId` | `ListPage` via `ListRoute` | `GET /discover/lists/:listId` |
 | Search | `/search`, `/search?q=` | `DiscoveryPage` | `GET /search?q=` |
 | Franchises | `/franchises`, `/franchises/:slug` | `FranchiseListPage` / `FranchiseDetailPage` | `GET /franchises`, `GET /me/franchises/:slug/progress` |
 | Movie detail | `/movie/:id` | `DetailPage` via `MediaDetailRoute` | `GET /movie/:id` |
