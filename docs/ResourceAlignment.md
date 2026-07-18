@@ -1,6 +1,6 @@
 # Episodera Resource Alignment
 
-Last updated: 2026-07-17
+Last updated: 2026-07-18
 
 ## Purpose
 
@@ -62,15 +62,19 @@ The currently implemented or substantially implemented product areas include:
 * Season and episode browsing
 * Individual episode watched and unwatched actions
 * Season-level batch watched and unwatched actions
-* Continue Watching with backend-calculated next-unwatched episode
+* Continue Watching on Home with backend-calculated next-unwatched episode
+* Watchlist Active / Library tabs (planned/stale/completed hygiene)
 * Profile statistics
 * Watched-history records
-* Settings (language, previous-episode preference)
+* Personal watching-history export from Settings
+* Settings (language, previous-episode preference, TV Time import)
 * Public privacy policy (`/privacy`) with bilingual disclosures
 * Account deletion (`DELETE /me/account` and Settings confirmation UI)
+* App Check Phase 3 enforce on authenticated API writes
 * Responsive navigation and layouts
 * Domain hooks (`useWatchlist`, `useProgress`, `useProfile`, `useProfileStats`, `useSettings`) with independent section loading, error, and retry
 * Paginated list APIs and load-more UI for watchlist, profile history, and discovery trending/search
+* Remote Config–driven dormant threshold (14-day local fallback)
 
 ## Reliability Work Implemented
 
@@ -105,7 +109,7 @@ The implementation must remain the final authority for whether each capability i
 
 The highest-priority remaining work is:
 
-1. **Close TV Time Import Phase 1 acceptance** — evidence ledger [`docs/TvTimeImportPhase1Acceptance.md`](./TvTimeImportPhase1Acceptance.md) (A1 tip-matched smoke, A2 deployed import path, A3 ~4.7k soak, A4–A7 gaps, A9 staging cleanup; A8 browser-ZIP **PASS**)
+1. **Close TV Time Import Phase 1 acceptance** — evidence ledger [`docs/TvTimeImportPhase1Acceptance.md`](./TvTimeImportPhase1Acceptance.md) (A1 tip-matched smoke at `5f00677` or chosen closeout tip, A2 deployed import path, A3 ~4.7k soak, A4–A7 gaps, A9 staging cleanup; A8 browser-ZIP **PASS**)
 2. Repeat hosted `Production Smoke` on the acceptance tip and retain workflow evidence (latest hosted PASS: `5a9ecf9` — [run 29565696402](https://github.com/richappdev/EpisodEra/actions/runs/29565696402); prior: `0518525`, `c97b0c3`)
 3. Staging Firebase environment separation and staging-specific smoke validation (optional)
 4. Broader WCAG-focused accessibility audit beyond current Playwright smoke assertions
@@ -113,9 +117,10 @@ The highest-priority remaining work is:
 6. Legal review of privacy policy copy and formal TMDb terms/image compliance checklist
 7. Dependency major-upgrade and production-risk decision (`firebase-admin`, `firebase-functions`, Vite)
 8. Observability dashboards, release monitoring, and rollback procedures (include per-import Firestore/TMDb/Functions cost)
-9. Final beta-readiness acceptance review
+9. Distributed quota beyond per-instance rate limits; optional App Check Phase 4 / Auth Console enforce
+10. Final beta-readiness acceptance review
 
-Account lifecycle implementation is complete (`DELETE /me/account`, Settings UI, emulator test). Manual throwaway-account deletion validation passed on 2026-07-13. Do not delete the smoke automation account during smoke runs.
+App Check Phase 3 enforce is live. Account lifecycle implementation is complete (`DELETE /me/account`, Settings UI, emulator test). Manual throwaway-account deletion validation passed on 2026-07-13. Do not delete the smoke automation account during smoke runs.
 
 A feature should not be marked complete solely because its normal-path UI exists.
 
@@ -358,8 +363,8 @@ A feature is complete only when all applicable conditions are met:
 
 | Resource              | Current status                                                                                                          |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| GitHub implementation | Tip `5a72102` (2026-07-17): App Check Phase 3 enforce live; personal export + watchlist hygiene landed. TV Time Phase 1 acceptance **OPEN** — ledger [`docs/TvTimeImportPhase1Acceptance.md`](./TvTimeImportPhase1Acceptance.md) (A8 PASS; A1/A3/A9 open; A2/A4–A7 partial). Latest hosted smoke PASS is `5a9ecf9` ([run 29565696402](https://github.com/richappdev/EpisodEra/actions/runs/29565696402)), **not** tip-matched. |
-| Notion planning       | Mirror acceptance ledger statuses; drop stale exact-tip requirement `b147545` in favor of current tip at closeout |
+| GitHub implementation | Tip `5f00677` (2026-07-18): App Check Phase 3 enforce live; personal export; Watchlist Active/Library + Continue Watching on Home; Remote Config dormant threshold. TV Time Phase 1 acceptance **OPEN** — ledger [`docs/TvTimeImportPhase1Acceptance.md`](./TvTimeImportPhase1Acceptance.md) (A8 PASS; A1/A3/A9 open; A2/A4–A7 partial). Latest hosted smoke PASS is `5a9ecf9` ([run 29565696402](https://github.com/richappdev/EpisodEra/actions/runs/29565696402)), **not** tip-matched. |
+| Notion planning       | MVP dashboard tree status-synced to `5f00677` (2026-07-18). Mirror acceptance ledger; tip-matched smoke at closeout tip (not exact `b147545`). |
 | Figma design          | Responsive screen system documented; direct latest-file verification pending when connector access allows |
 | Canva reporting       | Should distinguish implemented code, recorded smoke evidence, and beta-ready status; refresh after hosted smoke reruns |
 
@@ -374,6 +379,13 @@ At the time of this update:
 These limitations affect resource synchronization only. They do not change product scope or implementation status.
 
 ## Change Log
+### 2026-07-18 (Notion + tip sync to 5f00677)
+
+* Rebaselined Notion MVP Dashboard and child pages to tip `5f00677`.
+* Recorded shipped UX: Continue Watching on Home only; Watchlist Active/Library; auto-complete at 100%; Remote Config dormant threshold; personal export.
+* App Check Phase 3 remains **live**; tip-matched hosted smoke and import acceptance (A1–A9) still open.
+* Updated [`docs/Navigation.md`](./Navigation.md) to match Home Continue Watching + Active/Library Collection.
+
 ### 2026-07-17 (TV Time Phase 1 acceptance ledger)
 
 * Added [`docs/TvTimeImportPhase1Acceptance.md`](./TvTimeImportPhase1Acceptance.md) as the GitHub evidence SoT for Phase 1 closeout (aligned to Notion acceptance criteria).

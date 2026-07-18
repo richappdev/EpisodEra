@@ -1,7 +1,8 @@
 # TV Time Import Phase 1 Acceptance
 
-Last updated: 2026-07-17  
+Last updated: 2026-07-18  
 Canonical tip at checklist creation: `5a72102`  
+Current repository tip: `5f00677` (rebaseline acceptance tip at closeout)  
 Notion counterpart: [TV Time Data Schema Analysis](https://app.notion.com/p/39ca4181b628812e9792c7589cd14c5b)
 
 ## Purpose
@@ -72,9 +73,9 @@ From `tv_time_tool/TVTimeDataDesign.md` / Notion sample:
 | Status | **OPEN** |
 | Requirement | Hosted `Production Smoke` success whose workflow `headSha` equals the acceptance tip (or a tip explicitly rebaselined in this file + ResourceAlignment) |
 | Latest hosted PASS | [run 29565696402](https://github.com/richappdev/EpisodEra/actions/runs/29565696402) on `5a9ecf9` (2026-07-17) |
-| Current tip | `5a72102` (4 commits ahead of that smoke: export Blob typing, personal export, smoke evidence note, watchlist hide completed/dropped) |
+| Current tip | `5f00677` (ahead of smoke `5a9ecf9` and prior ledger tip `5a72102`) |
 | Stale Notion baseline | `b147545` is an ancestor of tip; **do not** require exact `b147545` smoke anymore — rebaseline tip when closing |
-| Gap | No tip-matched hosted smoke for `5a72102` (or successor chosen at closeout) |
+| Gap | No tip-matched hosted smoke for `5f00677` (or successor chosen at closeout) |
 | Also note | Current `web/scripts/production-smoke.mjs` does **not** call `/me/imports/*` (see A2) |
 
 **Closeout action:** Dispatch Production Smoke on the chosen tip; paste run URL + short SHA into this section and ResourceAlignment.

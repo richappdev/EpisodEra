@@ -8,20 +8,20 @@ The MVP uses **React Router 6** (`react-router-dom`) with browser history and sh
 
 | Route | Screen | Auth | Notes |
 | --- | --- | --- | --- |
-| `/` | Trending (TV Shows tab default) | Public | Default landing |
+| `/` | Home / Trending (TV Shows tab default) + Continue Watching when signed in | Public | Default landing; CW section requires auth data |
 | `/search` | Search | Public | Empty prompt when no `q` query param |
 | `/search?q={query}` | Search results | Public | Query persists in the URL |
 | `/movie/:id` | Movie detail | Public | Shareable movie URL |
 | `/tv/:id` | TV detail | Public | Default season selected from show metadata |
 | `/tv/:id/season/:seasonNumber` | TV detail + season | Public | Shareable season deep link |
-| `/watchlist` | Watchlist + Continue Watching section | Required for data | |
-| `/continue-watching` | Redirect to `/watchlist#continue-watching` | Required for data | Alias for the embedded section |
+| `/watchlist` | Collection Active + Library tabs | Required for data | Continue Watching lives on Home |
+| `/continue-watching` | Redirect to `/#continue-watching` | Required for data | Alias for Home Continue Watching |
 | `/timeline` | Personal viewing timeline | Required for data | Day/month/year diary |
 | `/franchises` | Franchise catalog | Public | Curated universes |
 | `/franchises/:slug` | Franchise progress | Public catalog; auth for progress | Release / chronological order |
 | `/social` | Friends, feed, challenges | Required for data | Friend codes + compatibility |
 | `/profile` | Profile, statistics, history | Required for data | Achievements when enabled |
-| `/settings` | Settings | Optional | Language, providers, privacy/social toggles, account deletion |
+| `/settings` | Settings | Optional | Language, providers, privacy/social toggles, TV Time import, personal export, account deletion |
 | `/privacy` | Privacy policy | Public | Static legal content |
 | `/login` | Sign in | Public | Returns to prior route after success when available |
 | `/signup` | Sign up | Public | Returns to prior route after success when available |
@@ -34,18 +34,18 @@ Unknown paths redirect to `/`.
 | --- | --- | --- | --- |
 | Account loading | App bootstrap | Application state | Firebase Auth |
 | Auth | `/login`, `/signup` | `AuthPage` | Firebase Auth |
-| Trending | `/` | `DiscoveryPage` | `GET /trending/tv` or `GET /trending/movie`, `GET /discover/suggestions` |
+| Trending / Home | `/` | `DiscoveryPage` | `GET /trending/tv` or `GET /trending/movie`, `GET /discover/suggestions` |
 | Search | `/search`, `/search?q=` | `DiscoveryPage` | `GET /search?q=` |
 | Franchises | `/franchises`, `/franchises/:slug` | `FranchiseListPage` / `FranchiseDetailPage` | `GET /franchises`, `GET /me/franchises/:slug/progress` |
 | Movie detail | `/movie/:id` | `DetailPage` via `MediaDetailRoute` | `GET /movie/:id` |
 | TV detail | `/tv/:id`, `/tv/:id/season/:seasonNumber` | `DetailPage` via `MediaDetailRoute` | `GET /tv/:id`, `GET /tv/:id/season/:seasonNumber` |
 | Episode progress | TV detail routes | Embedded in `DetailPage` | Progress APIs |
-| Watchlist | `/watchlist` | `WatchlistPage` | `GET /watchlist`, `GET /progress` |
-| Continue Watching | `/watchlist#continue-watching`, `/continue-watching` | Section within `WatchlistPage` | `GET /progress` |
+| Collection | `/watchlist` | `WatchlistPage` (Active / Library tabs) | `GET /watchlist`, `GET /progress` |
+| Continue Watching | `/#continue-watching`, `/continue-watching` | Section within `DiscoveryPage` (Home) | `GET /progress` (+ watchlist for grouping) |
 | Timeline | `/timeline` | `TimelinePage` | `GET /me/history` |
 | Profile | `/profile` | `ProfilePage` | `GET /me/profile`, `GET /me/stats`, `GET /me/recap`, `GET /me/achievements`, `GET /me/history` |
 | Social | `/social` | `SocialPage` | `GET /me/friends`, `GET /me/feed`, `GET /me/challenges`, compatibility |
-| Settings | `/settings` | `SettingsPage` | `localStorage` + `GET/PATCH /me/settings`, `DELETE /me/account` when signed in |
+| Settings | `/settings` | `SettingsPage` | `localStorage` + `GET/PATCH /me/settings`, import/export, `DELETE /me/account` when signed in |
 | Privacy policy | `/privacy` | `PrivacyPage` | Static copy in `web/src/types/legal.ts` |
 
 ## State rules
