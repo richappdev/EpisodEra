@@ -1,6 +1,7 @@
 import {useMemo, useState} from "react";
 import {Bookmark, Film, Loader2, Trash2} from "lucide-react";
 import {SectionError} from "../components/SectionError";
+import {useDormantAfterDays} from "../hooks/useDormantAfterDays";
 import {
   buildLibraryEntries,
   selectActiveWatchlistItems,
@@ -69,14 +70,15 @@ export const WatchlistPage = ({
   onStatusChange,
 }: WatchlistPageProps) => {
   const [tab, setTab] = useState<WatchlistTab>(initialTab);
+  const dormantAfterDays = useDormantAfterDays();
 
   const activeItems = useMemo(
-    () => selectActiveWatchlistItems(items, progressItems),
-    [items, progressItems],
+    () => selectActiveWatchlistItems(items, progressItems, new Date(), dormantAfterDays),
+    [dormantAfterDays, items, progressItems],
   );
   const libraryEntries = useMemo(
-    () => buildLibraryEntries(items, progressItems),
-    [items, progressItems],
+    () => buildLibraryEntries(items, progressItems, new Date(), undefined, dormantAfterDays),
+    [dormantAfterDays, items, progressItems],
   );
 
   if (!signedIn) {

@@ -3,11 +3,17 @@ import ReactDOM from "react-dom/client";
 import {BrowserRouter} from "react-router-dom";
 import {App} from "./App";
 import {AuthProvider} from "./auth/AuthContext";
-import {initializeAnalytics, initializePerformance, trackException} from "./firebase";
+import {
+  initializeAnalytics,
+  initializePerformance,
+  initializeRemoteConfig,
+  trackException,
+} from "./firebase";
 import "./styles.css";
 
 void initializeAnalytics();
 void initializePerformance();
+void initializeRemoteConfig();
 
 window.addEventListener("error", (event) => {
   trackException(event.message, true);

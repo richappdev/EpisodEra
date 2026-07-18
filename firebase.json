@@ -7,6 +7,9 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "remoteconfig": {
+    "template": "remote_config.json"
+  },
   "hosting": {
     "public": "web/dist",
     "ignore": [

@@ -3,6 +3,19 @@ import {Analytics, getAnalytics, isSupported as isAnalyticsSupported, logEvent, 
 import {AppCheck, getToken, initializeAppCheck, ReCaptchaV3Provider} from "firebase/app-check";
 import {connectAuthEmulator, getAuth} from "firebase/auth";
 import {FirebasePerformance, getPerformance} from "firebase/performance";
+import {
+  activate,
+  fetchAndActivate,
+  getRemoteConfig,
+  getValue,
+  onConfigUpdate,
+  type RemoteConfig,
+} from "firebase/remote-config";
+import {
+  DORMANT_AFTER_DAYS,
+  DORMANT_AFTER_DAYS_REMOTE_KEY,
+  resolveDormantAfterDays,
+} from "./lib/continuation";
 
 const firebaseConfig: FirebaseOptions = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY as string | undefined,
@@ -104,4 +117,85 @@ export const trackException = (description: string, fatal = false) => {
     description,
     fatal,
   });
+};
+
+let remoteConfigPromise: Promise<RemoteConfig | null> | null = null;
+
+const readDormantAfterDaysFromConfig = (remoteConfig: RemoteConfig) =>
+  resolveDormantAfterDays(getValue(remoteConfig, DORMANT_AFTER_DAYS_REMOTE_KEY).asNumber());
+
+const ensureRemoteConfig = (): Promise<RemoteConfig | null> => {
+  if (!app) {
+    return Promise.resolve(null);
+  }
+
+  remoteConfigPromise ??= (async () => {
+    const remoteConfig = getRemoteConfig(app);
+    remoteConfig.settings.minimumFetchIntervalMillis = import.meta.env.DEV
+      ? 60_000
+      : 12 * 60 * 60 * 1000;
+    remoteConfig.defaultConfig = {
+      [DORMANT_AFTER_DAYS_REMOTE_KEY]: DORMANT_AFTER_DAYS,
+    };
+
+    try {
+      await fetchAndActivate(remoteConfig);
+    } catch {
+      // Keep in-app defaults when fetch fails (offline / blocked).
+    }
+
+    return remoteConfig;
+  })();
+
+  return remoteConfigPromise;
+};
+
+/** Fetches Remote Config and returns a validated dormant-day threshold (falls back to local 14). */
+export const initializeRemoteConfig = async (): Promise<number> => {
+  const remoteConfig = await ensureRemoteConfig();
+  if (!remoteConfig) {
+    return DORMANT_AFTER_DAYS;
+  }
+  return readDormantAfterDaysFromConfig(remoteConfig);
+};
+
+/**
+ * Subscribes to the dormant-after-days threshold from Remote Config.
+ * Immediately emits the local default, then the fetched/activated value, and later real-time updates.
+ */
+export const subscribeDormantAfterDays = (onChange: (days: number) => void): (() => void) => {
+  let cancelled = false;
+  let unsubscribeRealtime: (() => void) | undefined;
+
+  onChange(DORMANT_AFTER_DAYS);
+
+  void ensureRemoteConfig().then((remoteConfig) => {
+    if (cancelled || !remoteConfig) {
+      return;
+    }
+
+    onChange(readDormantAfterDaysFromConfig(remoteConfig));
+
+    unsubscribeRealtime = onConfigUpdate(remoteConfig, {
+      next: () => {
+        void activate(remoteConfig)
+          .then(() => {
+            if (!cancelled) {
+              onChange(readDormantAfterDaysFromConfig(remoteConfig));
+            }
+          })
+          .catch(() => {
+            // Ignore activation races; next update or restart will refresh.
+          });
+      },
+      error: () => {
+        // Keep the last valid value on listener errors.
+      },
+    });
+  });
+
+  return () => {
+    cancelled = true;
+    unsubscribeRealtime?.();
+  };
 };

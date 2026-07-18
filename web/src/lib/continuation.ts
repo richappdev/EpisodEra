@@ -9,7 +9,32 @@ import {
 export type TvProgressStatusSuggestion = "watching" | "completed";
 
 /** Shows with no progress update for this many days move to the dormant / Library stale bucket. */
-export const DORMANT_AFTER_DAYS = 21;
+export const DORMANT_AFTER_DAYS = 14;
+
+/** Remote Config / override key for {@link DORMANT_AFTER_DAYS}. */
+export const DORMANT_AFTER_DAYS_REMOTE_KEY = "dormant_after_days";
+
+/**
+ * Resolves a dormant-threshold day count from Remote Config (or any raw input).
+ * Invalid values fall back to the local fixed default ({@link DORMANT_AFTER_DAYS}).
+ */
+export const resolveDormantAfterDays = (
+  raw: unknown,
+  fallback: number = DORMANT_AFTER_DAYS,
+): number => {
+  const parsed =
+    typeof raw === "number"
+      ? raw
+      : typeof raw === "string"
+        ? Number(raw.trim())
+        : Number.NaN;
+
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed < 1) {
+    return fallback;
+  }
+
+  return parsed;
+};
 
 /** Cap for the Watchlist Library tab. */
 export const LIBRARY_MAX_ITEMS = 20;

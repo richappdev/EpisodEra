@@ -5,6 +5,7 @@ import {api} from "../api/client";
 import {ContinueWatchingSection} from "../components/ContinueWatchingSection";
 import {SectionError} from "../components/SectionError";
 import {MediaSection} from "../components/MediaSection";
+import {useDormantAfterDays} from "../hooks/useDormantAfterDays";
 import {buildContinuationGroups, type ContinuationEntry} from "../lib/continuation";
 import {paths} from "../routes/paths";
 import {discoveryMoods} from "../lib/discoveryMoods";
@@ -51,6 +52,7 @@ export const DiscoveryPage = ({
   onNextEpisodeWatched,
 }: DiscoveryPageProps) => {
   const copy = uiCopy[language].search;
+  const dormantAfterDays = useDormantAfterDays();
   const [query, setQuery] = useState("");
   const [searchData, setSearchData] = useState<DiscoveryResponse | null>(null);
   const [searchPage, setSearchPage] = useState(1);
@@ -66,8 +68,8 @@ export const DiscoveryPage = ({
   const [loadingMore, setLoadingMore] = useState(false);
 
   const {continueWatching} = useMemo(
-    () => buildContinuationGroups(watchlistItems, progressItems),
-    [progressItems, watchlistItems],
+    () => buildContinuationGroups(watchlistItems, progressItems, new Date(), dormantAfterDays),
+    [dormantAfterDays, progressItems, watchlistItems],
   );
 
   const loadTrending = useCallback(

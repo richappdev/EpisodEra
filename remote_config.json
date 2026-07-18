@@ -1,0 +1,15 @@
+{
+  "conditions": [],
+  "parameters": {
+    "dormant_after_days": {
+      "defaultValue": {
+        "value": "14"
+      },
+      "description": "Days without progress before a watching show moves from Active / Continue Watching into Library (stale). Client falls back to local 14 if the remote value is missing or invalid.",
+      "valueType": "NUMBER"
+    }
+  },
+  "version": {
+    "description": "Initial dormant_after_days parameter"
+  }
+}

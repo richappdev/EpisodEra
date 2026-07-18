@@ -7,6 +7,7 @@ import {
   LIBRARY_MAX_ITEMS,
   optimisticMarkNextEpisode,
   promotedTvWatchlistStatus,
+  resolveDormantAfterDays,
   selectActiveWatchlistItems,
   suggestedWatchlistStatusForProgress,
 } from "./continuation";
@@ -14,6 +15,19 @@ import {
 const now = new Date("2026-07-15T00:00:00.000Z");
 
 describe("continuation", () => {
+  it("resolves dormant-after-days from remote values with a local fallback", () => {
+    expect(DORMANT_AFTER_DAYS).toBe(14);
+    expect(resolveDormantAfterDays(21)).toBe(21);
+    expect(resolveDormantAfterDays("30")).toBe(30);
+    expect(resolveDormantAfterDays(0)).toBe(DORMANT_AFTER_DAYS);
+    expect(resolveDormantAfterDays(-3)).toBe(DORMANT_AFTER_DAYS);
+    expect(resolveDormantAfterDays(1.5)).toBe(DORMANT_AFTER_DAYS);
+    expect(resolveDormantAfterDays("nope")).toBe(DORMANT_AFTER_DAYS);
+    expect(resolveDormantAfterDays(null)).toBe(DORMANT_AFTER_DAYS);
+    expect(resolveDormantAfterDays(undefined)).toBe(DORMANT_AFTER_DAYS);
+    expect(resolveDormantAfterDays(Number.NaN)).toBe(DORMANT_AFTER_DAYS);
+  });
+
   it("groups active continue watching and dormant shows", () => {
     const active = {
       ...progressSummary,
