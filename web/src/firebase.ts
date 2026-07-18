@@ -4,11 +4,9 @@ import {AppCheck, getToken, initializeAppCheck, ReCaptchaV3Provider} from "fireb
 import {connectAuthEmulator, getAuth} from "firebase/auth";
 import {FirebasePerformance, getPerformance} from "firebase/performance";
 import {
-  activate,
   fetchAndActivate,
   getRemoteConfig,
   getValue,
-  onConfigUpdate,
   type RemoteConfig,
 } from "firebase/remote-config";
 import {
@@ -161,11 +159,11 @@ export const initializeRemoteConfig = async (): Promise<number> => {
 
 /**
  * Subscribes to the dormant-after-days threshold from Remote Config.
- * Immediately emits the local default, then the fetched/activated value, and later real-time updates.
+ * Emits the local default immediately, then the fetched/activated value once available.
+ * (Realtime `onConfigUpdate` requires a newer Firebase SDK than this project pins.)
  */
 export const subscribeDormantAfterDays = (onChange: (days: number) => void): (() => void) => {
   let cancelled = false;
-  let unsubscribeRealtime: (() => void) | undefined;
 
   onChange(DORMANT_AFTER_DAYS);
 
@@ -175,27 +173,9 @@ export const subscribeDormantAfterDays = (onChange: (days: number) => void): (()
     }
 
     onChange(readDormantAfterDaysFromConfig(remoteConfig));
-
-    unsubscribeRealtime = onConfigUpdate(remoteConfig, {
-      next: () => {
-        void activate(remoteConfig)
-          .then(() => {
-            if (!cancelled) {
-              onChange(readDormantAfterDaysFromConfig(remoteConfig));
-            }
-          })
-          .catch(() => {
-            // Ignore activation races; next update or restart will refresh.
-          });
-      },
-      error: () => {
-        // Keep the last valid value on listener errors.
-      },
-    });
   });
 
   return () => {
     cancelled = true;
-    unsubscribeRealtime?.();
   };
 };
