@@ -559,11 +559,13 @@ select:focus-visible {
 }
 
 .detail-hero {
-  background: #182020;
-  border-radius: var(--radius-md);
-  min-height: 560px;
+  background: #0b1016;
+  border-radius: 0;
+  margin: 0 calc(var(--page-pad) * -1) 24px;
+  min-height: min(72vh, 640px);
   overflow: hidden;
   position: relative;
+  width: calc(100% + 2 * var(--page-pad));
 }
 
 .detail-hero > img,
@@ -573,7 +575,9 @@ select:focus-visible {
 }
 
 .detail-overlay {
-  background: linear-gradient(90deg, rgba(10, 16, 16, 0.94), rgba(10, 16, 16, 0.54));
+  background:
+    linear-gradient(90deg, rgba(8, 12, 18, 0.96) 8%, rgba(8, 12, 18, 0.62) 52%, rgba(8, 12, 18, 0.28) 100%),
+    linear-gradient(0deg, rgba(8, 12, 18, 0.72), transparent 42%);
 }
 
 .detail-content {
@@ -582,7 +586,7 @@ select:focus-visible {
   display: grid;
   gap: 28px;
   grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
-  min-height: 560px;
+  min-height: min(72vh, 640px);
   padding: clamp(20px, 5vw, 56px);
   position: relative;
 }
@@ -590,8 +594,9 @@ select:focus-visible {
 .detail-poster {
   align-items: center;
   aspect-ratio: 2 / 3;
-  background: #2c3737;
+  background: #1c2430;
   border-radius: var(--radius-md);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
   display: flex;
   justify-content: center;
   overflow: hidden;
@@ -640,11 +645,41 @@ select:focus-visible {
   margin-top: 24px;
 }
 
-.detail-actions button {
-  background: var(--color-surface);
-  color: var(--color-text);
+.detail-icon-rail {
+  gap: 8px;
+}
+
+.detail-actions button,
+.rail-button {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--color-hero-ink);
   min-height: var(--tap-target);
   padding: 0 14px;
+}
+
+.rail-button {
+  align-items: center;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  gap: 8px;
+  justify-content: center;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.rail-button.is-active {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-border);
+  color: var(--color-primary);
+}
+
+.rail-button-danger {
+  border-color: rgba(216, 124, 124, 0.45);
+  color: #f0b4b4;
 }
 
 .detail-actions select,
@@ -655,6 +690,44 @@ select:focus-visible {
   color: var(--color-text);
   min-height: var(--tap-target);
   padding: 0 10px;
+}
+
+.progress-ring {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  position: relative;
+}
+
+.progress-ring svg {
+  display: block;
+}
+
+.progress-ring-track {
+  stroke: rgba(255, 255, 255, 0.16);
+}
+
+.progress-ring-fill {
+  stroke: var(--color-primary);
+  transition: stroke-dashoffset 280ms ease;
+}
+
+.progress-ring-value {
+  color: var(--color-hero-ink);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  position: absolute;
+}
+
+.season-progress-ring .progress-ring-track {
+  stroke: var(--color-border-strong);
+}
+
+.season-progress-ring .progress-ring-value {
+  color: var(--color-text);
+  font-size: 0.62rem;
 }
 
 .auth-note,
@@ -1784,13 +1857,21 @@ select:focus-visible {
 }
 
 .show-progress-summary {
-  display: grid;
-  gap: 6px;
-  margin: 4px 0 10px;
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  margin: 4px 0 14px;
 }
 
-.show-progress-summary > span {
-  color: var(--color-text-soft);
+.show-progress-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.show-progress-summary > span,
+.show-progress-copy > span {
+  color: var(--color-hero-ink-soft);
   font-size: 0.95rem;
 }
 
@@ -1811,10 +1892,12 @@ select:focus-visible {
   display: grid;
   gap: 10px;
   padding: 12px 14px;
+  transition: border-color 160ms ease;
 }
 
 .season-card.expanded {
-  border-color: var(--color-border-strong);
+  border-color: var(--color-primary-border);
+  box-shadow: inset 3px 0 0 var(--color-primary);
 }
 
 .season-episode-panel {
@@ -1832,7 +1915,7 @@ select:focus-visible {
   cursor: pointer;
   display: grid;
   gap: 10px;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto auto 1fr auto;
   padding: 0;
   text-align: left;
   width: 100%;
@@ -1990,12 +2073,30 @@ select:focus-visible {
   justify-content: center;
   min-height: var(--tap-target);
   padding: 0 12px;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
 }
 
 .episode-toggle.watched {
+  animation: check-bloom 280ms ease;
   background: var(--color-primary-soft);
   border-color: var(--color-primary-border);
   color: var(--color-primary);
+}
+
+@keyframes check-bloom {
+  0% {
+    transform: scale(0.96);
+  }
+  55% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .episode-toggle:disabled {
@@ -2317,7 +2418,7 @@ select:focus-visible {
     width: 100%;
   }
 
-  .detail-actions .watched-toggle {
+  .detail-actions .rail-button {
     width: auto;
   }
 
@@ -2326,6 +2427,16 @@ select:focus-visible {
   .auth-note,
   .saved-chip {
     justify-content: center;
+  }
+
+  .season-card-toggle {
+    grid-template-columns: auto auto 1fr;
+  }
+
+  .season-complete-badge,
+  .season-eta {
+    grid-column: 2 / -1;
+    justify-self: start;
   }
 }
 

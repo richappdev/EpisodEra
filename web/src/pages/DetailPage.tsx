@@ -2,7 +2,6 @@ import {useEffect, useMemo, useRef, useState} from "react";
 import {
   ArrowLeft,
   Bookmark,
-  Check,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
@@ -30,6 +29,7 @@ import {EpisodeSummary, MediaDetail, TvSeasonDetail} from "../types/media";
 import {ShowProgress} from "../types/progress";
 import {WatchlistItem, WatchlistStatus, tvWatchlistStatuses} from "../types/watchlist";
 import {DiscussionPanel} from "../components/DiscussionPanel";
+import {ProgressRing} from "../components/ProgressRing";
 
 const statusLabels: Record<WatchlistStatus, string> = {
   planned: "Planned",
@@ -335,7 +335,7 @@ export const DetailPage = ({
                   onClick={() => (watched ? onEpisodeUnwatched(episode) : onEpisodeWatched(episode))}
                 >
                   {watched ? <CheckCircle2 size={18} aria-hidden="true" /> : <Circle size={18} aria-hidden="true" />}
-                  {watched ? "Watched" : "Mark watched"}
+                  <span>{watched ? "Watched" : "Mark watched"}</span>
                 </button>
               </article>
             );
@@ -378,21 +378,23 @@ export const DetailPage = ({
             </div>
             {signedIn && detail.mediaType === "tv" && progress && (
               <div className="show-progress-summary" data-testid="show-progress-summary">
-                <span>
-                  {progress.watchedEpisodeCount} / {progress.totalEpisodes} episodes · {progress.progressPercent}%
-                  complete
-                </span>
-                <span>
-                  {showRemaining.remainingCount} episode{showRemaining.remainingCount === 1 ? "" : "s"} remaining
-                  {showRemainingMinutes > 0
-                    ? ` · approximately ${formatWatchTime(showRemainingMinutes)}`
-                    : ""}
-                </span>
-                <div
-                  className="progress-bar show-progress-bar"
-                  aria-label={`${detail.title} progress ${progress.progressPercent}%`}
-                >
-                  <span style={{width: `${Math.min(progress.progressPercent, 100)}%`}} />
+                <ProgressRing
+                  className="show-progress-ring"
+                  label={`${detail.title} progress ${progress.progressPercent}%`}
+                  percent={progress.progressPercent}
+                  size={72}
+                />
+                <div className="show-progress-copy">
+                  <span>
+                    {progress.watchedEpisodeCount} / {progress.totalEpisodes} episodes · {progress.progressPercent}%
+                    complete
+                  </span>
+                  <span>
+                    {showRemaining.remainingCount} episode{showRemaining.remainingCount === 1 ? "" : "s"} remaining
+                    {showRemainingMinutes > 0
+                      ? ` · approximately ${formatWatchTime(showRemainingMinutes)}`
+                      : ""}
+                  </span>
                 </div>
               </div>
             )}
@@ -408,19 +410,15 @@ export const DetailPage = ({
                 Official site
               </a>
             )}
-            <div className="detail-actions">
+            <div className="detail-actions detail-icon-rail" role="group" aria-label="Title actions">
               {!signedIn ? (
                 <span className="auth-note">Sign in to save this title.</span>
               ) : watchlistItem ? (
                 <>
-                  <span className="saved-chip">
-                    <Check size={16} aria-hidden="true" />
-                    In watchlist
-                  </span>
                   {detail.mediaType === "movie" ? (
                     <button
                       className={
-                        watchlistItem.status === "watched" ? "watched-toggle is-watched" : "watched-toggle"
+                        watchlistItem.status === "watched" ? "rail-button is-active" : "rail-button"
                       }
                       type="button"
                       data-testid="detail-watchlist-status"
@@ -443,11 +441,50 @@ export const DetailPage = ({
                       ) : (
                         <EyeOff size={18} aria-hidden="true" />
                       )}
+                      <span>{watchlistItem.status === "watched" ? "Watched" : "Unwatched"}</span>
                     </button>
                   ) : (
+                    tvWatchlistStatuses.map((status) => {
+                      const active = watchlistItem.status === status;
+                      const Icon =
+                        status === "planned"
+                          ? Bookmark
+                          : status === "watching"
+                            ? Eye
+                            : status === "completed"
+                              ? CheckCircle2
+                              : Circle;
+                      return (
+                        <button
+                          key={status}
+                          className={active ? "rail-button is-active" : "rail-button"}
+                          type="button"
+                          data-testid={`detail-status-${status}`}
+                          aria-pressed={active}
+                          title={statusLabels[status]}
+                          onClick={() => onWatchlistStatusChange(watchlistItem, status)}
+                        >
+                          <Icon size={18} aria-hidden="true" />
+                          <span>{statusLabels[status]}</span>
+                        </button>
+                      );
+                    })
+                  )}
+                  <button
+                    className="rail-button rail-button-danger"
+                    data-testid="detail-remove-watchlist"
+                    type="button"
+                    onClick={() => onRemoveFromWatchlist(watchlistItem)}
+                  >
+                    <Trash2 size={16} aria-hidden="true" />
+                    <span>Remove</span>
+                  </button>
+                  {detail.mediaType === "tv" && (
                     <select
+                      className="sr-only"
                       aria-label={`Watchlist status for ${detail.title}`}
                       data-testid="detail-watchlist-status"
+                      tabIndex={-1}
                       value={watchlistItem.status}
                       onChange={(event) =>
                         onWatchlistStatusChange(watchlistItem, event.target.value as WatchlistStatus)
@@ -460,15 +497,16 @@ export const DetailPage = ({
                       ))}
                     </select>
                   )}
-                  <button data-testid="detail-remove-watchlist" type="button" onClick={() => onRemoveFromWatchlist(watchlistItem)}>
-                    <Trash2 size={16} aria-hidden="true" />
-                    Remove
-                  </button>
                 </>
               ) : (
-                <button data-testid="detail-add-watchlist" type="button" onClick={() => onAddToWatchlist(detail)}>
+                <button
+                  className="rail-button is-active"
+                  data-testid="detail-add-watchlist"
+                  type="button"
+                  onClick={() => onAddToWatchlist(detail)}
+                >
                   <Bookmark size={16} aria-hidden="true" />
-                  Add to watchlist
+                  <span>Add to watchlist</span>
                 </button>
               )}
             </div>
@@ -542,6 +580,13 @@ export const DetailPage = ({
                       <span className="season-card-chevron" aria-hidden="true">
                         {expanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                       </span>
+                      <ProgressRing
+                        className="season-progress-ring"
+                        label={`${season.title} progress ${season.progressPercent}%`}
+                        percent={season.progressPercent}
+                        size={44}
+                        stroke={4}
+                      />
                       <span className="season-card-copy">
                         <strong>{season.title}</strong>
                         <span>
@@ -560,12 +605,6 @@ export const DetailPage = ({
                         <span className="season-eta">~{formatWatchTime(season.estimatedRemainingMinutes)}</span>
                       )}
                     </button>
-                    <div
-                      className="progress-bar"
-                      aria-label={`${season.title} progress ${season.progressPercent}%`}
-                    >
-                      <span style={{width: `${Math.min(season.progressPercent, 100)}%`}} />
-                    </div>
                     {showEpisodes && episodeContent}
                     {expanded && !showEpisodes && (
                       <div className="season-episode-panel">
