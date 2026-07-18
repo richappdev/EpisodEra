@@ -6,25 +6,25 @@ The MVP uses **React Router 6** (`react-router-dom`) with browser history and sh
 
 ## Route map
 
-| Route | Screen | Auth | Notes |
-| --- | --- | --- | --- |
-| `/` | Home / Trending (TV Shows tab default) + Continue Watching when signed in | Public | Default landing; CW section requires auth data |
-| `/search` | Search | Public | Empty prompt when no `q` query param |
-| `/search?q={query}` | Search results | Public | Query persists in the URL |
-| `/movie/:id` | Movie detail | Public | Shareable movie URL |
-| `/tv/:id` | TV detail | Public | Default season selected from show metadata |
-| `/tv/:id/season/:seasonNumber` | TV detail + season | Public | Shareable season deep link |
-| `/watchlist` | Collection Active + Library tabs | Required for data | Continue Watching lives on Home |
-| `/continue-watching` | Redirect to `/#continue-watching` | Required for data | Alias for Home Continue Watching |
-| `/timeline` | Personal viewing timeline | Required for data | Day/month/year diary |
-| `/franchises` | Franchise catalog | Public | Curated universes |
-| `/franchises/:slug` | Franchise progress | Public catalog; auth for progress | Release / chronological order |
-| `/social` | Friends, feed, challenges | Required for data | Friend codes + compatibility |
-| `/profile` | Profile, statistics, history | Required for data | Achievements when enabled |
-| `/settings` | Settings | Optional | Language, providers, privacy/social toggles, TV Time import, personal export, account deletion |
-| `/privacy` | Privacy policy | Public | Static legal content |
-| `/login` | Sign in | Public | Returns to prior route after success when available |
-| `/signup` | Sign up | Public | Returns to prior route after success when available |
+| Route | Screen | Auth | Canvas | Notes |
+| --- | --- | --- | --- | --- |
+| `/` | Home / Trending (TV Shows tab default) + Continue Watching when signed in | Public | cinema | CW poster rail is first band; discovery below fold |
+| `/search` | Search | Public | cinema | Empty prompt when no `q` query param |
+| `/search?q={query}` | Search results | Public | cinema | Query persists in the URL |
+| `/movie/:id` | Movie detail | Public | cinema | Full-bleed hero + status rail |
+| `/tv/:id` | TV detail | Public | cinema | Default season selected from show metadata |
+| `/tv/:id/season/:seasonNumber` | TV detail + season | Public | cinema | Shareable season deep link |
+| `/watchlist` | Collection Active + Library tabs | Required for data | memory | Continue Watching lives on Home |
+| `/continue-watching` | Redirect to `/#continue-watching` | Required for data | cinema | Alias for Home Continue Watching |
+| `/timeline` | Personal viewing timeline | Required for data | memory | Day/month/year diary spine |
+| `/franchises` | Franchise catalog | Public | cinema | Curated universes |
+| `/franchises/:slug` | Franchise progress | Public catalog; auth for progress | cinema | Release / chronological order |
+| `/social` | Friends, feed, challenges | Required for data | memory | Friend codes + compatibility |
+| `/profile` | Profile, statistics, history, Year Recap | Required for data | memory | Quiet figures; recap uses cinema band |
+| `/settings` | Settings | Optional | memory | Language, providers, privacy/social toggles, TV Time import, personal export, account deletion |
+| `/privacy` | Privacy policy | Public | memory | Static legal content |
+| `/login` | Sign in | Public | cinema | Cinematic auth panel |
+| `/signup` | Sign up | Public | cinema | Cinematic auth panel |
 
 Unknown paths redirect to `/`.
 
@@ -78,4 +78,5 @@ Firebase Hosting already rewrites unknown paths to `/index.html`, so direct load
 
 - Optional dedicated analytics mapping per canonical route segment
 - Broader Playwright coverage for direct URL loads and browser back/forward
+- Keep Figma Cinema Memory frames synced using [`docs/CinemaMemoryDesign.md`](./CinemaMemoryDesign.md)
 - Optional query-driven trending tab selection (for example `/?tab=movies`)

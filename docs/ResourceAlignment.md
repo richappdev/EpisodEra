@@ -363,10 +363,10 @@ A feature is complete only when all applicable conditions are met:
 
 | Resource              | Current status                                                                                                          |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| GitHub implementation | Tip `5f00677` (2026-07-18): App Check Phase 3 enforce live; personal export; Watchlist Active/Library + Continue Watching on Home; Remote Config dormant threshold. TV Time Phase 1 acceptance **OPEN** — ledger [`docs/TvTimeImportPhase1Acceptance.md`](./TvTimeImportPhase1Acceptance.md) (A8 PASS; A1/A3/A9 open; A2/A4–A7 partial). Latest hosted smoke PASS is `5a9ecf9` ([run 29565696402](https://github.com/richappdev/EpisodEra/actions/runs/29565696402)), **not** tip-matched. |
-| Notion planning       | MVP dashboard tree status-synced to `5f00677` (2026-07-18). Mirror acceptance ledger; tip-matched smoke at closeout tip (not exact `b147545`). |
-| Figma design          | Responsive screen system documented; direct latest-file verification pending when connector access allows |
-| Canva reporting       | Should distinguish implemented code, recorded smoke evidence, and beta-ready status; refresh after hosted smoke reruns |
+| GitHub implementation | Tip `fb5cd08` (2026-07-18): Cinema Memory visual system D0–D3 live (dual canvas, Home CW rail, detail rings/rail, memory archive + cinematic Year Recap). Prior: App Check Phase 3 enforce; personal export; Watchlist Active/Library; Remote Config dormant threshold. TV Time Phase 1 acceptance **OPEN** — ledger [`docs/TvTimeImportPhase1Acceptance.md`](./TvTimeImportPhase1Acceptance.md). Latest hosted smoke PASS is `5a9ecf9` ([run 29565696402](https://github.com/richappdev/EpisodEra/actions/runs/29565696402)), **not** tip-matched. |
+| Notion planning       | MVP dashboard tree status-synced; update Alignment Report for Cinema Memory D0–D4 handoff. Import acceptance still open. |
+| Figma design          | Cinema Memory D0–D3 **shipped in GitHub/live app** (`fb5cd08`). Figma file rebuild/verification pending — use [`docs/CinemaMemoryDesign.md`](./CinemaMemoryDesign.md) as the handoff brief. MCP write access may still be limited. |
+| Canva reporting       | Refresh stakeholder decks with Cinema Memory talking points in `CinemaMemoryDesign.md`; keep import acceptance and tip-matched smoke language accurate |
 
 ## Known Integration Constraints
 
@@ -379,6 +379,13 @@ At the time of this update:
 These limitations affect resource synchronization only. They do not change product scope or implementation status.
 
 ## Change Log
+### 2026-07-18 (Cinema Memory D0–D4 design sync)
+
+* Shipped visual system **Cinema Memory** on tip `fb5cd08`: dual cinema/memory canvases, Home Continue Watching poster rail, detail bleed hero + icon rail + cyan rings, memory archive Timeline/Profile, cinematic Year Recap band.
+* Added [`docs/CinemaMemoryDesign.md`](./CinemaMemoryDesign.md) as Figma/Canva handoff SoT while Figma MCP write access remains limited.
+* Updated [`docs/Navigation.md`](./Navigation.md) route map with canvas column and Cinema Memory notes.
+* Figma file verification and Canva deck refresh remain **manual open actions** using the handoff checklist.
+
 ### 2026-07-18 (Notion + tip sync to 5f00677)
 
 * Rebaselined Notion MVP Dashboard and child pages to tip `5f00677`.

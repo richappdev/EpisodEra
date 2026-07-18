@@ -270,6 +270,7 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 - `docs/AppCheck.md` defines the App Check rollout plan.
 - `docs/FirebaseProject.md` records project verification and live endpoint checks.
 - `docs/Navigation.md` describes screen structure and URL routes.
+- `docs/CinemaMemoryDesign.md` is the Figma/Canva handoff for the Cinema Memory visual system.
 - `docs/CodingStandard.md` records implementation conventions.
 - `docs/DependencyAudit.md` records current audit findings and upgrade plan.
 - `docs/Deployment.md` covers deployment and CI.
