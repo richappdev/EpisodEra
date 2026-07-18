@@ -82,9 +82,13 @@ export const AuthPage = ({initialMode = "signin", onDone, onProfileLoaded}: Auth
     <main className="auth-page">
       <section className="auth-panel">
         <div>
-          <span className="media-kind">Account</span>
-          <h2>{isSignup ? "Create your Episodera account" : "Sign in to Episodera"}</h2>
-          <p>Use an account to unlock watchlist, progress tracking, and profile stats.</p>
+          <span className="media-kind">Episodera</span>
+          <h2>{isSignup ? "Create your account" : "Welcome back"}</h2>
+          <p>
+            {isSignup
+              ? "Bring your watching history here—then make it memorable."
+              : "Sign in to unlock watchlist, progress tracking, and your personal timeline."}
+          </p>
         </div>
 
         {configError && <div className="state-panel error">{configError}</div>}

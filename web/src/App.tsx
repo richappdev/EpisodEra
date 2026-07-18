@@ -1,9 +1,10 @@
+import {useEffect} from "react";
 import {Link, useLocation} from "react-router-dom";
 import {useAuth} from "./auth/AuthContext";
 import {AppProvider, useAppContext} from "./AppContext";
 import {TopBar} from "./components/TopBar";
 import {AppRoutes} from "./routes/AppRoutes";
-import {isDetailPath, navFromPath, paths, type NavView} from "./routes/paths";
+import {canvasFromPath, isDetailPath, navFromPath, paths, type NavView} from "./routes/paths";
 import {legalCopy} from "./types/legal";
 import tmdbLogo from "./assets/tmdb-logo.svg";
 
@@ -46,9 +47,18 @@ const SiteFooter = () => {
 };
 
 const AppShell = () => {
-  const {loading, user} = useAuth();
+  const {loading} = useAuth();
   const location = useLocation();
   const activeView = resolveActiveView(location.pathname, location.state);
+  const canvas = canvasFromPath(location.pathname);
+
+  useEffect(() => {
+    document.documentElement.dataset.canvas = canvas;
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) {
+      themeMeta.setAttribute("content", canvas === "cinema" ? "#0B0E12" : "#F3F1EC");
+    }
+  }, [canvas]);
 
   if (loading) {
     return (

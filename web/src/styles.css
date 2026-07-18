@@ -1,30 +1,59 @@
 :root {
-  --color-bg: #f6f5f2;
+  /* Cinema Memory — default discovery canvas (dark cinema) */
+  --color-bg: #0b0e12;
+  --color-surface: #141a22;
+  --color-surface-muted: #1c2430;
+  --color-border: #2a3340;
+  --color-border-strong: #3a4554;
+  --color-text: #f2f5f7;
+  --color-text-soft: #c5cdd6;
+  --color-muted: #8b95a3;
+  --color-primary: #3ec9d6;
+  --color-primary-soft: rgba(62, 201, 214, 0.14);
+  --color-primary-border: rgba(62, 201, 214, 0.45);
+  --color-on-primary: #06242a;
+  --color-action: #e8913a;
+  --color-action-soft: rgba(232, 145, 58, 0.16);
+  --color-danger: #d87c7c;
+  --color-danger-border: #e8a0a0;
+  --color-poster-empty: #1c2430;
+  --color-hero-ink: #ffffff;
+  --color-hero-ink-soft: #e7ebe9;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --shadow-focus: 0 0 0 3px rgba(62, 201, 214, 0.28);
+  --content-max: 1180px;
+  --page-pad: clamp(16px, 4vw, 48px);
+  --tap-target: 44px;
+  --font-display: "Sora", "Noto Sans TC", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Source Sans 3", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", ui-sans-serif, system-ui, sans-serif;
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-family: var(--font-body);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+:root[data-canvas="memory"] {
+  /* Warm paper archive for timeline, profile, settings, library */
+  --color-bg: #f3f1ec;
   --color-surface: #ffffff;
   --color-surface-muted: #ece9df;
   --color-border: #dedbd2;
   --color-border-strong: #cfcbbf;
-  --color-text: #19202a;
+  --color-text: #1a222c;
   --color-text-soft: #434a55;
   --color-muted: #68707c;
-  --color-primary: #0f6f63;
-  --color-primary-soft: #dff3ec;
-  --color-primary-border: #9bd6c4;
+  --color-primary: #1a9aa8;
+  --color-primary-soft: rgba(26, 154, 168, 0.12);
+  --color-primary-border: rgba(26, 154, 168, 0.4);
+  --color-on-primary: #ffffff;
+  --color-action: #e8913a;
+  --color-action-soft: rgba(232, 145, 58, 0.14);
   --color-danger: #9a321f;
   --color-danger-border: #d35d47;
   --color-poster-empty: #d8e4df;
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --shadow-focus: 0 0 0 3px rgba(15, 111, 99, 0.24);
-  --content-max: 1180px;
-  --page-pad: clamp(16px, 4vw, 48px);
-  --tap-target: 44px;
-  color: #19202a;
-  background: var(--color-bg);
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+  --shadow-focus: 0 0 0 3px rgba(26, 154, 168, 0.24);
 }
 
 * {
@@ -65,7 +94,8 @@ select:focus-visible {
 
 .top-bar {
   align-items: center;
-  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--color-bg) 88%, transparent);
   border-bottom: 1px solid var(--color-border);
   display: flex;
   gap: 24px;
@@ -81,7 +111,10 @@ select:focus-visible {
 }
 
 .top-bar h1 {
+  font-family: var(--font-display);
   font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
   line-height: 1.1;
   margin: 0;
 }
@@ -149,7 +182,7 @@ select:focus-visible {
 .search-form button,
 .auth-form button {
   background: var(--color-primary);
-  color: var(--color-surface);
+  color: var(--color-on-primary);
 }
 
 .account-button {
@@ -216,16 +249,21 @@ select:focus-visible {
 }
 
 .auth-page {
+  background:
+    radial-gradient(ellipse 90% 70% at 15% 10%, rgba(62, 201, 214, 0.18), transparent 55%),
+    radial-gradient(ellipse 80% 60% at 90% 80%, rgba(232, 145, 58, 0.12), transparent 50%),
+    var(--color-bg);
   display: grid;
   min-height: calc(100vh - 82px);
   padding: 36px var(--page-pad);
-  place-items: start center;
+  place-items: center;
 }
 
 .auth-panel {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  background: rgba(12, 14, 18, 0.78);
+  border: 0;
+  border-radius: 0;
+  border-top: 2px solid var(--color-primary);
   display: grid;
   gap: 22px;
   max-width: 480px;
@@ -234,8 +272,11 @@ select:focus-visible {
 }
 
 .auth-panel h2 {
-  font-size: 28px;
-  line-height: 1.1;
+  font-family: var(--font-display);
+  font-size: clamp(26px, 4vw, 32px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
   margin: 6px 0 8px;
 }
 
@@ -263,9 +304,40 @@ select:focus-visible {
 }
 
 .auth-form input {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(62, 201, 214, 0.28);
+  border-radius: 0;
+  color: var(--color-text);
+  min-height: 44px;
+  padding: 0 2px;
+}
+
+.auth-form input:focus {
+  border-bottom-color: var(--color-primary);
+  outline: none;
+}
+
+.auth-form input::placeholder {
+  color: var(--color-muted);
+}
+
+:root[data-canvas="memory"] .auth-page {
+  background: var(--color-bg);
+  place-items: start center;
+}
+
+:root[data-canvas="memory"] .auth-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  border-top: 1px solid var(--color-border);
+}
+
+:root[data-canvas="memory"] .auth-form input {
+  background: var(--color-surface);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
-  min-height: 44px;
   padding: 0 12px;
 }
 
@@ -330,7 +402,7 @@ select:focus-visible {
 
 .tab-bar button.active {
   background: var(--color-primary);
-  color: var(--color-surface);
+  color: var(--color-on-primary);
 }
 
 .media-section {
@@ -486,7 +558,7 @@ select:focus-visible {
 
 .detail-content {
   align-items: end;
-  color: #ffffff;
+  color: var(--color-hero-ink);
   display: grid;
   gap: 28px;
   grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
@@ -510,14 +582,16 @@ select:focus-visible {
 }
 
 .detail-copy h2 {
+  font-family: var(--font-display);
   font-size: clamp(34px, 6vw, 72px);
+  letter-spacing: -0.03em;
   line-height: 1;
   margin: 8px 0 16px;
   overflow-wrap: anywhere;
 }
 
 .detail-copy p {
-  color: #e7ebe9;
+  color: var(--color-hero-ink-soft);
   font-size: 17px;
   line-height: 1.6;
 }
@@ -525,13 +599,13 @@ select:focus-visible {
 .genre-row span {
   border: 1px solid rgba(255, 255, 255, 0.34);
   border-radius: 999px;
-  color: #ffffff;
+  color: var(--color-hero-ink);
   padding: 6px 10px;
 }
 
 .detail-copy a {
   align-items: center;
-  color: #9ce0d4;
+  color: var(--color-primary);
   display: inline-flex;
   gap: 8px;
   margin-top: 22px;
@@ -989,7 +1063,7 @@ select:focus-visible {
   background: var(--color-primary);
   border: 0;
   border-radius: var(--radius-sm);
-  color: var(--color-surface);
+  color: var(--color-on-primary);
   display: inline-flex;
   gap: 8px;
   justify-content: center;
@@ -1767,7 +1841,7 @@ select:focus-visible {
   background: var(--color-primary);
   border: 0;
   border-radius: var(--radius-sm);
-  color: var(--color-surface);
+  color: var(--color-on-primary);
   flex: 0 0 auto;
   justify-content: center;
   min-height: var(--tap-target);
