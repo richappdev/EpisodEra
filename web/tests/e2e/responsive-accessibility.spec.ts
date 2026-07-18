@@ -32,9 +32,12 @@ test("signed-in shell keeps critical controls accessible on desktop and mobile",
     );
     await expect(page.getByRole("contentinfo").getByRole("img", {name: "The Movie Database (TMDB)"})).toBeVisible();
 
+    // Continue Watching lives on Home only after the Active/Library watchlist split.
+    await expect(page.getByTestId(`continue-watched-${showId}`)).toHaveAccessibleName("Watched");
+
     await page.getByTestId("nav-watchlist").click();
     await expect(page.getByTestId("watchlist-header")).toBeVisible();
-    await expect(page.getByTestId(`continue-watched-${showId}`)).toHaveAccessibleName("Watched");
+    await expect(page.getByTestId(`continue-watched-${showId}`)).toHaveCount(0);
     await expect(page.getByLabel("Watchlist status for Critical Flow Show")).toBeVisible();
   }
 });
