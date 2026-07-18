@@ -117,10 +117,10 @@ export const ProfilePage = ({
   const profileEmail = profile?.email ?? userEmail;
 
   return (
-    <main className="page-shell">
+    <main className="page-shell memory-page profile-page">
       <section className="profile-header">
         <div>
-          <span className="media-kind">Profile</span>
+          <span className="media-kind">Memory</span>
           <h2>{heading}</h2>
           {profileEmail && <p>{profileEmail}</p>}
         </div>
@@ -137,40 +137,40 @@ export const ProfilePage = ({
 
       {!statsLoading && !statsError && stats && (
         <>
-          <section className="stats-grid" aria-label="Viewing stats">
-            <article className="stat-card">
-              <Clapperboard size={22} aria-hidden="true" />
+          <section className="stats-grid stats-figures" aria-label="Viewing stats">
+            <article className="stat-figure">
+              <Clapperboard size={20} aria-hidden="true" />
               <span>Watched movies</span>
               <strong data-testid="stat-watched-movies">{stats.totalWatchedMovies}</strong>
             </article>
-            <article className="stat-card">
-              <ListChecks size={22} aria-hidden="true" />
+            <article className="stat-figure">
+              <ListChecks size={20} aria-hidden="true" />
               <span>Watched episodes</span>
               <strong data-testid="stat-watched-episodes">{stats.totalWatchedEpisodes}</strong>
             </article>
-            <article className="stat-card">
-              <Clock size={22} aria-hidden="true" />
+            <article className="stat-figure">
+              <Clock size={20} aria-hidden="true" />
               <span>Watch time</span>
               <strong data-testid="stat-watch-time">{formatWatchTime(stats.totalWatchTimeMinutes)}</strong>
             </article>
-            <article className="stat-card">
-              <Flame size={22} aria-hidden="true" />
+            <article className="stat-figure">
+              <Flame size={20} aria-hidden="true" />
               <span>Longest streak</span>
               <strong data-testid="stat-longest-streak">{stats.longestStreakDays}</strong>
             </article>
-            <article className="stat-card">
-              <PlayCircle size={22} aria-hidden="true" />
+            <article className="stat-figure">
+              <PlayCircle size={20} aria-hidden="true" />
               <span>Currently watching</span>
               <strong data-testid="stat-currently-watching">{stats.currentlyWatchingCount}</strong>
             </article>
-            <article className="stat-card">
-              <CheckCircle2 size={22} aria-hidden="true" />
+            <article className="stat-figure">
+              <CheckCircle2 size={20} aria-hidden="true" />
               <span>Completed shows</span>
               <strong data-testid="stat-completed-shows">{stats.completedShowsCount}</strong>
             </article>
           </section>
 
-          <section className="profile-summary">
+          <section className="profile-summary memory-figures">
             <div>
               <span className="media-kind">Library</span>
               <strong data-testid="stat-watchlist-count">{stats.watchlistCount}</strong>
@@ -193,7 +193,7 @@ export const ProfilePage = ({
             </div>
           </section>
 
-          <section className="stats-breakdown" data-testid="stats-breakdown">
+          <section className="stats-breakdown memory-lists" data-testid="stats-breakdown">
             <div>
               <h3>Top shows</h3>
               {stats.topShows.length === 0 ? (
@@ -282,7 +282,7 @@ export const ProfilePage = ({
         </section>
       )}
 
-      <section className="history-panel">
+      <section className="history-panel memory-history">
         <div className="section-header">
           <div>
             <h2>Recent history</h2>

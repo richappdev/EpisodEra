@@ -111,7 +111,7 @@ export const TimelinePage = ({
   };
 
   return (
-    <main className="page-shell">
+    <main className="page-shell memory-page timeline-page">
       <section className="timeline-header" data-testid="timeline-header">
         <div>
           <span className="media-kind">Memory</span>

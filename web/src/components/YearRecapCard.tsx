@@ -66,7 +66,7 @@ export const YearRecapCard = ({recap, onYearChange}: YearRecapCardProps) => {
   };
 
   return (
-    <section className="year-recap-card" data-testid="year-recap-card">
+    <section className="year-recap-card year-recap-card--cinema" data-testid="year-recap-card">
       <div className="section-header">
         <div>
           <span className="media-kind">Year in Review</span>
@@ -87,7 +87,7 @@ export const YearRecapCard = ({recap, onYearChange}: YearRecapCardProps) => {
       </div>
 
       <div className="recap-share-card" data-testid="recap-share-surface">
-        <p>
+        <p className="recap-lead">
           {recap.totalWatchedEpisodes} episodes · {recap.totalWatchedMovies} movies ·{" "}
           {formatWatchTime(recap.totalWatchTimeMinutes)}
         </p>
