@@ -427,8 +427,24 @@ select:focus-visible {
 
 .media-grid {
   display: grid;
-  gap: 18px;
-  grid-template-columns: repeat(auto-fill, minmax(min(158px, 100%), 1fr));
+  gap: 12px 10px;
+  grid-template-columns: repeat(auto-fill, minmax(min(128px, 100%), 1fr));
+}
+
+.media-rail {
+  display: flex;
+  gap: 12px;
+  margin: 0 calc(var(--page-pad) * -1);
+  overflow-x: auto;
+  padding: 2px var(--page-pad) 10px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+}
+
+.media-rail .media-card {
+  flex: 0 0 128px;
+  scroll-snap-align: start;
+  width: 128px;
 }
 
 .media-card {
@@ -436,7 +452,7 @@ select:focus-visible {
   border: 0;
   color: inherit;
   display: grid;
-  gap: 8px;
+  gap: 6px;
   padding: 0;
   text-align: left;
   transition:
@@ -475,8 +491,12 @@ select:focus-visible {
 }
 
 .media-card strong {
+  font-size: 0.92rem;
   line-height: 1.25;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .media-meta,
@@ -1005,37 +1025,60 @@ select:focus-visible {
 
 .continue-panel {
   display: grid;
-  gap: 12px;
-  margin-bottom: 26px;
+  gap: 14px;
+  margin-bottom: 0;
+}
+
+.continue-header h2 {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 3vw, 28px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin: 4px 0 0;
 }
 
 .continue-grid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  display: flex;
+  gap: 14px;
+  margin: 0 calc(var(--page-pad) * -1);
+  overflow-x: auto;
+  padding: 2px var(--page-pad) 8px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
 }
 
 .continue-card {
-  align-items: center;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  align-items: stretch;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   display: grid;
-  gap: 12px;
-  grid-template-columns: 64px 1fr auto;
-  padding: 12px;
+  flex: 0 0 148px;
+  gap: 10px;
+  grid-template-columns: 1fr;
+  padding: 0;
+  scroll-snap-align: start;
+  width: 148px;
+}
+
+.continue-poster {
+  width: 100%;
 }
 
 .continue-copy {
   display: grid;
-  gap: 7px;
+  gap: 6px;
   min-width: 0;
 }
 
 .continue-copy > strong {
+  font-size: 0.95rem;
+  line-height: 1.25;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
 }
 
 .continue-copy span {
@@ -1043,6 +1086,31 @@ select:focus-visible {
   color: var(--color-muted);
   display: inline-flex;
   gap: 6px;
+}
+
+.continue-episode-code {
+  color: var(--color-primary) !important;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.home-hero {
+  margin: 0 0 28px;
+  padding-bottom: 8px;
+}
+
+.home-discovery {
+  border-top: 1px solid var(--color-border);
+  display: grid;
+  gap: 8px;
+  padding-top: 28px;
+}
+
+.home-discovery .section-header h2 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
 }
 
 .progress-bar {
@@ -1067,8 +1135,9 @@ select:focus-visible {
   display: inline-flex;
   gap: 8px;
   justify-content: center;
-  min-height: var(--tap-target);
+  min-height: 40px;
   padding: 0 12px;
+  width: 100%;
 }
 
 .continue-button:disabled {
@@ -2113,8 +2182,8 @@ select:focus-visible {
   }
 
   .media-grid {
-    gap: 16px 12px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 10px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .media-meta {
@@ -2152,13 +2221,13 @@ select:focus-visible {
   }
 
   .continue-card {
-    align-items: start;
-    grid-template-columns: 62px 1fr;
+    flex-basis: 132px;
+    width: 132px;
   }
 
   .continue-button {
-    grid-column: 2;
-    justify-self: start;
+    justify-self: stretch;
+    min-height: 40px;
   }
 
   .icon-button {
@@ -2284,6 +2353,6 @@ select:focus-visible {
 @media (max-width: 360px) {
   .media-grid,
   .stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

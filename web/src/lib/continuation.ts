@@ -245,6 +245,14 @@ export const nextEpisodeLabelFor = (progress: ShowProgressSummary) => {
   return `Next up S${progress.nextEpisode.seasonNumber} E${progress.nextEpisode.episodeNumber}`;
 };
 
+export const nextEpisodeCodeFor = (progress: ShowProgressSummary) => {
+  if (!progress.nextEpisode) {
+    return null;
+  }
+
+  return `S${progress.nextEpisode.seasonNumber} E${progress.nextEpisode.episodeNumber}`;
+};
+
 export const progressPercentFor = (watchedEpisodeCount: number, totalEpisodes: number) =>
   totalEpisodes > 0 ? Math.round((watchedEpisodeCount / totalEpisodes) * 10000) / 100 : 0;
 

@@ -101,12 +101,15 @@ describe("DiscoveryPage", () => {
       />,
     );
 
-    expect(await screen.findByTestId("continue-card-1001")).toHaveTextContent("1 of 3 watched");
-    expect(screen.getByTestId("continue-next-1001")).toHaveTextContent("Next up S1 E2");
+    expect(await screen.findByTestId("continue-card-1001")).toBeVisible();
+    expect(screen.getByTestId("continue-next-1001")).toHaveTextContent("S1 E2");
     expect(screen.getByTestId("continue-panel")).toBeVisible();
     expect(document.getElementById("continue-watching")).not.toBeNull();
     expect(screen.queryByTestId("home-dormant-card-2002")).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", {name: "Haven't watched for a while"})).not.toBeInTheDocument();
+    const continuePanel = screen.getByTestId("continue-panel");
+    const discovery = screen.getByTestId("discovery-smart");
+    expect(continuePanel.compareDocumentPosition(discovery) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("loads mood suggestions and lets the user pick a mood", async () => {

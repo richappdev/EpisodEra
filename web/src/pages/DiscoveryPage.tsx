@@ -241,7 +241,7 @@ export const DiscoveryPage = ({
   );
 
   return (
-    <main className="page-shell">
+    <main className={`page-shell${view === "trending" ? " home-page" : ""}`}>
       {view === "search" && (
         <form className="search-form" onSubmit={submitSearch}>
           <Search size={20} aria-hidden="true" />
@@ -258,108 +258,129 @@ export const DiscoveryPage = ({
         </form>
       )}
 
-      {view === "trending" && signedIn && onSelectContinuation && onNextEpisodeWatched && (
-        <ContinueWatchingSection
-          id="continue-watching"
-          title="Continue watching"
-          subtitle={`${continueWatching.length} active`}
-          entries={continueWatching}
-          pendingShowIds={pendingShowIds}
-          onSelect={onSelectContinuation}
-          onNextEpisodeWatched={onNextEpisodeWatched}
-        />
-      )}
-
-      {view === "trending" && (
-        <section className="discovery-smart" data-testid="discovery-smart">
-          <div className="section-header">
-            <div>
-              <span className="media-kind">Smart discovery</span>
-              <h2>Match a mood or time budget</h2>
-            </div>
-            <Link className="text-button" data-testid="home-franchises-link" to={paths.franchises}>
-              Browse franchises
-            </Link>
-          </div>
-          <div className="mood-chip-row" role="group" aria-label="Discovery moods">
-            {(suggestions?.moods?.length ? suggestions.moods : discoveryMoods).map((definition) => (
-              <button
-                className={mood === definition.id ? "active" : ""}
-                data-testid={`mood-${definition.id}`}
-                key={definition.id}
-                type="button"
-                onClick={() => setMood((current) => (current === definition.id ? null : definition.id))}
-              >
-                {definition.label}
-              </button>
-            ))}
-          </div>
-          {suggestionsLoading && <div className="state-panel inline-state">Loading suggestions...</div>}
-          {suggestionsError && !suggestionsLoading && (
-            <SectionError message={suggestionsError} onRetry={() => void loadSuggestions()} />
-          )}
-          {!suggestionsLoading &&
-            !suggestionsError &&
-            suggestions?.rails.map((rail) => (
-              <MediaSection key={rail.id} title={rail.title} items={rail.items} onSelect={onSelect} />
-            ))}
+      {view === "trending" &&
+        signedIn &&
+        onSelectContinuation &&
+        onNextEpisodeWatched &&
+        continueWatching.length > 0 && (
+        <section className="home-hero" aria-label="Continue watching">
+          <ContinueWatchingSection
+            id="continue-watching"
+            title="Continue watching"
+            subtitle={`${continueWatching.length} active`}
+            entries={continueWatching}
+            pendingShowIds={pendingShowIds}
+            onSelect={onSelectContinuation}
+            onNextEpisodeWatched={onNextEpisodeWatched}
+          />
         </section>
       )}
 
       {view === "trending" && (
-        <div className="tab-bar" role="tablist" aria-label="Trending media type">
-          <button
-            className={trendingTab === "tv" ? "active" : ""}
-            type="button"
-            role="tab"
-            aria-selected={trendingTab === "tv"}
-            onClick={() => setTrendingTab("tv")}
-          >
-            TV Shows
-          </button>
-          <button
-            className={trendingTab === "movie" ? "active" : ""}
-            type="button"
-            role="tab"
-            aria-selected={trendingTab === "movie"}
-            onClick={() => setTrendingTab("movie")}
-          >
-            Movies
-          </button>
+        <div className="home-discovery">
+          <section className="discovery-smart" data-testid="discovery-smart">
+            <div className="section-header">
+              <div>
+                <span className="media-kind">Smart discovery</span>
+                <h2>Match a mood or time budget</h2>
+              </div>
+              <Link className="text-button" data-testid="home-franchises-link" to={paths.franchises}>
+                Browse franchises
+              </Link>
+            </div>
+            <div className="mood-chip-row" role="group" aria-label="Discovery moods">
+              {(suggestions?.moods?.length ? suggestions.moods : discoveryMoods).map((definition) => (
+                <button
+                  className={mood === definition.id ? "active" : ""}
+                  data-testid={`mood-${definition.id}`}
+                  key={definition.id}
+                  type="button"
+                  onClick={() => setMood((current) => (current === definition.id ? null : definition.id))}
+                >
+                  {definition.label}
+                </button>
+              ))}
+            </div>
+            {suggestionsLoading && <div className="state-panel inline-state">Loading suggestions...</div>}
+            {suggestionsError && !suggestionsLoading && (
+              <SectionError message={suggestionsError} onRetry={() => void loadSuggestions()} />
+            )}
+            {!suggestionsLoading &&
+              !suggestionsError &&
+              suggestions?.rails.map((rail) => (
+                <MediaSection key={rail.id} title={rail.title} items={rail.items} layout="rail" onSelect={onSelect} />
+              ))}
+          </section>
+
+          <div className="tab-bar" role="tablist" aria-label="Trending media type">
+            <button
+              className={trendingTab === "tv" ? "active" : ""}
+              type="button"
+              role="tab"
+              aria-selected={trendingTab === "tv"}
+              onClick={() => setTrendingTab("tv")}
+            >
+              TV Shows
+            </button>
+            <button
+              className={trendingTab === "movie" ? "active" : ""}
+              type="button"
+              role="tab"
+              aria-selected={trendingTab === "movie"}
+              onClick={() => setTrendingTab("movie")}
+            >
+              Movies
+            </button>
+          </div>
+
+          {loading && <div className="state-panel">Loading...</div>}
+          {error && !loading && <SectionError message={error} onRetry={retry} />}
+
+          {trendingData && !loading && (
+            <MediaSection
+              title={trendingTab === "tv" ? "Trending TV Shows" : "Trending Movies"}
+              items={trendingData.results}
+              onSelect={onSelect}
+            />
+          )}
+
+          {trendingHasMore && !loading && !error && (
+            <div className="section-actions">
+              <button className="text-button" disabled={loadingMore} type="button" onClick={loadMore}>
+                {loadingMore ? "Loading more..." : "Load more results"}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {loading && <div className="state-panel">Loading...</div>}
-      {error && !loading && <SectionError message={error} onRetry={retry} />}
-
-      {view === "trending" && trendingData && !loading && (
-        <MediaSection
-          title={trendingTab === "tv" ? "Trending TV Shows" : "Trending Movies"}
-          items={trendingData.results}
-          onSelect={onSelect}
-        />
-      )}
-
-      {view === "search" && searchData && !loading && (
+      {view === "search" && (
         <>
-          <MediaSection title="Movies" items={searchData.movies.results} onSelect={onSelect} />
-          <MediaSection title="TV Shows" items={searchData.tv.results} onSelect={onSelect} />
-          {searchData.movies.results.length === 0 && searchData.tv.results.length === 0 && (
-            <div className="state-panel">{copy.noResults}</div>
+          {loading && <div className="state-panel">Loading...</div>}
+          {error && !loading && <SectionError message={error} onRetry={retry} />}
+
+          {searchData && !loading && (
+            <>
+              <MediaSection title="Movies" items={searchData.movies.results} onSelect={onSelect} />
+              <MediaSection title="TV Shows" items={searchData.tv.results} onSelect={onSelect} />
+              {searchData.movies.results.length === 0 && searchData.tv.results.length === 0 && (
+                <div className="state-panel">{copy.noResults}</div>
+              )}
+            </>
+          )}
+
+          {!searchData && !loading && !error && (
+            <div className="state-panel">Enter a title to search.</div>
+          )}
+
+          {searchHasMore && !loading && !error && (
+            <div className="section-actions">
+              <button className="text-button" disabled={loadingMore} type="button" onClick={loadMore}>
+                {loadingMore ? "Loading more..." : "Load more results"}
+              </button>
+            </div>
           )}
         </>
-      )}
-
-      {!searchData && !loading && !error && view === "search" && (
-        <div className="state-panel">Enter a title to search.</div>
-      )}
-
-      {((view === "trending" && trendingHasMore) || (view === "search" && searchHasMore)) && !loading && !error && (
-        <div className="section-actions">
-          <button className="text-button" disabled={loadingMore} type="button" onClick={loadMore}>
-            {loadingMore ? "Loading more..." : "Load more results"}
-          </button>
-        </div>
       )}
     </main>
   );
