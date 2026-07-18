@@ -32,16 +32,19 @@ describe("useWatchlist", () => {
     vi.clearAllMocks();
   });
 
-  it("loads the first page when a user is present", async () => {
-    vi.mocked(api.listWatchlist).mockResolvedValue(paginated([watchlistItem], {totalCount: 1}));
+  it("loads all pages when a user is present", async () => {
+    vi.mocked(api.listWatchlist)
+      .mockResolvedValueOnce(paginated([watchlistItem], {hasMore: true, pageSize: 100, totalCount: 2}))
+      .mockResolvedValueOnce(paginated([secondItem], {page: 2, hasMore: false, pageSize: 100, totalCount: 2}));
 
     const {result} = renderHook(() => useWatchlist(mockUser));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(api.listWatchlist).toHaveBeenCalledWith({page: 1, pageSize: 25});
-    expect(result.current.items).toEqual([watchlistItem]);
-    expect(result.current.totalCount).toBe(1);
+    expect(api.listWatchlist).toHaveBeenNthCalledWith(1, {page: 1, pageSize: 100});
+    expect(api.listWatchlist).toHaveBeenNthCalledWith(2, {page: 2, pageSize: 100});
+    expect(result.current.items).toEqual([watchlistItem, secondItem]);
+    expect(result.current.totalCount).toBe(2);
     expect(result.current.hasMore).toBe(false);
     expect(result.current.error).toBeNull();
   });
@@ -62,23 +65,14 @@ describe("useWatchlist", () => {
     expect(result.current.error).toBeNull();
   });
 
-  it("loads more pages and surfaces list errors", async () => {
+  it("surfaces list errors without dropping prior successful state on reload", async () => {
     vi.mocked(api.listWatchlist)
-      .mockResolvedValueOnce(paginated([watchlistItem], {hasMore: true, totalCount: 2}))
-      .mockResolvedValueOnce(paginated([secondItem], {page: 2, hasMore: false, totalCount: 2}))
+      .mockResolvedValueOnce(paginated([watchlistItem]))
       .mockRejectedValueOnce(new Error("Watchlist unavailable"));
 
     const {result} = renderHook(() => useWatchlist(mockUser));
 
     await waitFor(() => expect(result.current.items).toEqual([watchlistItem]));
-    expect(result.current.hasMore).toBe(true);
-
-    await act(async () => {
-      result.current.loadMore();
-    });
-
-    await waitFor(() => expect(result.current.items).toHaveLength(2));
-    expect(result.current.loadingMore).toBe(false);
 
     await act(async () => {
       await result.current.reload();

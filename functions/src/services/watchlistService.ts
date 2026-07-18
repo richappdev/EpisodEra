@@ -12,6 +12,16 @@ import {
 import {listPaginated, PaginatedResult, PaginationQuery} from "../lib/pagination";
 import {historyService} from "./historyService";
 import {mergeWatchlistStatus} from "./importLogic";
+import {tmdbService} from "./tmdbService";
+import {
+  itemNeedsImageBackfill,
+  mapInChunks,
+  mergeWatchlistImages,
+  normalizeImageUrl,
+  preferImageUrl,
+} from "./watchlistPosterLogic";
+
+const POSTER_BACKFILL_CONCURRENCY = 5;
 
 interface WatchlistDocument {
   tmdbId: number;
@@ -88,8 +98,8 @@ const mapDocument = (itemId: string, data: WatchlistDocument): WatchlistItem => 
   tmdbId: data.tmdbId,
   mediaType: data.mediaType,
   title: data.title,
-  poster: data.poster,
-  backdrop: data.backdrop,
+  poster: normalizeImageUrl(data.poster),
+  backdrop: normalizeImageUrl(data.backdrop),
   status: normalizeStatusForMediaType(data.mediaType, data.status),
   addedAt: timestampToJson(data.addedAt),
   updatedAt: timestampToJson(data.updatedAt),
@@ -126,8 +136,8 @@ export const parseAddWatchlistItemInput = (body: unknown): AddWatchlistItemInput
     tmdbId,
     mediaType: body.mediaType,
     title: body.title.trim(),
-    poster: optionalString(body.poster, "poster"),
-    backdrop: optionalString(body.backdrop, "backdrop"),
+    poster: normalizeImageUrl(optionalString(body.poster, "poster")),
+    backdrop: normalizeImageUrl(optionalString(body.backdrop, "backdrop")),
     status,
   };
 };
@@ -153,6 +163,42 @@ class WatchlistService {
     );
   }
 
+  /**
+   * Fill missing poster/backdrop URLs from TMDb and persist them.
+   * Does not bump updatedAt so list order stays stable.
+   */
+  async backfillMissingImages(userId: string, items: WatchlistItem[]): Promise<WatchlistItem[]> {
+    const missing = items.filter(itemNeedsImageBackfill);
+    if (missing.length === 0) {
+      return items;
+    }
+
+    const updates = await mapInChunks(missing, POSTER_BACKFILL_CONCURRENCY, async (item) => {
+      try {
+        const detail =
+          item.mediaType === "movie" ?
+            await tmdbService.movieDetail(item.tmdbId) :
+            await tmdbService.tvDetail(item.tmdbId);
+        const merged = mergeWatchlistImages(item, detail.images);
+        if (merged.poster === item.poster && merged.backdrop === item.backdrop) {
+          return item;
+        }
+
+        await this.collection(userId).doc(item.itemId).update({
+          poster: merged.poster,
+          backdrop: merged.backdrop,
+        });
+
+        return {...item, poster: merged.poster, backdrop: merged.backdrop};
+      } catch {
+        return item;
+      }
+    });
+
+    const byId = new Map(updates.map((item) => [item.itemId, item]));
+    return items.map((item) => byId.get(item.itemId) ?? item);
+  }
+
   async add(userId: string, input: AddWatchlistItemInput): Promise<WatchlistItem> {
     const itemId = itemIdFor(input.mediaType, input.tmdbId);
     const ref = this.collection(userId).doc(itemId);
@@ -165,8 +211,8 @@ class WatchlistService {
           tmdbId: input.tmdbId,
           mediaType: input.mediaType,
           title: input.title,
-          poster: input.poster ?? null,
-          backdrop: input.backdrop ?? null,
+          poster: normalizeImageUrl(input.poster),
+          backdrop: normalizeImageUrl(input.backdrop),
           status: input.status ?? defaultStatusFor(input.mediaType),
           addedAt: existing.exists ? existing.get("addedAt") ?? FieldValue.serverTimestamp() : FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
@@ -206,8 +252,8 @@ class WatchlistService {
           tmdbId: input.tmdbId,
           mediaType: input.mediaType,
           title: existingData?.title?.trim() ? existingData.title : input.title,
-          poster: existingData?.poster ?? input.poster ?? null,
-          backdrop: existingData?.backdrop ?? input.backdrop ?? null,
+          poster: preferImageUrl(existingData?.poster, input.poster),
+          backdrop: preferImageUrl(existingData?.backdrop, input.backdrop),
           status: mergedStatus,
           addedAt: existing.exists ? existing.get("addedAt") ?? FieldValue.serverTimestamp() : FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),

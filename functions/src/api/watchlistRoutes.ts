@@ -14,7 +14,9 @@ watchlistRouter.use(requireAuth, requireAppCheck);
 
 watchlistRouter.get("/watchlist", async (req: AuthenticatedRequest, res, next) => {
   try {
-    res.json(await watchlistService.list(req.user!.uid, parsePaginationQuery(req.query)));
+    const page = await watchlistService.list(req.user!.uid, parsePaginationQuery(req.query));
+    const items = await watchlistService.backfillMissingImages(req.user!.uid, page.items);
+    res.json({...page, items});
   } catch (error) {
     next(error);
   }

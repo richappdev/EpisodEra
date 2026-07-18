@@ -2,18 +2,32 @@ import {useCallback, useEffect, useState} from "react";
 import type {User} from "firebase/auth";
 import {api} from "../api/client";
 import {trackEvent} from "../firebase";
-import {PaginationParams} from "../types/pagination";
+import {maxPageSize} from "../types/pagination";
 import {WatchlistItem, WatchlistStatus} from "../types/watchlist";
 import {toErrorMessage} from "./errorMessage";
 
-const defaultWatchlistPageSize = 25;
+const loadAllWatchlist = async () => {
+  let page = 1;
+  const items: WatchlistItem[] = [];
+  let hasMore = true;
+  let totalCount = 0;
+
+  while (hasMore) {
+    const response = await api.listWatchlist({page, pageSize: maxPageSize});
+    items.push(...response.items);
+    totalCount = response.totalCount;
+    hasMore = response.hasMore;
+    page += 1;
+  }
+
+  return {items, totalCount};
+};
 
 export const useWatchlist = (user: User | null, onLibraryChange?: () => void) => {
   const [items, setItems] = useState<WatchlistItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
 
@@ -22,60 +36,30 @@ export const useWatchlist = (user: User | null, onLibraryChange?: () => void) =>
     setLoading(false);
     setLoadingMore(false);
     setError(null);
-    setPage(1);
     setHasMore(false);
     setTotalCount(0);
   }, []);
 
-  const applyPage = useCallback((append: boolean, response: Awaited<ReturnType<typeof api.listWatchlist>>) => {
-    setItems((current) => (append ? [...current, ...response.items] : response.items));
-    setPage(response.page);
-    setHasMore(response.hasMore);
-    setTotalCount(response.totalCount);
-  }, []);
-
-  const loadPage = useCallback(
-    async (nextPage: number, append: boolean, pagination?: PaginationParams) => {
-      if (!user) {
-        reset();
-        return;
-      }
-
-      if (append) {
-        setLoadingMore(true);
-      } else {
-        setLoading(true);
-        setError(null);
-      }
-
-      try {
-        const response = await api.listWatchlist({
-          page: nextPage,
-          pageSize: pagination?.pageSize ?? defaultWatchlistPageSize,
-        });
-        applyPage(append, response);
-      } catch (reason) {
-        setError(toErrorMessage(reason, "Could not load watchlist."));
-      } finally {
-        if (append) {
-          setLoadingMore(false);
-        } else {
-          setLoading(false);
-        }
-      }
-    },
-    [applyPage, reset, user],
-  );
-
-  const reload = useCallback(() => loadPage(1, false), [loadPage]);
-
-  const loadMore = useCallback(() => {
-    if (!hasMore || loading || loadingMore) {
+  const reload = useCallback(async () => {
+    if (!user) {
+      reset();
       return;
     }
 
-    void loadPage(page + 1, true);
-  }, [hasMore, loadPage, loading, loadingMore, page]);
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await loadAllWatchlist();
+      setItems(response.items);
+      setTotalCount(response.totalCount);
+      setHasMore(false);
+    } catch (reason) {
+      setError(toErrorMessage(reason, "Could not load watchlist."));
+    } finally {
+      setLoading(false);
+    }
+  }, [reset, user]);
 
   useEffect(() => {
     if (!user) {
@@ -83,8 +67,12 @@ export const useWatchlist = (user: User | null, onLibraryChange?: () => void) =>
       return;
     }
 
-    void loadPage(1, false);
-  }, [loadPage, reset, user]);
+    void reload();
+  }, [reload, reset, user]);
+
+  const loadMore = useCallback(() => {
+    // Full list is loaded up front so continue-watching and poster backfill stay complete.
+  }, []);
 
   const upsertWatchlistItem = useCallback((item: WatchlistItem) => {
     setItems((current) => {

@@ -337,6 +337,8 @@ Query parameters:
 - `page` — optional positive integer, default `1`
 - `pageSize` — optional positive integer, default `25`, maximum `100`
 
+Items with a missing `poster` or `backdrop` are backfilled from TMDb on read and persisted to Firestore (without changing `updatedAt`). Failed TMDb lookups leave the existing null/blank values unchanged.
+
 Response:
 
 ```json
