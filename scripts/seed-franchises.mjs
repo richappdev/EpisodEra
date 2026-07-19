@@ -5,26 +5,35 @@
  * Usage (from repo root, after `cd functions && npm run build`):
  *   node scripts/seed-franchises.mjs
  *
+ * Or:
+ *   cd functions && npm run seed:franchises
+ *
  * Optional:
  *   GOOGLE_CLOUD_PROJECT / GCLOUD_PROJECT / FIREBASE_CONFIG — project id
  *   FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 — target the emulator
  */
-import {initializeApp, getApps} from "firebase-admin/app";
-import {getFirestore} from "firebase-admin/firestore";
 import {createRequire} from "node:module";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const require = createRequire(import.meta.url);
+const functionsRoot = path.join(repoRoot, "functions");
+const require = createRequire(path.join(functionsRoot, "package.json"));
 
-const {franchiseCatalogs} = require(path.join(repoRoot, "functions", "lib", "data", "franchises.js"));
+const {initializeApp, getApps} = require("firebase-admin/app");
+const {getFirestore} = require("firebase-admin/firestore");
+const {franchiseCatalogs} = require(path.join(functionsRoot, "lib", "data", "franchises.js"));
 const {franchiseDocumentFromCatalog} = require(
-  path.join(repoRoot, "functions", "lib", "services", "franchiseCatalogLoader.js"),
+  path.join(functionsRoot, "lib", "services", "franchiseCatalogLoader.js"),
 );
 
 if (getApps().length === 0) {
-  initializeApp();
+  const projectId =
+    process.env.GOOGLE_CLOUD_PROJECT ||
+    process.env.GCLOUD_PROJECT ||
+    process.env.FIREBASE_PROJECT ||
+    "episodera";
+  initializeApp({projectId});
 }
 
 const db = getFirestore();
