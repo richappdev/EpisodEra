@@ -684,6 +684,7 @@ html[data-chrome="landing"] body {
   gap: 4px;
   margin-bottom: 10px;
   padding: 4px;
+  width: fit-content;
 }
 
 .tab-bar button {
@@ -1516,11 +1517,9 @@ html[data-chrome="landing"] body {
 }
 
 .home-discovery {
-  border-top: 1px solid var(--color-border);
   display: grid;
   gap: 8px;
   min-width: 0;
-  padding-top: 28px;
 }
 
 .home-discovery .section-header h2 {

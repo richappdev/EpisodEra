@@ -271,8 +271,6 @@ export const DiscoveryPage = ({
                   key={rail.id}
                   title={rail.title}
                   items={rail.items}
-                  layout="rail"
-                  listId={rail.id}
                   onSelect={onSelect}
                 />
               ))}

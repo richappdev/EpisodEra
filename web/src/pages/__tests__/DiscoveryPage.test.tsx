@@ -96,7 +96,9 @@ describe("DiscoveryPage", () => {
 
     expect(await screen.findByTestId("discovery-smart")).toBeVisible();
     expect(screen.getByTestId("home-franchises-link")).toHaveAttribute("href", "/franchises");
-    expect(await screen.findByTestId("list-more-relaxing")).toHaveAttribute("href", "/list/relaxing");
+    expect(await screen.findByRole("heading", {name: "Something relaxing"})).toBeVisible();
+    expect(screen.getByTestId("media-card-movie-2001")).toBeVisible();
+    expect(screen.queryByTestId("list-more-relaxing")).not.toBeInTheDocument();
     await user.click(screen.getByTestId("mood-relaxing"));
     await waitFor(() =>
       expect(api.discoverSuggestions).toHaveBeenCalledWith(
