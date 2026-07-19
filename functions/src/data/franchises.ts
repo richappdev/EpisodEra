@@ -1,6 +1,9 @@
 import {FranchiseCatalog} from "../models/franchise";
 
-/** Curated franchise catalogs for Phase 5. Orders are editorial, not TMDb collections. */
+/**
+ * Bundled franchise catalogs: seed source for Firestore and resilience fallback when
+ * remote reads fail. Orders are editorial, not TMDb collections.
+ */
 export const franchiseCatalogs: FranchiseCatalog[] = [
   {
     slug: "star-wars",

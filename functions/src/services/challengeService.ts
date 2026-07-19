@@ -1,6 +1,6 @@
 import {fetchAllPages} from "../lib/pagination";
 import {ChallengeProgress} from "../models/social";
-import {franchiseCatalogs} from "../data/franchises";
+import {franchiseCatalogLoader} from "./franchiseCatalogLoader";
 import {buildFranchiseProgress} from "./franchiseLogic";
 import {friendService} from "./friendService";
 import {historyService} from "./historyService";
@@ -11,14 +11,15 @@ import {watchlistService} from "./watchlistService";
 
 class ChallengeService {
   private async completedFranchiseCount(userId: string) {
-    const [history, watchlistItems, progressItems, settings] = await Promise.all([
+    const [history, watchlistItems, progressItems, settings, {catalogs}] = await Promise.all([
       fetchAllPages((pagination) => historyService.list(userId, pagination)),
       fetchAllPages((pagination) => watchlistService.list(userId, pagination)),
       fetchAllPages((pagination) => progressService.list(userId, pagination)),
       settingsService.get(userId),
+      franchiseCatalogLoader.listPublished(),
     ]);
 
-    return franchiseCatalogs
+    return catalogs
       .map((catalog) =>
         buildFranchiseProgress({
           catalog,

@@ -241,3 +241,30 @@ test("rules validate history, settings, ratings, and public access", {
 
   assert.ok(true);
 });
+
+test("rules deny client read and write on franchises catalogs", {
+  skip: skipWithoutEmulator,
+}, async () => {
+  await clearData();
+  const environment = await getTestEnvironment();
+  await environment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "franchises/star-wars"), {
+      slug: "star-wars",
+      name: "Star Wars",
+      description: "Test",
+      published: true,
+      phases: [],
+      titles: [],
+    });
+  });
+
+  const db = await withAuthedDb("alice");
+  const publicDb = await withUnauthedDb();
+
+  await assertFails(getDoc(doc(db, "franchises/star-wars")));
+  await assertFails(getDoc(doc(publicDb, "franchises/star-wars")));
+  await assertFails(setDoc(doc(db, "franchises/star-wars"), {
+    slug: "star-wars",
+    name: "Hacked",
+  }));
+});

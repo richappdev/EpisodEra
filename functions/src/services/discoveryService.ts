@@ -1,4 +1,3 @@
-import {franchiseCatalogs} from "../data/franchises";
 import {HttpError} from "../lib/httpError";
 import {AuthenticatedRequest} from "../middleware/auth";
 import {
@@ -10,6 +9,7 @@ import {
 import {FranchiseTitleProgress} from "../models/franchise";
 import {MediaDetail, MediaSummary} from "../models/media";
 import {SupportedLanguage} from "../models/settings";
+import {franchiseCatalogLoader} from "./franchiseCatalogLoader";
 import {buildFranchiseProgress} from "./franchiseLogic";
 import {
   continueFranchiseSuggestions,
@@ -234,13 +234,14 @@ class DiscoveryService {
     uid: string,
     context: {maxMinutes: number | null; providerIds: number[]; language: SupportedLanguage},
   ): Promise<MediaSummary[]> {
-    const [watchlistItems, progressItems, historyItems] = await Promise.all([
+    const [watchlistItems, progressItems, historyItems, {catalogs}] = await Promise.all([
       fetchAllPages((pagination) => watchlistService.list(uid, pagination)),
       fetchAllPages((pagination) => progressService.list(uid, pagination)),
       fetchAllPages((pagination) => historyService.list(uid, pagination)),
+      franchiseCatalogLoader.listPublished(),
     ]);
 
-    const unfinished = franchiseCatalogs.flatMap((catalog) => {
+    const unfinished = catalogs.flatMap((catalog) => {
       const progress = buildFranchiseProgress({
         catalog,
         order: "release",

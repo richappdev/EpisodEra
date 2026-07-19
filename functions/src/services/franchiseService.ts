@@ -1,7 +1,7 @@
 import {HttpError} from "../lib/httpError";
 import {fetchAllPages} from "../lib/pagination";
-import {franchiseCatalogs, getFranchiseCatalog} from "../data/franchises";
 import {FranchiseOrder, FranchiseProgress, FranchiseSummary} from "../models/franchise";
+import {franchiseCatalogLoader} from "./franchiseCatalogLoader";
 import {buildFranchiseProgress, listFranchiseSummaries} from "./franchiseLogic";
 import {historyService} from "./historyService";
 import {progressService} from "./progressService";
@@ -12,20 +12,21 @@ const parseOrder = (value: unknown): FranchiseOrder =>
   value === "chronological" ? "chronological" : "release";
 
 class FranchiseService {
-  list(): FranchiseSummary[] {
-    return listFranchiseSummaries(franchiseCatalogs);
+  async list(): Promise<FranchiseSummary[]> {
+    const {catalogs} = await franchiseCatalogLoader.listPublished();
+    return listFranchiseSummaries(catalogs);
   }
 
-  getCatalog(slug: string) {
-    const catalog = getFranchiseCatalog(slug);
-    if (!catalog) {
+  async getCatalog(slug: string) {
+    const result = await franchiseCatalogLoader.getBySlug(slug);
+    if (!result) {
       throw new HttpError(404, "Franchise not found.", "franchise_not_found");
     }
-    return catalog;
+    return result.catalog;
   }
 
   async getProgress(userId: string, slug: string, orderParam?: unknown): Promise<FranchiseProgress> {
-    const catalog = this.getCatalog(slug);
+    const catalog = await this.getCatalog(slug);
     const order = parseOrder(orderParam);
     const [watchlistItems, progressItems, historyItems, settings] = await Promise.all([
       fetchAllPages((pagination) => watchlistService.list(userId, pagination)),

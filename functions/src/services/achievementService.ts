@@ -1,7 +1,7 @@
 import {fetchAllPages} from "../lib/pagination";
 import {AchievementsResponse} from "../models/achievement";
 import {evaluateAchievements} from "./achievementLogic";
-import {franchiseCatalogs} from "../data/franchises";
+import {franchiseCatalogLoader} from "./franchiseCatalogLoader";
 import {buildFranchiseProgress} from "./franchiseLogic";
 import {historyService} from "./historyService";
 import {progressService} from "./progressService";
@@ -20,13 +20,14 @@ class AchievementService {
       };
     }
 
-    const [history, watchlistItems, progressItems] = await Promise.all([
+    const [history, watchlistItems, progressItems, {catalogs}] = await Promise.all([
       fetchAllPages((pagination) => historyService.list(userId, pagination)),
       fetchAllPages((pagination) => watchlistService.list(userId, pagination)),
       fetchAllPages((pagination) => progressService.list(userId, pagination)),
+      franchiseCatalogLoader.listPublished(),
     ]);
 
-    const franchiseProgress = franchiseCatalogs.map((catalog) =>
+    const franchiseProgress = catalogs.map((catalog) =>
       buildFranchiseProgress({
         catalog,
         order: "release",

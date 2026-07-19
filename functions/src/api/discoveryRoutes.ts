@@ -6,13 +6,17 @@ import {franchiseService} from "../services/franchiseService";
 
 export const discoveryRouter = Router();
 
-discoveryRouter.get("/franchises", (_req, res) => {
-  res.json({items: franchiseService.list()});
+discoveryRouter.get("/franchises", async (_req, res, next) => {
+  try {
+    res.json({items: await franchiseService.list()});
+  } catch (error) {
+    next(error);
+  }
 });
 
-discoveryRouter.get("/franchises/:slug", (req, res, next) => {
+discoveryRouter.get("/franchises/:slug", async (req, res, next) => {
   try {
-    const catalog = franchiseService.getCatalog(req.params.slug);
+    const catalog = await franchiseService.getCatalog(req.params.slug);
     res.json(catalog);
   } catch (error) {
     next(error);

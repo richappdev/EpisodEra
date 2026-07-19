@@ -2,7 +2,7 @@
 
 Firestore stores user-owned application state. TMDb remains the source of truth for media metadata, so documents should reference TMDb IDs and cache only the fields needed for display or offline convenience.
 
-**Baseline:** tip `5f00677` (2026-07-18). App Check **Phase 3 enforce** live (Hosting site key + Functions `APP_CHECK_ENFORCE_AUTH_WRITES=true`). TV Time import Phase 1 **code** shipped; Phase 1 acceptance remains **OPEN** — evidence ledger in [`docs/TvTimeImportPhase1Acceptance.md`](./TvTimeImportPhase1Acceptance.md) (A8 browser-ZIP decision **PASS**; A1 tip smoke, A3 soak, A9 staging cleanup still open). Franchises, achievements, challenges, year recap, and discovery suggestions are computed in Cloud Functions (or in-code catalogs) — not stored as Firestore collections. Append-only `watchEvents` remains planned (Data Schema Phase 2); see Notion *TV Time Data Schema Analysis*.
+**Baseline:** tip `5f00677` (2026-07-18). App Check **Phase 3 enforce** live (Hosting site key + Functions `APP_CHECK_ENFORCE_AUTH_WRITES=true`). TV Time import Phase 1 **code** shipped; Phase 1 acceptance remains **OPEN** — evidence ledger in [`docs/TvTimeImportPhase1Acceptance.md`](./TvTimeImportPhase1Acceptance.md) (A8 browser-ZIP decision **PASS**; A1 tip smoke, A3 soak, A9 staging cleanup still open). Franchise catalogs live in Firestore `franchises/{slug}` and are served only through Cloud Functions (`GET /franchises*`); bundled `functions/src/data/franchises.ts` is the seed source and read-failure fallback. Achievements, challenges, year recap, and discovery suggestions remain computed in Cloud Functions. Append-only `watchEvents` remains planned (Data Schema Phase 2); see Notion *TV Time Data Schema Analysis*.
 
 ## Collections
 
@@ -19,6 +19,7 @@ users/{userId}/imports/{importId}
 users/{userId}/imports/{importId}/stagedShows/{mediaType_tmdbId}
 users/{userId}/imports/{importId}/stagedEpisodes/{tv_tmdbId_sNNeNN}
 mediaMappings/{provider}_{mediaType}_{externalId}
+franchises/{slug}
 public/discussions/{movie|tv}_{tmdbId}/{commentId}
 public/{document}
 ```
@@ -276,10 +277,46 @@ Shared provider → TMDb ID overrides used by ZIP resolve (`PUT /me/imports/medi
 
 Document ID format: `{provider}_{mediaType}_{externalId}` (e.g. `tv_time_tv_200`).
 
+## franchises/{slug}
+
+Curated franchise catalogs (editorial phases, title orders, TMDb ids). Written by Admin SDK / seed script; client read/write denied. Cloud Functions load published docs with an in-memory TTL cache and serve them via `GET /franchises` and `GET /franchises/:slug`.
+
+```json
+{
+  "slug": "spider-man-holland",
+  "name": "Spider-Man (Tom Holland)",
+  "description": "Tom Holland's MCU Spider-Man trilogy in release and chronological order.",
+  "published": true,
+  "sortOrder": 3,
+  "phases": [{"id": "trilogy", "name": "MCU Trilogy"}],
+  "titles": [
+    {
+      "tmdbId": 315635,
+      "mediaType": "movie",
+      "title": "Spider-Man: Homecoming",
+      "phaseId": "trilogy",
+      "releaseOrder": 1,
+      "chronologicalOrder": 1,
+      "runtimeMinutes": 133,
+      "providerIds": [337]
+    }
+  ],
+  "updatedAt": "<timestamp>"
+}
+```
+
+Document ID equals `slug`. Only `published: true` docs are listed. Seed from the bundled catalogs:
+
+```bash
+cd functions
+npm run seed:franchises
+```
+
+**Read fallback (Functions):** live Firestore → stale in-memory cache → bundled `functions/src/data/franchises.ts`. A healthy empty published set returns an empty list (no silent bundled merge). Unknown slugs still return `404 franchise_not_found`.
+
 ## Not stored in Firestore
 
-- Franchise catalogs: `functions/src/data/franchises.ts` (`star-wars`, `mcu-phase-one`)
-- Achievements, challenges, year recap, discovery suggestions: computed in Cloud Functions
+- Achievements, challenges, year recap, discovery suggestions: computed in Cloud Functions (franchise progress overlays use the remote/bundled catalogs above)
 - Personal data export (`GET /me/export`): assembled on demand from history, progress, and watchlist — see [ExportFormat.md](./ExportFormat.md)
 - Append-only `watchEvents`: planned (Data Schema Phase 2), not shipped
 
@@ -295,6 +332,7 @@ The current `firestore.rules` policy is intentionally narrow:
 - Users can read/delete their own `friends` documents; client create/update is denied.
 - Users can read their own `imports` tree; client writes are denied (Cloud Functions only).
 - `mediaMappings/**` client read/write is denied (Cloud Functions only).
+- `franchises/**` client read/write is denied (Cloud Functions only).
 - `public/**` is read-only for all clients (includes discussions).
 - Everything else is denied by default.
 
@@ -317,4 +355,4 @@ No composite indexes are required yet. Add indexes when screens need cross-field
 - Watchlist by `status` and `updatedAt`.
 - History by `watchedAt`.
 - Ratings by `rating` and `updatedAt`.
-- Public curated lists by `publishedAt` and `slug`.
+- Additional franchise filters beyond the current in-memory `published` + `sortOrder` sort (catalogs are small today).

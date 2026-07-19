@@ -696,7 +696,7 @@ Profile responses may include generated `friendCode` used for friend requests.
 
 ## Franchises and Smart Discovery
 
-Curated franchise catalogs are public. Personal completion requires authentication.
+Curated franchise catalogs are public via Cloud Functions. Documents live at root `franchises/{slug}` (Admin SDK / seed only; client R/W denied). Functions cache published catalogs in memory and fall back to bundled `functions/src/data/franchises.ts` when Firestore reads fail. Personal completion requires authentication.
 
 ```http
 GET /franchises
