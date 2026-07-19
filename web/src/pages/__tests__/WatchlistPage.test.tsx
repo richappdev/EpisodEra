@@ -28,15 +28,39 @@ const renderWatchlist = (overrides: Partial<Parameters<typeof WatchlistPage>[0]>
 };
 
 describe("WatchlistPage", () => {
-  it("renders active titles without Continue Watching rails", () => {
-    renderWatchlist();
+  it("renders Continue Watching above Active / Library tabs", () => {
+    const dormantProgress = {
+      ...progressSummary,
+      showId: "2002",
+      tmdbId: 2002,
+      title: "Dormant Show",
+      updatedAt: "2025-01-01T00:00:00.000Z",
+    };
+    const dormantItem = {
+      ...watchlistItem,
+      itemId: "tv_2002",
+      tmdbId: 2002,
+      title: "Dormant Show",
+    };
 
-    expect(screen.getByTestId("watchlist-header")).toHaveTextContent("1 saved");
+    renderWatchlist({
+      items: [watchlistItem, dormantItem],
+      progressItems: [progressSummary, dormantProgress],
+      totalCount: 2,
+      onSelectContinuation: vi.fn(),
+      onNextEpisodeWatched: vi.fn(),
+    });
+
+    expect(screen.getByTestId("watchlist-header")).toHaveTextContent("2 saved");
+    expect(screen.getByTestId("continue-card-1001")).toBeVisible();
+    expect(screen.getByTestId("continue-next-1001")).toHaveTextContent("S1 E2");
+    expect(screen.getByTestId("continue-panel")).toBeVisible();
+    expect(document.getElementById("continue-watching")).not.toBeNull();
+    expect(screen.getByRole("heading", {name: "Continue watching"})).toBeVisible();
+    expect(screen.queryByTestId("continue-card-2002")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", {name: "Haven't watched for a while"})).not.toBeInTheDocument();
     expect(screen.getByTestId("watchlist-item-1001")).toHaveTextContent("Critical Flow Show");
     expect(screen.getByTestId("watchlist-tab-active")).toHaveAttribute("aria-selected", "true");
-    expect(screen.queryByTestId("continue-card-1001")).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", {name: "Continue watching"})).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", {name: "Haven't watched for a while"})).not.toBeInTheDocument();
   });
 
   it("moves dormant and planned titles into the Library tab", async () => {

@@ -57,8 +57,10 @@ const RootRoute = () => {
 const WatchlistRoute = () => {
   const {user} = useAuth();
   const {
+    markContinuationEpisodeWatched,
     openContinuationDetail,
     openMediaDetail,
+    pendingShowIds,
     progressItems,
     removeWatchlistItem,
     updateWatchlistStatus,
@@ -72,6 +74,17 @@ const WatchlistRoute = () => {
     reloadWatchlist,
   } = useAppContext();
 
+  useEffect(() => {
+    if (window.location.hash !== "#continue-watching") {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById("continue-watching")?.scrollIntoView({behavior: "smooth", block: "start"});
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [progressItems, watchlistItems]);
+
   return (
     <WatchlistPage
       error={watchlistError}
@@ -79,13 +92,18 @@ const WatchlistRoute = () => {
       items={watchlistItems}
       loading={watchlistLoading}
       loadingMore={watchlistLoadingMore}
+      pendingShowIds={pendingShowIds}
       progressItems={progressItems}
       signedIn={Boolean(user)}
       totalCount={watchlistTotalCount}
       onLoadMore={loadMoreWatchlist}
+      onNextEpisodeWatched={(entry) => {
+        void markContinuationEpisodeWatched(entry);
+      }}
       onRemove={removeWatchlistItem}
       onRetry={reloadWatchlist}
       onSelect={(item) => openMediaDetail(item, "watchlist")}
+      onSelectContinuation={(entry) => openContinuationDetail(entry, "watchlist")}
       onSelectLibrary={(entry) => {
         if (entry.watchlistItem) {
           openMediaDetail(entry.watchlistItem, "watchlist");

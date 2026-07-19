@@ -5,7 +5,7 @@ import {MemoryRouter} from "react-router-dom";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {DiscoveryPage} from "../DiscoveryPage";
 import {api} from "../../api/client";
-import {movieDetail, progressSummary, tvDetail, watchlistItem} from "../../test/fixtures";
+import {movieDetail, tvDetail} from "../../test/fixtures";
 import {MediaSummary} from "../../types/media";
 
 vi.mock("../../api/client", () => ({
@@ -72,44 +72,16 @@ describe("DiscoveryPage", () => {
     expect(await screen.findByText("No results found.")).toBeVisible();
   });
 
-  it("renders Continue Watching for signed-in home view without dormant rail", async () => {
-    const dormantProgress = {
-      ...progressSummary,
-      showId: "2002",
-      tmdbId: 2002,
-      title: "Dormant Show",
-      updatedAt: "2025-01-01T00:00:00.000Z",
-    };
-    const dormantItem = {
-      ...watchlistItem,
-      itemId: "tv_2002",
-      tmdbId: 2002,
-      title: "Dormant Show",
-    };
+  it("does not render Continue Watching on the home/trending view", async () => {
     vi.mocked(api.trendingShows).mockResolvedValue(paged([tvDetail]));
 
-    renderDiscovery(
-      <DiscoveryPage
-        view="trending"
-        language="en-US"
-        signedIn
-        watchlistItems={[watchlistItem, dormantItem]}
-        progressItems={[progressSummary, dormantProgress]}
-        onSelect={vi.fn()}
-        onSelectContinuation={vi.fn()}
-        onNextEpisodeWatched={vi.fn()}
-      />,
-    );
+    renderDiscovery(<DiscoveryPage view="trending" language="en-US" onSelect={vi.fn()} />);
 
-    expect(await screen.findByTestId("continue-card-1001")).toBeVisible();
-    expect(screen.getByTestId("continue-next-1001")).toHaveTextContent("S1 E2");
-    expect(screen.getByTestId("continue-panel")).toBeVisible();
-    expect(document.getElementById("continue-watching")).not.toBeNull();
-    expect(screen.queryByTestId("home-dormant-card-2002")).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", {name: "Haven't watched for a while"})).not.toBeInTheDocument();
-    const continuePanel = screen.getByTestId("continue-panel");
-    const discovery = screen.getByTestId("discovery-smart");
-    expect(continuePanel.compareDocumentPosition(discovery) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(await screen.findByTestId("discovery-smart")).toBeVisible();
+    expect(screen.queryByTestId("continue-card-1001")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("continue-panel")).not.toBeInTheDocument();
+    expect(document.getElementById("continue-watching")).toBeNull();
+    expect(screen.queryByRole("heading", {name: "Continue watching"})).not.toBeInTheDocument();
   });
 
   it("loads mood suggestions and lets the user pick a mood", async () => {

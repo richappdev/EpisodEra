@@ -10,14 +10,14 @@ The MVP uses **React Router 6** (`react-router-dom`) with browser history and sh
 | --- | --- | --- | --- | --- |
 | `/` | Marketing landing | Public; signed-in redirects to `/home` | cinema | Product TopBar hidden; CTAs to `/signup`, `/login`, `/home` |
 | `/landing` | Legacy landing alias | Public | cinema | Redirects to `/` |
-| `/home` | Home / Trending (TV Shows tab default) + Continue Watching when signed in | Public | cinema | CW poster rail is first band; discovery below fold |
+| `/home` | Home / Trending (TV Shows tab default) | Public | cinema | Smart discovery + trending rails |
 | `/search` | Search | Public | cinema | Empty prompt when no `q` query param |
 | `/search?q={query}` | Search results | Public | cinema | Query persists in the URL |
 | `/movie/:id` | Movie detail | Public | cinema | Full-bleed hero + status rail |
 | `/tv/:id` | TV detail | Public | cinema | Default season selected from show metadata |
 | `/tv/:id/season/:seasonNumber` | TV detail + season | Public | cinema | Shareable season deep link |
-| `/watchlist` | Collection Active + Library tabs | Required for data | cinema | Continue Watching lives on Home |
-| `/continue-watching` | Redirect to `/home#continue-watching` | Required for data | cinema | Alias for Home Continue Watching |
+| `/watchlist` | Collection Active + Library tabs + Continue Watching when signed in | Required for data | cinema | CW poster rail sits above Active / Library |
+| `/continue-watching` | Redirect to `/watchlist#continue-watching` | Required for data | cinema | Alias for Watchlist Continue Watching |
 | `/timeline` | Personal viewing timeline | Required for data | cinema | Day/month/year diary spine |
 | `/franchises` | Franchise catalog | Public | cinema | Curated universes |
 | `/franchises/:slug` | Franchise progress | Public catalog; auth for progress | cinema | Release / chronological order |
@@ -46,7 +46,7 @@ Unknown paths redirect to `/` (signed-in users then bounce to `/home`).
 | TV detail | `/tv/:id`, `/tv/:id/season/:seasonNumber` | `DetailPage` via `MediaDetailRoute` | `GET /tv/:id`, `GET /tv/:id/season/:seasonNumber` |
 | Episode progress | TV detail routes | Embedded in `DetailPage` | Progress APIs |
 | Collection | `/watchlist` | `WatchlistPage` (Active / Library tabs) | `GET /watchlist`, `GET /progress` |
-| Continue Watching | `/home#continue-watching`, `/continue-watching` | Section within `DiscoveryPage` (Home) | `GET /progress` (+ watchlist for grouping) |
+| Continue Watching | `/watchlist#continue-watching`, `/continue-watching` | Section within `WatchlistPage` | `GET /progress` (+ watchlist for grouping) |
 | Timeline | `/timeline` | `TimelinePage` | `GET /me/history` |
 | Profile | `/profile` | `ProfilePage` | `GET /me/profile`, `GET /me/stats`, `GET /me/recap`, `GET /me/achievements`, `GET /me/history` |
 | Social | `/social` | `SocialPage` | `GET /me/friends`, `GET /me/feed`, `GET /me/challenges`, compatibility |

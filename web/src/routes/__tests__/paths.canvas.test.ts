@@ -27,8 +27,9 @@ describe("landing and home paths", () => {
     expect(isLandingPath("/home")).toBe(false);
   });
 
-  it("maps /home to trending nav and not bare /", () => {
+  it("maps /home to trending nav and /continue-watching to watchlist", () => {
     expect(navFromPath("/home")).toBe("trending");
+    expect(navFromPath("/continue-watching")).toBe("watchlist");
     expect(paths.landing).toBe("/");
     expect(paths.home).toBe("/home");
   });

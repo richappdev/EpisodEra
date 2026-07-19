@@ -1,10 +1,13 @@
 import {useMemo, useState} from "react";
 import {Bookmark, Film, Loader2, Trash2} from "lucide-react";
+import {ContinueWatchingSection} from "../components/ContinueWatchingSection";
 import {SectionError} from "../components/SectionError";
 import {useDormantAfterDays} from "../hooks/useDormantAfterDays";
 import {
+  buildContinuationGroups,
   buildLibraryEntries,
   selectActiveWatchlistItems,
+  type ContinuationEntry,
   type LibraryEntry,
   type LibraryReason,
 } from "../lib/continuation";
@@ -39,13 +42,16 @@ interface WatchlistPageProps {
   items: WatchlistItem[];
   loading: boolean;
   loadingMore: boolean;
+  pendingShowIds?: ReadonlySet<number>;
   progressItems: ShowProgressSummary[];
   signedIn: boolean;
   totalCount: number;
   onLoadMore: () => void;
+  onNextEpisodeWatched?: (entry: ContinuationEntry) => void;
   onRemove: (item: WatchlistItem) => void;
   onRetry: () => void;
   onSelect: (item: WatchlistItem) => void;
+  onSelectContinuation?: (entry: ContinuationEntry) => void;
   onSelectLibrary: (entry: LibraryEntry) => void;
   onStatusChange: (item: WatchlistItem, status: WatchlistStatus) => void;
 }
@@ -59,19 +65,26 @@ export const WatchlistPage = ({
   items,
   loading,
   loadingMore,
+  pendingShowIds,
   progressItems,
   signedIn,
   totalCount,
   onLoadMore,
+  onNextEpisodeWatched,
   onRemove,
   onRetry,
   onSelect,
+  onSelectContinuation,
   onSelectLibrary,
   onStatusChange,
 }: WatchlistPageProps) => {
   const [tab, setTab] = useState<WatchlistTab>(initialTab);
   const dormantAfterDays = useDormantAfterDays();
 
+  const {continueWatching} = useMemo(
+    () => buildContinuationGroups(items, progressItems, new Date(), dormantAfterDays),
+    [dormantAfterDays, items, progressItems],
+  );
   const activeItems = useMemo(
     () => selectActiveWatchlistItems(items, progressItems, new Date(), dormantAfterDays),
     [dormantAfterDays, items, progressItems],
@@ -98,6 +111,22 @@ export const WatchlistPage = ({
         </div>
         <span>{totalCount || items.length} saved</span>
       </section>
+
+      {onSelectContinuation &&
+        onNextEpisodeWatched &&
+        continueWatching.length > 0 && (
+          <section className="home-hero" aria-label="Continue watching">
+            <ContinueWatchingSection
+              id="continue-watching"
+              title="Continue watching"
+              subtitle={`${continueWatching.length} active`}
+              entries={continueWatching}
+              pendingShowIds={pendingShowIds}
+              onSelect={onSelectContinuation}
+              onNextEpisodeWatched={onNextEpisodeWatched}
+            />
+          </section>
+        )}
 
       <div className="tab-bar" role="tablist" aria-label="Watchlist sections">
         <button

@@ -11,7 +11,7 @@ export type WatchlistStatus = (typeof watchlistStatuses)[number];
 export const isActiveWatchlistStatus = (status: WatchlistStatus) =>
   status === "watching" || status === "unwatched";
 
-/** Statuses eligible for Continue Watching (Home resume rail). */
+/** Statuses eligible for Continue Watching (Watchlist resume rail). */
 export const isContinueEligibleStatus = (status: WatchlistStatus) =>
   status === "watching" || status === "planned" || status === "unwatched";
 

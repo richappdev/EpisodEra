@@ -47,10 +47,10 @@ export const navFromPath = (pathname: string): NavView => {
   if (pathname.startsWith("/search")) {
     return "search";
   }
-  if (pathname.startsWith("/continue-watching") || pathname === paths.home || pathname.startsWith(`${paths.home}/`)) {
+  if (pathname === paths.home || pathname.startsWith(`${paths.home}/`)) {
     return "trending";
   }
-  if (pathname.startsWith("/watchlist")) {
+  if (pathname.startsWith("/continue-watching") || pathname.startsWith("/watchlist")) {
     return "watchlist";
   }
   if (pathname.startsWith("/timeline")) {

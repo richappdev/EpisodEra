@@ -1,34 +1,23 @@
-import {FormEvent, useCallback, useEffect, useMemo, useState} from "react";
+import {FormEvent, useCallback, useEffect, useState} from "react";
 import {Link} from "react-router-dom";
 import {Search} from "lucide-react";
 import {api} from "../api/client";
-import {ContinueWatchingSection} from "../components/ContinueWatchingSection";
 import {SectionError} from "../components/SectionError";
 import {MediaSection} from "../components/MediaSection";
-import {useDormantAfterDays} from "../hooks/useDormantAfterDays";
-import {buildContinuationGroups, type ContinuationEntry} from "../lib/continuation";
 import {paths} from "../routes/paths";
 import {discoveryMoods} from "../lib/discoveryMoods";
 import {DiscoveryMood, DiscoverySuggestionsResponse} from "../types/discovery";
 import {DiscoveryResponse, MediaSummary, MediaType, PagedResult} from "../types/media";
-import {ShowProgressSummary} from "../types/progress";
 import {SupportedLanguage, uiCopy} from "../types/settings";
-import {WatchlistItem} from "../types/watchlist";
 
 interface DiscoveryPageProps {
   view: "trending" | "search";
   language: SupportedLanguage;
   initialSearchQuery?: string | null;
-  pendingShowIds?: ReadonlySet<number>;
   preferredProviderIds?: number[];
-  progressItems?: ShowProgressSummary[];
-  signedIn?: boolean;
-  watchlistItems?: WatchlistItem[];
   watchRegion?: string;
   onSearchQueryChange?: (query: string) => void;
   onSelect: (item: MediaSummary) => void;
-  onSelectContinuation?: (entry: ContinuationEntry) => void;
-  onNextEpisodeWatched?: (entry: ContinuationEntry) => void;
 }
 
 type TrendingTab = Extract<MediaType, "movie" | "tv">;
@@ -40,19 +29,12 @@ export const DiscoveryPage = ({
   view,
   language,
   initialSearchQuery = null,
-  pendingShowIds,
   preferredProviderIds = [],
-  progressItems = [],
-  signedIn = false,
-  watchlistItems = [],
   watchRegion = "US",
   onSearchQueryChange,
   onSelect,
-  onSelectContinuation,
-  onNextEpisodeWatched,
 }: DiscoveryPageProps) => {
   const copy = uiCopy[language].search;
-  const dormantAfterDays = useDormantAfterDays();
   const [query, setQuery] = useState("");
   const [searchData, setSearchData] = useState<DiscoveryResponse | null>(null);
   const [searchPage, setSearchPage] = useState(1);
@@ -66,11 +48,6 @@ export const DiscoveryPage = ({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-
-  const {continueWatching} = useMemo(
-    () => buildContinuationGroups(watchlistItems, progressItems, new Date(), dormantAfterDays),
-    [dormantAfterDays, progressItems, watchlistItems],
-  );
 
   const loadTrending = useCallback(
     async (page: number, append: boolean) => {
@@ -256,24 +233,6 @@ export const DiscoveryPage = ({
             Search
           </button>
         </form>
-      )}
-
-      {view === "trending" &&
-        signedIn &&
-        onSelectContinuation &&
-        onNextEpisodeWatched &&
-        continueWatching.length > 0 && (
-        <section className="home-hero" aria-label="Continue watching">
-          <ContinueWatchingSection
-            id="continue-watching"
-            title="Continue watching"
-            subtitle={`${continueWatching.length} active`}
-            entries={continueWatching}
-            pendingShowIds={pendingShowIds}
-            onSelect={onSelectContinuation}
-            onNextEpisodeWatched={onNextEpisodeWatched}
-          />
-        </section>
       )}
 
       {view === "trending" && (

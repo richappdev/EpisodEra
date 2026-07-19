@@ -7,7 +7,7 @@ test("continue watching resolves the first unwatched gap and sends a canonical e
     initialWatchlistStatus: "watching",
   });
 
-  await page.goto("/home");
+  await page.goto("/watchlist");
 
   await expect(page.getByTestId(`continue-card-${showId}`)).toBeVisible();
   await expect(page.getByTestId(`continue-next-${showId}`)).toHaveText("S1 E2");
@@ -131,7 +131,7 @@ test("concurrent browser progress writes converge to a consistent final summary"
   await expect(pageA.getByTestId("history-row-tv_1001_s01e02")).toContainText("The Gap");
   await expect(pageA.getByTestId("history-row-tv_1001_s01e03")).toContainText("Next Step");
 
-  await pageA.getByTestId("nav-trending").click();
+  await pageA.getByTestId("nav-watchlist").click();
   await expect(pageA.getByTestId(`continue-card-${showId}`)).toHaveCount(0);
   expect(requestsA.progressBatchBodies).toHaveLength(2);
   expect(requestsA.progressBatchBodies).toEqual(
