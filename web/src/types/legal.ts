@@ -1,6 +1,6 @@
 import {SupportedLanguage} from "./settings";
 
-export const supportEmail = "support@episodera.web.app";
+export const supportEmail = "app.developer.rich@gmail.com";
 
 export interface PrivacySection {
   title: string;

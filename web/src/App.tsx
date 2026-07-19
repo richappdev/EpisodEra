@@ -5,7 +5,7 @@ import {AppProvider, useAppContext} from "./AppContext";
 import {TopBar} from "./components/TopBar";
 import {AppRoutes} from "./routes/AppRoutes";
 import {canvasFromPath, isDetailPath, isLandingPath, navFromPath, paths, type NavView} from "./routes/paths";
-import {legalCopy} from "./types/legal";
+import {legalCopy, supportEmail} from "./types/legal";
 import tmdbLogo from "./assets/tmdb-logo.svg";
 
 const resolveActiveView = (pathname: string, state: unknown): NavView => {
@@ -33,6 +33,8 @@ const SiteFooter = () => {
         <Link to={paths.landing}>{aboutLabel}</Link>
         <span aria-hidden="true"> · </span>
         <Link to={paths.privacy}>{footer.privacy}</Link>
+        <span aria-hidden="true"> · </span>
+        <a href={`mailto:${supportEmail}`}>{supportEmail}</a>
       </p>
       <div className="tmdb-attribution">
         <a

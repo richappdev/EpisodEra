@@ -459,7 +459,7 @@ test("online UI regression soak — 10 minutes, no repeated media clicks", async
   await runOptionalStep("P1 privacy page renders signed in", async () => {
     await page.goto("/privacy");
     await expect(page.getByRole("heading")).toBeVisible();
-    await expect(page.getByRole("link", {name: "support@episodera.web.app"})).toBeVisible();
+    await expect(page.getByRole("link", {name: "app.developer.rich@gmail.com"})).toBeVisible();
   });
 
   await runStep("P1 responsive desktop shell", async () => {
