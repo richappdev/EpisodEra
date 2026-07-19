@@ -193,6 +193,45 @@ export const franchiseCatalogs: FranchiseCatalog[] = [
       },
     ],
   },
+  {
+    slug: "spider-man-holland",
+    name: "Spider-Man (Tom Holland)",
+    description:
+      "Tom Holland's MCU Spider-Man trilogy in release and chronological order.",
+    phases: [{id: "trilogy", name: "MCU Trilogy"}],
+    titles: [
+      {
+        tmdbId: 315635,
+        mediaType: "movie",
+        title: "Spider-Man: Homecoming",
+        phaseId: "trilogy",
+        releaseOrder: 1,
+        chronologicalOrder: 1,
+        runtimeMinutes: 133,
+        providerIds: [337],
+      },
+      {
+        tmdbId: 429617,
+        mediaType: "movie",
+        title: "Spider-Man: Far From Home",
+        phaseId: "trilogy",
+        releaseOrder: 2,
+        chronologicalOrder: 2,
+        runtimeMinutes: 129,
+        providerIds: [337],
+      },
+      {
+        tmdbId: 634649,
+        mediaType: "movie",
+        title: "Spider-Man: No Way Home",
+        phaseId: "trilogy",
+        releaseOrder: 3,
+        chronologicalOrder: 3,
+        runtimeMinutes: 148,
+        providerIds: [337],
+      },
+    ],
+  },
 ];
 
 export const getFranchiseCatalog = (slug: string): FranchiseCatalog | undefined =>
