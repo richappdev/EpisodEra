@@ -54,8 +54,11 @@ test("signed-in user can complete the core watchlist and episode progress flow",
   await expect(page.getByText("Watched movies and episodes will appear here.")).toBeVisible();
 
   await page.getByTestId("account-button").click();
-  await expect(page.getByTestId("account-button")).toContainText("Sign in");
   await expect(page.getByText("Welcome, E2E")).toHaveCount(0);
-  await expect(page.getByRole("heading", {name: "Trending TV Shows"})).toBeVisible();
+  await expect(page.getByTestId("account-button")).toHaveCount(0);
+  await expect(page.getByTestId("nav-trending")).toHaveCount(0);
+  await expect(page.locator(".landing-brand-mark")).toBeVisible();
+  await expect(page.getByRole("heading", {name: "Your watching memory, in one place."})).toBeVisible();
+  await expect(page.getByRole("link", {name: "Sign in"})).toBeVisible();
   await expect(page.getByTestId("stat-watched-episodes")).toHaveCount(0);
 });
