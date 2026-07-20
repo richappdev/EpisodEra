@@ -21,6 +21,12 @@ export const SITE_ACCESS_BLOCKED_REMOTE_KEY = "site_access_blocked";
 /** In-app default: site stays open if Remote Config is missing or fetch fails. */
 export const SITE_ACCESS_BLOCKED_DEFAULT = false;
 
+/**
+ * Kill-switch friendly fetch throttle. Production used to be 12h, which left
+ * already-open / signed-in tabs on a stale `false` long after Console publish.
+ */
+const REMOTE_CONFIG_FETCH_INTERVAL_MS = 60_000;
+
 const firebaseConfig: FirebaseOptions = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY as string | undefined,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN as string | undefined,
@@ -124,12 +130,52 @@ export const trackException = (description: string, fatal = false) => {
 };
 
 let remoteConfigPromise: Promise<RemoteConfig | null> | null = null;
+let remoteConfigRefreshHooked = false;
+let lastSiteAccessBlocked = SITE_ACCESS_BLOCKED_DEFAULT;
+const siteAccessBlockedListeners = new Set<(blocked: boolean) => void>();
 
 const readDormantAfterDaysFromConfig = (remoteConfig: RemoteConfig) =>
   resolveDormantAfterDays(getValue(remoteConfig, DORMANT_AFTER_DAYS_REMOTE_KEY).asNumber());
 
 const readSiteAccessBlockedFromConfig = (remoteConfig: RemoteConfig) =>
   getValue(remoteConfig, SITE_ACCESS_BLOCKED_REMOTE_KEY).asBoolean();
+
+const notifySiteAccessBlocked = (blocked: boolean) => {
+  lastSiteAccessBlocked = blocked;
+  for (const listener of siteAccessBlockedListeners) {
+    listener(blocked);
+  }
+};
+
+const refreshRemoteConfig = async (remoteConfig: RemoteConfig): Promise<void> => {
+  try {
+    await fetchAndActivate(remoteConfig);
+  } catch {
+    // Keep last activated / in-app defaults when fetch fails.
+    return;
+  }
+
+  notifySiteAccessBlocked(readSiteAccessBlockedFromConfig(remoteConfig));
+};
+
+const hookRemoteConfigRefresh = (remoteConfig: RemoteConfig) => {
+  if (remoteConfigRefreshHooked || typeof document === "undefined") {
+    return;
+  }
+
+  remoteConfigRefreshHooked = true;
+
+  const refreshIfVisible = () => {
+    if (document.visibilityState !== "visible") {
+      return;
+    }
+    void refreshRemoteConfig(remoteConfig);
+  };
+
+  document.addEventListener("visibilitychange", refreshIfVisible);
+  window.addEventListener("focus", refreshIfVisible);
+  window.setInterval(refreshIfVisible, REMOTE_CONFIG_FETCH_INTERVAL_MS);
+};
 
 const ensureRemoteConfig = (): Promise<RemoteConfig | null> => {
   if (!app) {
@@ -138,9 +184,7 @@ const ensureRemoteConfig = (): Promise<RemoteConfig | null> => {
 
   remoteConfigPromise ??= (async () => {
     const remoteConfig = getRemoteConfig(app);
-    remoteConfig.settings.minimumFetchIntervalMillis = import.meta.env.DEV
-      ? 60_000
-      : 12 * 60 * 60 * 1000;
+    remoteConfig.settings.minimumFetchIntervalMillis = REMOTE_CONFIG_FETCH_INTERVAL_MS;
     remoteConfig.defaultConfig = {
       [DORMANT_AFTER_DAYS_REMOTE_KEY]: DORMANT_AFTER_DAYS,
       [SITE_ACCESS_BLOCKED_REMOTE_KEY]: SITE_ACCESS_BLOCKED_DEFAULT,
@@ -152,6 +196,7 @@ const ensureRemoteConfig = (): Promise<RemoteConfig | null> => {
       // Keep in-app defaults when fetch fails (offline / blocked).
     }
 
+    hookRemoteConfigRefresh(remoteConfig);
     return remoteConfig;
   })();
 
@@ -170,7 +215,7 @@ export const initializeRemoteConfig = async (): Promise<number> => {
 /**
  * Subscribes to the dormant-after-days threshold from Remote Config.
  * Emits the local default immediately, then the fetched/activated value once available.
- * (Realtime `onConfigUpdate` requires a newer Firebase SDK than this project pins.)
+ * (Realtime `onConfigUpdate` is not in this Firebase SDK pin; site-access uses focus/interval refresh.)
  */
 export const subscribeDormantAfterDays = (onChange: (days: number) => void): (() => void) => {
   let cancelled = false;
@@ -192,15 +237,14 @@ export const subscribeDormantAfterDays = (onChange: (days: number) => void): (()
 
 /**
  * Subscribes to the site-access-blocked flag from Remote Config.
- * Emits the local default (`false`) immediately, then the fetched/activated value once available.
+ * Emits the latest known value immediately, then again after fetch / tab focus / periodic refresh.
  */
 export const subscribeSiteAccessBlocked = (onChange: (blocked: boolean) => void): (() => void) => {
-  let cancelled = false;
-
-  onChange(SITE_ACCESS_BLOCKED_DEFAULT);
+  siteAccessBlockedListeners.add(onChange);
+  onChange(lastSiteAccessBlocked);
 
   void ensureRemoteConfig().then((remoteConfig) => {
-    if (cancelled || !remoteConfig) {
+    if (!remoteConfig || !siteAccessBlockedListeners.has(onChange)) {
       return;
     }
 
@@ -208,6 +252,6 @@ export const subscribeSiteAccessBlocked = (onChange: (blocked: boolean) => void)
   });
 
   return () => {
-    cancelled = true;
+    siteAccessBlockedListeners.delete(onChange);
   };
 };
