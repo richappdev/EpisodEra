@@ -123,7 +123,6 @@ describe("DiscoveryPage", () => {
     expect(screen.getByTestId("home-franchises-link")).toHaveAttribute("href", "/franchises");
     expect(await screen.findByRole("heading", {name: "Something relaxing"})).toBeVisible();
     expect(screen.getByTestId("media-card-movie-2001")).toBeVisible();
-    expect(screen.getByTestId("list-more-relaxing")).toHaveAttribute("href", "/list/relaxing");
     await user.click(screen.getByTestId("mood-relaxing"));
     await waitFor(() =>
       expect(api.discoverSuggestions).toHaveBeenCalledWith(

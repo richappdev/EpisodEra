@@ -311,8 +311,6 @@ export const DiscoveryPage = ({
                 key={firstRail.id}
                 title={firstRail.title}
                 items={firstRail.items}
-                layout="rail"
-                listId={firstRail.id}
                 onSelect={onSelect}
               />
             )}
@@ -325,8 +323,6 @@ export const DiscoveryPage = ({
                 key={rail.id}
                 title={rail.title}
                 items={rail.items}
-                layout="rail"
-                listId={rail.id}
                 onSelect={onSelect}
               />
             ))}
