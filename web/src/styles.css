@@ -1450,15 +1450,9 @@ html[data-chrome="landing"] body {
 }
 
 .continue-grid {
-  display: flex;
+  display: grid;
   gap: 14px;
-  margin: 0 calc(var(--page-pad) * -1);
-  max-width: calc(100% + var(--page-pad) * 2);
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  padding: 2px var(--page-pad) 8px;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: thin;
+  grid-template-columns: repeat(auto-fill, minmax(min(148px, 100%), 1fr));
 }
 
 .continue-card {
@@ -1467,12 +1461,10 @@ html[data-chrome="landing"] body {
   border: 0;
   border-radius: 0;
   display: grid;
-  flex: 0 0 148px;
   gap: 10px;
   grid-template-columns: 1fr;
+  min-width: 0;
   padding: 0;
-  scroll-snap-align: start;
-  width: 148px;
 }
 
 .continue-poster {
@@ -2812,9 +2804,8 @@ html[data-chrome="landing"] body {
     width: min(100%, 240px);
   }
 
-  .continue-card {
-    flex-basis: 132px;
-    width: 132px;
+  .continue-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .continue-button {
@@ -2954,6 +2945,7 @@ html[data-chrome="landing"] body {
 
 @media (max-width: 360px) {
   .media-grid,
+  .continue-grid,
   .stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
