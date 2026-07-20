@@ -1586,11 +1586,14 @@ html[data-chrome="landing"] body {
 .continue-featured-actions {
   display: grid;
   gap: 8px;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto auto;
+  justify-content: start;
   margin-top: 4px;
 }
 
 .continue-button--resume {
+  min-width: 7.5rem;
+  padding-inline: 18px;
   width: auto;
 }
 
