@@ -124,6 +124,11 @@ export const WatchlistPage = ({
               pendingShowIds={pendingShowIds}
               onSelect={onSelectContinuation}
               onNextEpisodeWatched={onNextEpisodeWatched}
+              onRemove={(entry) => {
+                if (entry.watchlistItem) {
+                  onStatusChange(entry.watchlistItem, "dropped");
+                }
+              }}
             />
           </section>
         )}

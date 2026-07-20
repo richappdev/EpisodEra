@@ -106,7 +106,8 @@ describe("DiscoveryPage", () => {
     expect(screen.getByTestId("continue-card-1001")).toBeVisible();
     expect(screen.getByTestId("continue-resume-1001")).toBeVisible();
     expect(screen.getByTestId("continue-see-all")).toHaveAttribute("href", "/watchlist#continue-watching");
-    expect(screen.queryByRole("list")).not.toBeInTheDocument();
+    expect(screen.getByTestId("continue-next-1001")).toHaveTextContent("S1 · E2 — The Gap");
+    expect(screen.getByRole("list")).toBeVisible();
   });
 
   it("loads mood suggestions and lets the user pick a mood", async () => {

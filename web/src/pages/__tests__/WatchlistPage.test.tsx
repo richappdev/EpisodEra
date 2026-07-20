@@ -53,7 +53,7 @@ describe("WatchlistPage", () => {
 
     expect(screen.getByTestId("watchlist-header")).toHaveTextContent("2 saved");
     expect(screen.getByTestId("continue-card-1001")).toBeVisible();
-    expect(screen.getByTestId("continue-next-1001")).toHaveTextContent("S1 E2");
+    expect(screen.getByTestId("continue-next-1001")).toHaveTextContent("S1 · E2 — The Gap");
     expect(screen.getByTestId("continue-panel")).toBeVisible();
     expect(document.getElementById("continue-watching")).not.toBeNull();
     expect(screen.getByRole("heading", {name: "Continue watching"})).toBeVisible();

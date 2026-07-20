@@ -20,6 +20,7 @@ export const DiscoveryRoute = ({view}: DiscoveryRouteProps) => {
     pendingShowIds,
     preferredProviderIds,
     progressItems,
+    updateWatchlistStatus,
     watchlistItems,
     watchRegion,
   } = useAppContext();
@@ -46,6 +47,11 @@ export const DiscoveryRoute = ({view}: DiscoveryRouteProps) => {
       onSearchQueryChange={(query) => navigate(paths.searchQuery(query), {replace: true})}
       onSelect={(item) => openMediaDetail(item, nav)}
       onSelectContinuation={(entry) => openContinuationDetail(entry, "trending")}
+      onRemoveContinuation={(entry) => {
+        if (entry.watchlistItem) {
+          updateWatchlistStatus(entry.watchlistItem, "dropped");
+        }
+      }}
     />
   );
 };

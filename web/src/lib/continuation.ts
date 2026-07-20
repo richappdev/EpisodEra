@@ -250,7 +250,44 @@ export const nextEpisodeCodeFor = (progress: ShowProgressSummary) => {
     return null;
   }
 
-  return `S${progress.nextEpisode.seasonNumber} E${progress.nextEpisode.episodeNumber}`;
+  return `S${progress.nextEpisode.seasonNumber} · E${progress.nextEpisode.episodeNumber}`;
+};
+
+/** Season · episode, optionally with episode title — for Continue Watching cards. */
+export const nextEpisodeDetailLineFor = (progress: ShowProgressSummary) => {
+  const code = nextEpisodeCodeFor(progress);
+  if (!code) {
+    return nextEpisodeLabelFor(progress);
+  }
+
+  const episodeTitle = progress.nextEpisode?.episodeTitle?.trim();
+  return episodeTitle ? `${code} — ${episodeTitle}` : code;
+};
+
+/** Episode-count caption with estimated remaining watch time (default runtime per episode). */
+export const continueProgressCaptionFor = (
+  progress: ShowProgressSummary,
+  episodeRuntimeMinutes = 42,
+) => {
+  const remainingCount = Math.max(0, progress.totalEpisodes - progress.watchedEpisodeCount);
+  const watchedLine = `${progress.watchedEpisodeCount} of ${progress.totalEpisodes} episodes`;
+  if (remainingCount <= 0) {
+    return watchedLine;
+  }
+
+  const remainingMinutes = remainingCount * episodeRuntimeMinutes;
+  const timeLabel =
+    remainingMinutes < 60
+      ? `${remainingMinutes} min left`
+      : (() => {
+          const hours = Math.floor(remainingMinutes / 60);
+          const remainder = remainingMinutes % 60;
+          return remainder === 0
+            ? `${hours}h left`
+            : `${hours}h ${remainder}m left`;
+        })();
+
+  return `${watchedLine} · ${timeLabel}`;
 };
 
 export const progressPercentFor = (watchedEpisodeCount: number, totalEpisodes: number) =>

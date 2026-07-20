@@ -25,6 +25,7 @@ interface DiscoveryPageProps {
   onSelect: (item: MediaSummary) => void;
   onSelectContinuation?: (entry: ContinuationEntry) => void;
   onNextEpisodeWatched?: (entry: ContinuationEntry) => void;
+  onRemoveContinuation?: (entry: ContinuationEntry) => void;
 }
 
 type TrendingTab = Extract<MediaType, "movie" | "tv">;
@@ -52,6 +53,7 @@ export const DiscoveryPage = ({
   onSelect,
   onSelectContinuation,
   onNextEpisodeWatched,
+  onRemoveContinuation,
 }: DiscoveryPageProps) => {
   const copy = uiCopy[language].search;
   const [query, setQuery] = useState("");
@@ -273,6 +275,7 @@ export const DiscoveryPage = ({
                   pendingShowIds={pendingShowIds}
                   onSelect={onSelectContinuation}
                   onNextEpisodeWatched={onNextEpisodeWatched}
+                  onRemove={onRemoveContinuation}
                 />
               </section>
             )}

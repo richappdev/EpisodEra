@@ -10,6 +10,9 @@ import {
   resolveDormantAfterDays,
   selectActiveWatchlistItems,
   suggestedWatchlistStatusForProgress,
+  continueProgressCaptionFor,
+  nextEpisodeCodeFor,
+  nextEpisodeDetailLineFor,
 } from "./continuation";
 
 const now = new Date("2026-07-15T00:00:00.000Z");
@@ -179,5 +182,14 @@ describe("continuation", () => {
     expect(promotedTvWatchlistStatus("planned", "completed")).toBe("completed");
     expect(promotedTvWatchlistStatus("completed", "watching")).toBeNull();
     expect(promotedTvWatchlistStatus("dropped", "completed")).toBeNull();
+  });
+
+  it("formats continue-watching episode and progress captions", () => {
+    expect(nextEpisodeCodeFor(progressSummary)).toBe("S1 · E2");
+    expect(nextEpisodeDetailLineFor(progressSummary)).toBe("S1 · E2 — The Gap");
+    expect(continueProgressCaptionFor(progressSummary, 42)).toBe("1 of 3 episodes · 1h 24m left");
+    expect(continueProgressCaptionFor({...progressSummary, watchedEpisodeCount: 2}, 30)).toBe(
+      "2 of 3 episodes · 30 min left",
+    );
   });
 });
