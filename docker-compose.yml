@@ -1,0 +1,97 @@
+services:
+  emulators:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: emulators
+    image: episodera-emulators:local
+    ports:
+      - "4000:4000"
+      - "4400:4400"
+      - "4500:4500"
+      - "5001:5001"
+      - "8080:8080"
+      - "9099:9099"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      TMDB_API_KEY: ${TMDB_API_KEY:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://127.0.0.1:5173,http://localhost:5173}
+      FIREBASE_AUTH_EMULATOR_HOST: 127.0.0.1:9099
+      FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+      PUBLIC_READ_RATE_LIMIT_MAX: ${PUBLIC_READ_RATE_LIMIT_MAX:-120}
+      PUBLIC_READ_RATE_LIMIT_WINDOW_MS: ${PUBLIC_READ_RATE_LIMIT_WINDOW_MS:-60000}
+      AUTH_WRITE_RATE_LIMIT_MAX: ${AUTH_WRITE_RATE_LIMIT_MAX:-60}
+      AUTH_WRITE_RATE_LIMIT_WINDOW_MS: ${AUTH_WRITE_RATE_LIMIT_WINDOW_MS:-60000}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "-fsS",
+          "http://127.0.0.1:5001/episodera/us-central1/api/health",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: web
+    image: episodera-web:local
+    ports:
+      - "5173:5173"
+    env_file:
+      - path: .env
+        required: false
+      - path: web/.env
+        required: false
+    environment:
+      VITE_USE_FIREBASE_EMULATORS: "true"
+      VITE_FIREBASE_AUTH_EMULATOR_HOST: ${VITE_FIREBASE_AUTH_EMULATOR_HOST:-http://127.0.0.1:9099}
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://127.0.0.1:5001/episodera/us-central1/api}
+      VITE_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY:-demo-api-key}
+      VITE_FIREBASE_AUTH_DOMAIN: ${VITE_FIREBASE_AUTH_DOMAIN:-episodera.firebaseapp.com}
+      VITE_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID:-episodera}
+      VITE_FIREBASE_APP_ID: ${VITE_FIREBASE_APP_ID:-demo-app-id}
+      VITE_FIREBASE_MEASUREMENT_ID: ${VITE_FIREBASE_MEASUREMENT_ID:-}
+    volumes:
+      - ./web/src:/app/web/src
+      - ./web/index.html:/app/web/index.html
+      - ./web/vite.config.ts:/app/web/vite.config.ts
+      - ./web/tsconfig.json:/app/web/tsconfig.json
+      - ./web/public:/app/web/public
+    depends_on:
+      emulators:
+        condition: service_healthy
+
+  test-emulator:
+    profiles: ["test"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: emulators
+    image: episodera-emulators:local
+    environment:
+      TMDB_API_KEY: ${TMDB_API_KEY:-test-api-key}
+      FIREBASE_AUTH_EMULATOR_HOST: 127.0.0.1:9099
+      FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+    command: ["npm", "run", "test:emulator"]
+
+  test-unit:
+    profiles: ["test"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: emulators
+    image: episodera-emulators:local
+    environment:
+      TMDB_API_KEY: ${TMDB_API_KEY:-test-api-key}
+      # Image defaults enable emulator hosts; clear them so *.emulator.test.js skip.
+      FIREBASE_AUTH_EMULATOR_HOST: ""
+      FIRESTORE_EMULATOR_HOST: ""
+    command: ["npm", "test"]

@@ -5,6 +5,7 @@ dist/
 .env
 .env.*
 !.env.example
+!.env.docker.example
 !.env.smoke.example
 !.env.production.example
 !functions/.env.episodera.example

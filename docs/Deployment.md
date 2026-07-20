@@ -101,6 +101,51 @@ Enable these Firebase products for the registered web app before deploying the p
 
 Firebase Crashlytics does not currently provide a Web SDK. Add Crashlytics when native Apple, Android, Flutter, or Unity clients are introduced; for the current web client, use Analytics exception events or a dedicated browser error-reporting service.
 
+## Docker local testing
+
+Use Docker when you want Firebase emulators (and optionally the Vite app) without installing Java on the host.
+
+Prerequisites: Docker Desktop (or Docker Engine + Compose v2).
+
+```bash
+cp .env.docker.example .env
+# Set TMDB_API_KEY for live TMDb calls from the Functions emulator.
+# Set VITE_FIREBASE_* when running the web service (Auth emulator accepts demo values).
+
+docker compose build
+docker compose up emulators
+```
+
+Published ports:
+
+| Service | URL |
+| --- | --- |
+| Emulator UI | http://127.0.0.1:4000 |
+| Functions API | http://127.0.0.1:5001/episodera/us-central1/api |
+| Firestore | 127.0.0.1:8080 |
+| Auth | http://127.0.0.1:9099 |
+| Web (optional) | http://127.0.0.1:5173 |
+
+Full stack (emulators + web):
+
+```bash
+docker compose up --build
+```
+
+Backend tests inside the image:
+
+```bash
+docker compose --profile test run --rm test-unit
+docker compose --profile test run --rm test-emulator
+```
+
+`firebase.json` binds emulator hosts to `0.0.0.0` so published Docker ports are reachable from the host. Browser-facing Vite env vars must still use `127.0.0.1` / `localhost`, not container service names.
+
+Images:
+
+- `episodera-emulators:local` — Node 22, Temurin JRE 21, Firebase Emulator Suite
+- `episodera-web:local` — Vite dev server (`npm run dev:docker`)
+
 ## Continuous Integration
 
 GitHub Actions runs the baseline MVP regression on pushes to `main` and on pull requests:

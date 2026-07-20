@@ -141,6 +141,6 @@ Baseline CI runs functions tests, Firestore emulator tests, web build checks, fr
 
 ## Known Gaps
 
-- Full signed-in Firestore emulator validation is pending locally until Java or another emulator-capable environment is available.
+- Full signed-in Firestore emulator validation can run via Docker (`docker compose --profile test run --rm test-emulator`) when Java is not installed on the host.
 - Broader Playwright coverage is still pending beyond the current signed-in critical flow.
 - Dependency audit findings currently require semver-major framework/tooling upgrades before production risk can be fully closed.
