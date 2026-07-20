@@ -1,11 +1,14 @@
 import {FormEvent, useCallback, useEffect, useState} from "react";
 import {Link} from "react-router-dom";
-import {Search} from "lucide-react";
+import {Brain, Clock3, Heart, Search, Sparkles, Zap} from "lucide-react";
+import type {ReactNode} from "react";
 import {api} from "../api/client";
+import {ContinueWatchingSection} from "../components/ContinueWatchingSection";
 import {SectionError} from "../components/SectionError";
 import {MediaSection} from "../components/MediaSection";
+import {ContinuationEntry} from "../lib/continuation";
 import {paths} from "../routes/paths";
-import {discoveryMoods} from "../lib/discoveryMoods";
+import {discoveryMoodShortLabels, discoveryMoods} from "../lib/discoveryMoods";
 import {DiscoveryMood, DiscoverySuggestionsResponse} from "../types/discovery";
 import {DiscoveryResponse, MediaSummary, MediaType, PagedResult} from "../types/media";
 import {SupportedLanguage, uiCopy} from "../types/settings";
@@ -16,11 +19,23 @@ interface DiscoveryPageProps {
   initialSearchQuery?: string | null;
   preferredProviderIds?: number[];
   watchRegion?: string;
+  continueWatching?: ContinuationEntry[];
+  pendingShowIds?: ReadonlySet<number>;
   onSearchQueryChange?: (query: string) => void;
   onSelect: (item: MediaSummary) => void;
+  onSelectContinuation?: (entry: ContinuationEntry) => void;
+  onNextEpisodeWatched?: (entry: ContinuationEntry) => void;
 }
 
 type TrendingTab = Extract<MediaType, "movie" | "tv">;
+
+const moodIcons: Record<DiscoveryMood, ReactNode> = {
+  relaxing: <Sparkles size={18} aria-hidden="true" />,
+  "mind-bending": <Brain size={18} aria-hidden="true" />,
+  emotional: <Heart size={18} aria-hidden="true" />,
+  epic: <Zap size={18} aria-hidden="true" />,
+  "quick-watch": <Clock3 size={18} aria-hidden="true" />,
+};
 
 const hasMorePages = (result: PagedResult<MediaSummary> | null) =>
   Boolean(result && result.page < result.totalPages);
@@ -31,8 +46,12 @@ export const DiscoveryPage = ({
   initialSearchQuery = null,
   preferredProviderIds = [],
   watchRegion = "US",
+  continueWatching = [],
+  pendingShowIds,
   onSearchQueryChange,
   onSelect,
+  onSelectContinuation,
+  onNextEpisodeWatched,
 }: DiscoveryPageProps) => {
   const copy = uiCopy[language].search;
   const [query, setQuery] = useState("");
@@ -217,6 +236,11 @@ export const DiscoveryPage = ({
     searchData && (searchData.movies.page < searchData.movies.totalPages || searchData.tv.page < searchData.tv.totalPages),
   );
 
+  const moodDefinitions = suggestions?.moods?.length ? suggestions.moods : discoveryMoods;
+  const suggestionRails = suggestions?.rails ?? [];
+  const firstRail = suggestionRails[0];
+  const remainingRails = suggestionRails.slice(1);
+
   return (
     <main className={`page-shell${view === "trending" ? " home-page" : ""}`}>
       {view === "search" && (
@@ -237,10 +261,26 @@ export const DiscoveryPage = ({
 
       {view === "trending" && (
         <div className="home-discovery">
+          {onSelectContinuation &&
+            onNextEpisodeWatched &&
+            continueWatching.length > 0 && (
+              <section className="home-hero" aria-label="Continue watching">
+                <ContinueWatchingSection
+                  id="continue-watching"
+                  title="Continue watching"
+                  variant="featured"
+                  entries={continueWatching}
+                  pendingShowIds={pendingShowIds}
+                  onSelect={onSelectContinuation}
+                  onNextEpisodeWatched={onNextEpisodeWatched}
+                />
+              </section>
+            )}
+
           <section className="discovery-smart" data-testid="discovery-smart">
             <div className="section-header">
               <div>
-                <span className="media-kind">Smart discovery</span>
+                <span className="media-kind">Discover by mood</span>
                 <h2>Match a mood or time budget</h2>
               </div>
               <Link className="text-button" data-testid="home-franchises-link" to={paths.franchises}>
@@ -248,15 +288,17 @@ export const DiscoveryPage = ({
               </Link>
             </div>
             <div className="mood-chip-row" role="group" aria-label="Discovery moods">
-              {(suggestions?.moods?.length ? suggestions.moods : discoveryMoods).map((definition) => (
+              {moodDefinitions.map((definition) => (
                 <button
                   className={mood === definition.id ? "active" : ""}
                   data-testid={`mood-${definition.id}`}
                   key={definition.id}
                   type="button"
+                  aria-label={definition.label}
                   onClick={() => setMood((current) => (current === definition.id ? null : definition.id))}
                 >
-                  {definition.label}
+                  {moodIcons[definition.id]}
+                  <span>{discoveryMoodShortLabels[definition.id] ?? definition.label}</span>
                 </button>
               ))}
             </div>
@@ -264,17 +306,30 @@ export const DiscoveryPage = ({
             {suggestionsError && !suggestionsLoading && (
               <SectionError message={suggestionsError} onRetry={() => void loadSuggestions()} />
             )}
-            {!suggestionsLoading &&
-              !suggestionsError &&
-              suggestions?.rails.map((rail) => (
-                <MediaSection
-                  key={rail.id}
-                  title={rail.title}
-                  items={rail.items}
-                  onSelect={onSelect}
-                />
-              ))}
+            {!suggestionsLoading && !suggestionsError && firstRail && (
+              <MediaSection
+                key={firstRail.id}
+                title={firstRail.title}
+                items={firstRail.items}
+                layout="rail"
+                listId={firstRail.id}
+                onSelect={onSelect}
+              />
+            )}
           </section>
+
+          {!suggestionsLoading &&
+            !suggestionsError &&
+            remainingRails.map((rail) => (
+              <MediaSection
+                key={rail.id}
+                title={rail.title}
+                items={rail.items}
+                layout="rail"
+                listId={rail.id}
+                onSelect={onSelect}
+              />
+            ))}
 
           <div className="tab-bar" role="tablist" aria-label="Trending media type">
             <button

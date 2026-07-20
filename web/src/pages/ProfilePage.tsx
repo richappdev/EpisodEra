@@ -11,7 +11,9 @@ import {
   ListChecks,
   Loader2,
   PlayCircle,
+  Settings,
   Tv,
+  Users,
 } from "lucide-react";
 import {api} from "../api/client";
 import {SectionError} from "../components/SectionError";
@@ -123,6 +125,16 @@ export const ProfilePage = ({
           <span className="media-kind">Memory</span>
           <h2>{heading}</h2>
           {profileEmail && <p>{profileEmail}</p>}
+          <div className="profile-hub-links">
+            <Link className="text-button" data-testid="profile-open-settings" to={paths.settings}>
+              <Settings size={16} aria-hidden="true" />
+              Settings
+            </Link>
+            <Link className="text-button" data-testid="profile-open-social" to={paths.social}>
+              <Users size={16} aria-hidden="true" />
+              Social
+            </Link>
+          </div>
         </div>
         <BarChart3 size={28} aria-hidden="true" />
       </section>
@@ -275,9 +287,6 @@ export const ProfilePage = ({
                 </li>
               ))}
             </ol>
-            <Link className="text-button" data-testid="profile-open-social" to={paths.social}>
-              Open social
-            </Link>
           </div>
         </section>
       )}

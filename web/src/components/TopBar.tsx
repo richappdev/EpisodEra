@@ -1,5 +1,17 @@
 import {NavLink} from "react-router-dom";
-import {BarChart3, Bookmark, Clapperboard, History, LogIn, LogOut, Search, Settings, TrendingUp, Users} from "lucide-react";
+import {
+  BarChart3,
+  Bookmark,
+  Clapperboard,
+  History,
+  Home,
+  LogIn,
+  LogOut,
+  Search,
+  Settings,
+  Users,
+} from "lucide-react";
+import type {ReactNode} from "react";
 import {useAuth} from "../auth/AuthContext";
 import {useAppContext} from "../AppContext";
 import {paths, type NavView} from "../routes/paths";
@@ -9,16 +21,89 @@ interface TopBarProps {
   activeView: NavView;
 }
 
+type NavItem = {
+  view: NavView;
+  to: string;
+  testId: string;
+  label: string;
+  icon: ReactNode;
+  secondary?: boolean;
+};
+
 const navClassName =
-  (view: NavView, activeView: NavView) =>
-  ({isActive}: {isActive: boolean}) =>
-    activeView === view || isActive ? "active" : "";
+  (view: NavView, activeView: NavView, secondary?: boolean) =>
+  ({isActive}: {isActive: boolean}) => {
+    const active = activeView === view || isActive ? "active" : "";
+    return secondary ? `nav-secondary ${active}`.trim() : active;
+  };
 
 export const TopBar = ({activeView}: TopBarProps) => {
   const {user} = useAuth();
   const {openAuth, profile, signOutAndReset, language} = useAppContext();
   const copy = uiCopy[language].topBar;
   const accountLabel = profile?.firstName || user?.displayName || user?.email;
+
+  const navItems: NavItem[] = [
+    {
+      view: "trending",
+      to: paths.home,
+      testId: "nav-trending",
+      label: copy.home,
+      icon: <Home size={18} aria-hidden="true" />,
+    },
+    {
+      view: "search",
+      to: paths.search,
+      testId: "nav-search",
+      label: copy.search,
+      icon: <Search size={18} aria-hidden="true" />,
+    },
+    {
+      view: "timeline",
+      to: paths.timeline,
+      testId: "nav-timeline",
+      label: copy.timeline,
+      icon: <History size={18} aria-hidden="true" />,
+    },
+    {
+      view: "watchlist",
+      to: paths.watchlist,
+      testId: "nav-watchlist",
+      label: copy.watchlist,
+      icon: <Bookmark size={18} aria-hidden="true" />,
+    },
+    {
+      view: "profile",
+      to: paths.profile,
+      testId: "nav-profile",
+      label: copy.profile,
+      icon: <BarChart3 size={18} aria-hidden="true" />,
+    },
+    {
+      view: "franchises",
+      to: paths.franchises,
+      testId: "nav-franchises",
+      label: copy.franchises,
+      icon: <Clapperboard size={18} aria-hidden="true" />,
+      secondary: true,
+    },
+    {
+      view: "social",
+      to: paths.social,
+      testId: "nav-social",
+      label: copy.social,
+      icon: <Users size={18} aria-hidden="true" />,
+      secondary: true,
+    },
+    {
+      view: "settings",
+      to: paths.settings,
+      testId: "nav-settings",
+      label: copy.settings,
+      icon: <Settings size={18} aria-hidden="true" />,
+      secondary: true,
+    },
+  ];
 
   const handleAccountClick = async () => {
     if (user) {
@@ -37,53 +122,40 @@ export const TopBar = ({activeView}: TopBarProps) => {
       </div>
       <div className="top-actions">
         {user && accountLabel && <span className="user-chip">Welcome, {accountLabel}</span>}
+        <NavLink
+          className={({isActive}) =>
+            ["top-search", activeView === "search" || isActive ? "active" : ""].filter(Boolean).join(" ")
+          }
+          data-testid="top-search"
+          title={copy.search}
+          to={paths.search}
+          aria-label={copy.search}
+        >
+          <Search size={18} aria-hidden="true" />
+        </NavLink>
         <nav aria-label="Primary">
-          <NavLink
-            className={navClassName("trending", activeView)}
-            data-testid="nav-trending"
-            title={copy.trending}
-            to={paths.home}
-          >
-            <TrendingUp size={18} aria-hidden="true" />
-            <span>{copy.trending}</span>
-          </NavLink>
-          <NavLink className={navClassName("search", activeView)} data-testid="nav-search" title={copy.search} to={paths.search}>
-            <Search size={18} aria-hidden="true" />
-            <span>{copy.search}</span>
-          </NavLink>
-          <NavLink className={navClassName("watchlist", activeView)} data-testid="nav-watchlist" title={copy.watchlist} to={paths.watchlist}>
-            <Bookmark size={18} aria-hidden="true" />
-            <span>{copy.watchlist}</span>
-          </NavLink>
-          <NavLink className={navClassName("timeline", activeView)} data-testid="nav-timeline" title={copy.timeline} to={paths.timeline}>
-            <History size={18} aria-hidden="true" />
-            <span>{copy.timeline}</span>
-          </NavLink>
-          <NavLink
-            className={navClassName("franchises", activeView)}
-            data-testid="nav-franchises"
-            title={copy.franchises}
-            to={paths.franchises}
-          >
-            <Clapperboard size={18} aria-hidden="true" />
-            <span>{copy.franchises}</span>
-          </NavLink>
-          <NavLink className={navClassName("social", activeView)} data-testid="nav-social" title={copy.social} to={paths.social}>
-            <Users size={18} aria-hidden="true" />
-            <span>{copy.social}</span>
-          </NavLink>
-          <NavLink className={navClassName("profile", activeView)} data-testid="nav-profile" title={copy.profile} to={paths.profile}>
-            <BarChart3 size={18} aria-hidden="true" />
-            <span>{copy.profile}</span>
-          </NavLink>
-          <NavLink className={navClassName("settings", activeView)} data-testid="nav-settings" title={copy.settings} to={paths.settings}>
-            <Settings size={18} aria-hidden="true" />
-            <span>{copy.settings}</span>
-          </NavLink>
+          {navItems.map((item) => (
+            <NavLink
+              key={item.testId}
+              className={navClassName(item.view, activeView, item.secondary)}
+              data-testid={item.testId}
+              title={item.label}
+              to={item.to}
+            >
+              {item.icon}
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
         </nav>
-        <button className="account-button" data-testid="account-button" type="button" onClick={handleAccountClick}>
+        <button
+          className="account-button"
+          data-testid="account-button"
+          type="button"
+          aria-label={user ? copy.signOut : copy.signIn}
+          onClick={handleAccountClick}
+        >
           {user ? <LogOut size={18} aria-hidden="true" /> : <LogIn size={18} aria-hidden="true" />}
-          {user ? copy.signOut : copy.signIn}
+          <span className="account-button-label">{user ? copy.signOut : copy.signIn}</span>
         </button>
       </div>
     </header>

@@ -284,7 +284,7 @@ const waitForSettingsReady = async (page: Page) => {
 };
 
 const soakUntil = async (page: Page, deadline: number) => {
-  const navTargets = ["nav-trending", "nav-search", "nav-watchlist", "nav-profile", "nav-settings"] as const;
+  const navTargets = ["nav-trending", "nav-search", "nav-watchlist", "nav-profile", "nav-timeline"] as const;
   const searchQueries = ["Arcane", "Dune", "Breaking Bad", "Inception", "The Bear", "Avatar"];
   let soakIndex = 0;
 
@@ -446,7 +446,8 @@ test("online UI regression soak — 10 minutes, no repeated media clicks", async
   });
 
   await runOptionalStep("P1 settings language switch zh-TW and restore English", async () => {
-    await page.getByTestId("nav-settings").click();
+    await page.getByTestId("nav-profile").click();
+    await page.getByTestId("profile-open-settings").click();
     const languageSelect = await waitForSettingsReady(page);
     await languageSelect.selectOption("zh-TW");
     await waitForSettingsReady(page);

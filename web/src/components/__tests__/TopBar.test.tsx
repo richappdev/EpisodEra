@@ -94,6 +94,9 @@ describe("TopBar", () => {
     expect(screen.getByTestId("nav-search")).toHaveAttribute("href", "/search");
     expect(screen.getByTestId("nav-timeline")).toHaveAttribute("href", "/timeline");
     expect(screen.getByTestId("nav-franchises")).toHaveAttribute("href", "/franchises");
+    expect(screen.getByTestId("nav-trending")).toHaveTextContent("Home");
+    expect(screen.getByTestId("nav-settings")).toHaveClass("nav-secondary");
+    expect(screen.getByTestId("top-search")).toHaveAttribute("href", "/search");
 
     await userEventApi.click(screen.getByTestId("account-button"));
     expect(signOutAndReset).toHaveBeenCalled();

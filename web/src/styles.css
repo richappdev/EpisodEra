@@ -168,6 +168,23 @@ select:focus-visible {
   border: 1px solid var(--color-border);
 }
 
+.top-search {
+  display: none;
+}
+
+.profile-hub-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin-top: 12px;
+}
+
+.profile-hub-links .text-button {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
 .user-chip {
   color: var(--color-muted);
   font-size: 13px;
@@ -1510,7 +1527,7 @@ html[data-chrome="landing"] body {
 
 .home-discovery {
   display: grid;
-  gap: 8px;
+  gap: 22px;
   min-width: 0;
 }
 
@@ -1549,6 +1566,39 @@ html[data-chrome="landing"] body {
 .continue-button:disabled {
   cursor: not-allowed;
   opacity: 0.7;
+}
+
+.continue-card--featured {
+  align-items: stretch;
+  gap: 16px;
+  grid-template-columns: 112px minmax(0, 1fr);
+}
+
+.continue-card--featured .continue-poster {
+  align-self: start;
+}
+
+.continue-card--featured .continue-copy > strong {
+  -webkit-line-clamp: 2;
+  font-size: 1.15rem;
+}
+
+.continue-featured-actions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr auto;
+  margin-top: 4px;
+}
+
+.continue-button--resume {
+  width: auto;
+}
+
+.continue-button--watched {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-soft);
+  width: auto;
 }
 
 .spin {
@@ -1970,8 +2020,8 @@ html[data-chrome="landing"] body {
 
 .discovery-smart {
   display: grid;
-  gap: 14px;
-  margin-bottom: 24px;
+  gap: 16px;
+  margin-bottom: 0;
   min-width: 0;
 }
 
@@ -1982,14 +2032,34 @@ html[data-chrome="landing"] body {
   gap: 8px;
 }
 
+.mood-chip-row {
+  flex-wrap: nowrap;
+  margin: 0 calc(var(--page-pad) * -1);
+  max-width: calc(100% + var(--page-pad) * 2);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 2px var(--page-pad) 6px;
+  scrollbar-width: thin;
+}
+
 .mood-chip-row button,
 .provider-chip {
+  align-items: center;
   background: var(--color-surface);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
   color: var(--color-text);
+  display: inline-flex;
+  gap: 8px;
   min-height: var(--tap-target);
-  padding: 0 12px;
+  padding: 0 14px;
+}
+
+.mood-chip-row button {
+  flex: 0 0 auto;
+  font-weight: 600;
+  min-height: 48px;
+  white-space: nowrap;
 }
 
 .mood-chip-row button.active,
@@ -2693,6 +2763,29 @@ html[data-chrome="landing"] body {
     display: none;
   }
 
+  .top-search {
+    align-items: center;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-soft);
+    display: inline-flex;
+    justify-content: center;
+    min-height: 40px;
+    min-width: 40px;
+    padding: 0;
+    text-decoration: none;
+  }
+
+  .top-search.active {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+  }
+
+  .account-button-label {
+    display: none;
+  }
+
   .top-bar nav {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
@@ -2707,6 +2800,10 @@ html[data-chrome="landing"] body {
     right: 0;
     width: 100%;
     z-index: 20;
+  }
+
+  .top-bar nav .nav-secondary {
+    display: none;
   }
 
   .top-bar nav button,
@@ -2737,7 +2834,8 @@ html[data-chrome="landing"] body {
 
   .account-button {
     min-height: 40px;
-    padding: 0 12px;
+    min-width: 40px;
+    padding: 0 10px;
     white-space: nowrap;
   }
 
@@ -2766,12 +2864,34 @@ html[data-chrome="landing"] body {
   }
 
   .media-grid {
-    gap: 12px 10px;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .media-meta {
     gap: 8px;
+  }
+
+  .home-page .section-header h2 {
+    font-size: clamp(22px, 6vw, 28px);
+  }
+
+  .media-rail .media-card,
+  .media-rail-more {
+    flex-basis: 148px;
+    width: 148px;
+  }
+
+  .continue-card--featured {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+
+  .continue-featured-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .continue-button--watched {
+    justify-self: start;
   }
 
   .section-header,

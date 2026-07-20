@@ -1,7 +1,7 @@
 import {expect, test} from "@playwright/test";
 import {installMockApi, showId} from "./support/mockApi";
 
-const criticalNavLabels = ["Trending", "Search", "Watchlist", "Profile", "Settings"];
+const criticalNavIds = ["nav-trending", "nav-search", "nav-timeline", "nav-watchlist", "nav-profile"] as const;
 
 test("signed-in shell keeps critical controls accessible on desktop and mobile", async ({page}) => {
   await installMockApi(page, {
@@ -20,10 +20,14 @@ test("signed-in shell keeps critical controls accessible on desktop and mobile",
     await expect(page.getByRole("heading", {name: "Episodera"})).toBeVisible();
     if (viewport.width >= 768) {
       await expect(page.getByText("Welcome, E2E")).toBeVisible();
+      await expect(page.getByTestId("nav-settings")).toBeVisible();
+    } else {
+      await expect(page.getByTestId("top-search")).toBeVisible();
+      await expect(page.getByTestId("nav-settings")).toBeHidden();
     }
 
-    for (const label of criticalNavLabels) {
-      await expect(page.getByRole("link", {name: label})).toBeVisible();
+    for (const navId of criticalNavIds) {
+      await expect(page.getByTestId(navId)).toBeVisible();
     }
 
     await expect(page.getByTestId("account-button")).toHaveAccessibleName("Sign out");
@@ -32,12 +36,18 @@ test("signed-in shell keeps critical controls accessible on desktop and mobile",
     );
     await expect(page.getByRole("contentinfo").getByRole("img", {name: "The Movie Database (TMDB)"})).toBeVisible();
 
-    // Continue Watching lives on Watchlist (not Home) after the Active/Library split.
-    await expect(page.getByTestId(`continue-card-${showId}`)).toHaveCount(0);
+    // Featured Continue Watching can appear on Home; full grid remains on Watchlist.
+    await expect(page.getByTestId(`continue-card-${showId}`)).toBeVisible();
+    await expect(page.getByTestId(`continue-resume-${showId}`)).toBeVisible();
 
     await page.getByTestId("nav-watchlist").click();
     await expect(page.getByTestId("watchlist-header")).toBeVisible();
     await expect(page.getByTestId(`continue-watched-${showId}`)).toHaveAccessibleName("Watched");
     await expect(page.getByLabel("Watchlist status for Critical Flow Show")).toBeVisible();
+
+    if (viewport.width < 768) {
+      await page.getByTestId("nav-profile").click();
+      await expect(page.getByTestId("profile-open-settings")).toBeVisible();
+    }
   }
 });

@@ -110,8 +110,9 @@ describe("ProfilePage", () => {
     expect(screen.getByTestId("history-row-tv_1001_s01e01")).toHaveTextContent("Critical Flow Show");
     expect(screen.getByTestId("history-row-tv_1001_s01e01")).toHaveTextContent("S1 E1");
     expect(screen.getByTestId("profile-open-timeline")).toHaveAttribute("href", "/timeline");
-    await waitFor(() => expect(screen.getByTestId("achievements-panel")).toHaveTextContent("Detective"));
+    expect(screen.getByTestId("profile-open-settings")).toHaveAttribute("href", "/settings");
     expect(screen.getByTestId("profile-open-social")).toHaveAttribute("href", "/social");
+    await waitFor(() => expect(screen.getByTestId("achievements-panel")).toHaveTextContent("Detective"));
   });
 
   it("surfaces recap loading and retry errors", async () => {

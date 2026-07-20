@@ -5,7 +5,8 @@ import {MemoryRouter} from "react-router-dom";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {DiscoveryPage} from "../DiscoveryPage";
 import {api} from "../../api/client";
-import {movieDetail, tvDetail} from "../../test/fixtures";
+import {buildContinuationGroups} from "../../lib/continuation";
+import {movieDetail, progressSummary, tvDetail, watchlistItem} from "../../test/fixtures";
 import {MediaSummary} from "../../types/media";
 
 vi.mock("../../api/client", () => ({
@@ -72,7 +73,7 @@ describe("DiscoveryPage", () => {
     expect(await screen.findByText("No results found.")).toBeVisible();
   });
 
-  it("does not render Continue Watching on the home/trending view", async () => {
+  it("does not render Continue Watching without continuation props", async () => {
     vi.mocked(api.trendingShows).mockResolvedValue(paged([tvDetail]));
 
     renderDiscovery(<DiscoveryPage view="trending" language="en-US" onSelect={vi.fn()} />);
@@ -82,6 +83,30 @@ describe("DiscoveryPage", () => {
     expect(screen.queryByTestId("continue-panel")).not.toBeInTheDocument();
     expect(document.getElementById("continue-watching")).toBeNull();
     expect(screen.queryByRole("heading", {name: "Continue watching"})).not.toBeInTheDocument();
+  });
+
+  it("renders a featured Continue Watching card when continuation data is provided", async () => {
+    const onSelectContinuation = vi.fn();
+    const onNextEpisodeWatched = vi.fn();
+    const continueWatching = buildContinuationGroups([watchlistItem], [progressSummary]).continueWatching;
+    vi.mocked(api.trendingShows).mockResolvedValue(paged([tvDetail]));
+
+    renderDiscovery(
+      <DiscoveryPage
+        view="trending"
+        language="en-US"
+        continueWatching={continueWatching}
+        onSelect={vi.fn()}
+        onSelectContinuation={onSelectContinuation}
+        onNextEpisodeWatched={onNextEpisodeWatched}
+      />,
+    );
+
+    expect(await screen.findByRole("heading", {name: "Continue watching"})).toBeVisible();
+    expect(screen.getByTestId("continue-card-1001")).toBeVisible();
+    expect(screen.getByTestId("continue-resume-1001")).toBeVisible();
+    expect(screen.getByTestId("continue-see-all")).toHaveAttribute("href", "/watchlist#continue-watching");
+    expect(screen.queryByRole("list")).not.toBeInTheDocument();
   });
 
   it("loads mood suggestions and lets the user pick a mood", async () => {
@@ -98,7 +123,7 @@ describe("DiscoveryPage", () => {
     expect(screen.getByTestId("home-franchises-link")).toHaveAttribute("href", "/franchises");
     expect(await screen.findByRole("heading", {name: "Something relaxing"})).toBeVisible();
     expect(screen.getByTestId("media-card-movie-2001")).toBeVisible();
-    expect(screen.queryByTestId("list-more-relaxing")).not.toBeInTheDocument();
+    expect(screen.getByTestId("list-more-relaxing")).toHaveAttribute("href", "/list/relaxing");
     await user.click(screen.getByTestId("mood-relaxing"));
     await waitFor(() =>
       expect(api.discoverSuggestions).toHaveBeenCalledWith(

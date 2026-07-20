@@ -36,6 +36,7 @@ export const uiCopy = {
   "en-US": {
     topBar: {
       tagline: "Track movies, shows, and next episodes",
+      home: "Home",
       trending: "Trending",
       search: "Search",
       watchlist: "Watchlist",
@@ -77,6 +78,7 @@ export const uiCopy = {
   "zh-TW": {
     topBar: {
       tagline: "追蹤電影、影集與下一集",
+      home: "首頁",
       trending: "熱門",
       search: "搜尋",
       watchlist: "片單",

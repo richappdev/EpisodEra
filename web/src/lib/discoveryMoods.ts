@@ -8,6 +8,14 @@ export const discoveryMoods: MoodDefinition[] = [
   {id: "quick-watch", label: "I have 30 minutes", genreIds: [], maxRuntimeMinutes: 30},
 ];
 
+export const discoveryMoodShortLabels: Record<DiscoveryMood, string> = {
+  relaxing: "Relaxing",
+  "mind-bending": "Mind-bending",
+  emotional: "Emotional",
+  epic: "Adventurous",
+  "quick-watch": "30 min",
+};
+
 export const discoveryProviders: StreamingProviderOption[] = [
   {id: 8, name: "Netflix"},
   {id: 9, name: "Amazon Prime Video"},
