@@ -2033,13 +2033,15 @@ html[data-chrome="landing"] body {
 }
 
 .mood-chip-row {
-  flex-wrap: nowrap;
-  margin: 0 calc(var(--page-pad) * -1);
-  max-width: calc(100% + var(--page-pad) * 2);
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  padding: 2px var(--page-pad) 6px;
-  scrollbar-width: thin;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (min-width: 640px) {
+  .mood-chip-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .mood-chip-row button,
@@ -2056,9 +2058,11 @@ html[data-chrome="landing"] body {
 }
 
 .mood-chip-row button {
-  flex: 0 0 auto;
   font-weight: 600;
+  justify-content: center;
   min-height: 48px;
+  min-width: 0;
+  width: 100%;
   white-space: nowrap;
 }
 
