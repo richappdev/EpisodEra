@@ -102,7 +102,7 @@ const readPayload = async (response) => {
 
 const rawRequest = async (
   path,
-  {allowError = false, body, method = "GET", origin, token} = {},
+  {allowError = false, body, method = "GET", origin, token, omitAppCheckBypass = false} = {},
 ) =>
   withTimeout(async (signal) => {
     const headers = new Headers();
@@ -113,7 +113,7 @@ const rawRequest = async (
       headers.set("Origin", origin);
     }
     const smokeBypass = normalizeEnv(process.env.EPISODERA_SMOKE_APP_CHECK_BYPASS);
-    if (smokeBypass) {
+    if (smokeBypass && !omitAppCheckBypass) {
       headers.set("X-EpisodEra-Smoke-Bypass", smokeBypass);
     }
     if (body !== undefined) {
@@ -142,6 +142,8 @@ const negativeCheckResults = {
   cors: "not-run",
   invalidAuth: "not-run",
   rateLimit: "not-run",
+  appCheck: "not-run",
+  importPath: "not-run",
 };
 
 const runInvalidAuthCheck = async () => {
@@ -266,6 +268,110 @@ const runRateLimitCheck = async () => {
   negativeCheckResults.rateLimit = "passed";
 };
 
+/** Valid auth + no App Check / bypass must 401 when Phase 3 enforce is live. */
+const runAppCheckEnforcementCheck = async (token) => {
+  const result = await rawRequest("/me/profile", {
+    allowError: true,
+    omitAppCheckBypass: true,
+    token,
+  });
+
+  if (result.response.status === 200) {
+    console.warn(
+      "Skipping App Check enforcement check: authenticated request without App Check succeeded (APP_CHECK_ENFORCE_AUTH_WRITES appears off).",
+    );
+    negativeCheckResults.appCheck = "skipped";
+    return;
+  }
+
+  assert(result.response.status === 401, `App Check enforce expected HTTP 401, got ${result.response.status}.`);
+  assert(
+    result.payload?.error?.code === "app_check_required" || result.payload?.error?.code === "app_check_invalid",
+    `App Check enforce expected app_check_required/invalid, got ${result.payload?.error?.code ?? "none"}.`,
+  );
+  negativeCheckResults.appCheck = "passed";
+};
+
+/** Tiny fixture: create → stage → commit → run → stagingClearedAt (A2/A9 smoke). */
+const runImportPathCheck = async (token, title) => {
+  const sourceHash = `smoke-import-${showId}-${Date.now()}`;
+  const created = await request("/me/imports", {
+    body: {provider: "tv_time", sourceHash},
+    method: "POST",
+    token,
+  });
+  const importId = created.payload?.import?.importId;
+  assert(typeof importId === "string" && importId.length > 0, "Import create did not return importId.");
+
+  await request(`/me/imports/${importId}/watchlist`, {
+    body: {
+      items: [
+        {
+          mediaType: "tv",
+          status: "watching",
+          title,
+          tmdbId: showId,
+        },
+      ],
+    },
+    method: "POST",
+    token,
+  });
+
+  const historicalWatchedAt = "2019-06-15T12:00:00.000Z";
+  await request(`/me/imports/${importId}/episodes`, {
+    body: {
+      episodes: [
+        {
+          episodeNumber: 1,
+          seasonNumber: 1,
+          tmdbId: showId,
+          watchedAt: historicalWatchedAt,
+        },
+      ],
+    },
+    method: "POST",
+    token,
+  });
+
+  await request(`/me/imports/${importId}/commit`, {body: {}, method: "POST", token});
+
+  let done = false;
+  let summary = null;
+  for (let attempt = 0; attempt < 20 && !done; attempt += 1) {
+    const run = await request(`/me/imports/${importId}/run`, {
+      body: {maxEpisodeWrites: 100},
+      method: "POST",
+      token,
+    });
+    summary = run.payload?.import ?? null;
+    done = Boolean(run.payload?.done);
+  }
+
+  assert(done, "Import run did not reach done=true within smoke budget.");
+  assert(summary?.status === "completed", `Import status expected completed, got ${summary?.status ?? "none"}.`);
+  assert(
+    typeof summary?.stagingClearedAt === "string" && summary.stagingClearedAt.length > 0,
+    "Import completed without stagingClearedAt (A9 cleanup missing on deployed Functions).",
+  );
+  assert(
+    Number(summary?.stagingDocsDeleted) >= 1,
+    `Import stagingDocsDeleted expected >= 1, got ${summary?.stagingDocsDeleted ?? "none"}.`,
+  );
+
+  const progressRead = await request(`/progress/${showId}`, {token});
+  const episode = progressRead.payload?.progress?.episodes?.find((item) => item.episodeKey === "s01e01");
+  assert(episode, "Import path did not leave S1 E1 on progress.");
+  if (episode.watchedAt) {
+    assert(
+      String(episode.watchedAt).startsWith("2019-06-15"),
+      `Import watchedAt not preserved (got ${episode.watchedAt}).`,
+    );
+  }
+
+  negativeCheckResults.importPath = "passed";
+};
+
 const formatNegativeSummary = () => {
   if (skipNegativeChecks) {
     return "negative checks skipped";
@@ -279,6 +385,18 @@ const formatNegativeSummary = () => {
     parts.push("CORS rejection");
   } else if (negativeCheckResults.cors === "skipped") {
     parts.push("CORS check skipped (allowlist not enforced)");
+  }
+  if (!skipAppCheckCheck) {
+    if (negativeCheckResults.appCheck === "passed") {
+      parts.push("App Check enforce");
+    } else if (negativeCheckResults.appCheck === "skipped") {
+      parts.push("App Check enforce skipped (not enforced)");
+    }
+  }
+  if (!skipImportPathCheck) {
+    if (negativeCheckResults.importPath === "passed") {
+      parts.push("import path + staging cleanup");
+    }
   }
   if (!skipRateLimitCheck) {
     if (negativeCheckResults.rateLimit === "passed") {
@@ -368,6 +486,8 @@ let originalProfile;
 
 const skipNegativeChecks = normalizeEnv(process.env.EPISODERA_SMOKE_SKIP_NEGATIVE_CHECKS) === "true";
 const skipRateLimitCheck = normalizeEnv(process.env.EPISODERA_SMOKE_SKIP_RATE_LIMIT_CHECK) === "true";
+const skipAppCheckCheck = normalizeEnv(process.env.EPISODERA_SMOKE_SKIP_APP_CHECK_CHECK) === "true";
+const skipImportPathCheck = normalizeEnv(process.env.EPISODERA_SMOKE_SKIP_IMPORT_PATH_CHECK) === "true";
 
 try {
   const health = await request("/health");
@@ -379,6 +499,10 @@ try {
   }
 
   token = await signIn();
+
+  if (!skipNegativeChecks && !skipAppCheckCheck) {
+    await runAppCheckEnforcementCheck(token);
+  }
 
   const profile = await request("/me/profile", {token});
   originalProfile = profile.payload?.profile ?? null;
@@ -444,6 +568,13 @@ try {
     history.payload?.items?.some((item) => item.historyId === `tv_${showId}_s01e01`),
     "History did not include the watched episode.",
   );
+
+  // Clear progress/watchlist before import path so historical watchedAt can be asserted cleanly.
+  await cleanup(token, originalProfile);
+
+  if (!skipImportPathCheck) {
+    await runImportPathCheck(token, title);
+  }
 
   await cleanup(token, originalProfile);
 

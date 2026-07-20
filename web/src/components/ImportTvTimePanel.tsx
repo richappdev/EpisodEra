@@ -1,6 +1,8 @@
-import {ChangeEvent, useState} from "react";
+import {ChangeEvent, useEffect, useState} from "react";
 import {Upload} from "lucide-react";
 import {api} from "../api/client";
+import {clearImportResume, loadImportResume, saveImportResume} from "../lib/importResume";
+import {sha256Hex} from "../lib/sha256";
 import {buildImportFromNormalized} from "../lib/tvTimeBuildImport";
 import {chunkArray, parseEpisodesImportCsv, parseWatchlistImportCsv} from "../lib/tvTimeImportCsv";
 import {NormalizedTvTimeExport, normalizeTvTimeExport} from "../lib/tvTimeNormalize";
@@ -53,6 +55,7 @@ interface PendingZipImport {
   normalized: NormalizedTvTimeExport;
   accepted: AcceptedTvTimeShowMapping[];
   reviewRows: ReviewRow[];
+  sourceHash: string;
 }
 
 const RESOLVE_CHUNK = 25;
@@ -216,12 +219,33 @@ const toReviewRows = (skipped: SkippedTvTimeShowMapping[]): ReviewRow[] =>
     manualDraft: "",
   }));
 
+const runImportLoop = async (
+  importId: string,
+  onProgress: (update: Partial<ImportProgress> & {job?: ImportJobSummary}) => void,
+) => {
+  let done = false;
+  let current: ImportJobSummary | null = null;
+  while (!done) {
+    const result = await api.runImport(importId, 100);
+    current = result.import;
+    onProgress({
+      phase: result.done ? "done" : "importing",
+      job: current,
+      remainingEpisodes: result.remainingEpisodes,
+    });
+    done = result.done;
+  }
+  clearImportResume();
+  return current;
+};
+
 const runStagedImport = async (
   watchlist: ImportWatchlistItemInput[],
   episodes: ImportEpisodeInput[],
+  sourceHash: string,
+  skippedTitles: string[],
   onProgress: (update: Partial<ImportProgress> & {job?: ImportJobSummary}) => void,
 ) => {
-  const fingerprint = `${watchlist.length}:${episodes.length}:${watchlist[0]?.tmdbId ?? 0}:${episodes[0]?.tmdbId ?? 0}`;
   onProgress({
     phase: "uploading",
     watchlistTotal: watchlist.length,
@@ -231,40 +255,57 @@ const runStagedImport = async (
 
   const created = await api.createImport({
     provider: "tv_time",
-    sourceHash: fingerprint,
+    sourceHash,
   });
   let current = created.import;
   onProgress({job: current});
 
-  for (const chunk of chunkArray(watchlist, 200)) {
-    current = (await api.stageImportWatchlist(current.importId, chunk)).import;
-    onProgress({job: current});
-  }
-  for (const chunk of chunkArray(episodes, 200)) {
-    current = (await api.stageImportEpisodes(current.importId, chunk)).import;
-    onProgress({job: current});
-  }
-
-  current = (await api.commitImport(current.importId)).import;
-  onProgress({
-    phase: "importing",
-    job: current,
-    remainingEpisodes: current.episodesStaged,
+  saveImportResume({
+    importId: current.importId,
+    episodesTotal: episodes.length,
+    watchlistTotal: watchlist.length,
+    skippedShows: skippedTitles.length,
+    skippedTitles,
   });
 
-  let done = false;
-  while (!done) {
-    const result = await api.runImport(current.importId, 100);
-    current = result.import;
+  if (current.status === "completed") {
+    clearImportResume();
     onProgress({
-      phase: result.done ? "done" : "importing",
+      phase: "done",
       job: current,
-      remainingEpisodes: result.remainingEpisodes,
+      remainingEpisodes: 0,
     });
-    done = result.done;
+    return current;
   }
 
-  return current;
+  if (current.status === "draft") {
+    for (const chunk of chunkArray(watchlist, 200)) {
+      current = (await api.stageImportWatchlist(current.importId, chunk)).import;
+      onProgress({job: current});
+    }
+    for (const chunk of chunkArray(episodes, 200)) {
+      current = (await api.stageImportEpisodes(current.importId, chunk)).import;
+      onProgress({job: current});
+    }
+
+    current = (await api.commitImport(current.importId)).import;
+    onProgress({
+      phase: "importing",
+      job: current,
+      remainingEpisodes: current.episodesStaged,
+    });
+  } else if (current.status === "staged" || current.status === "running") {
+    onProgress({
+      phase: "importing",
+      job: current,
+      remainingEpisodes: Math.max(
+        0,
+        current.episodesStaged - current.episodesImported - current.episodesSkipped - current.episodesFailed,
+      ),
+    });
+  }
+
+  return runImportLoop(current.importId, onProgress);
 };
 
 export const ImportTvTimePanel = ({language, signedIn}: ImportTvTimePanelProps) => {
@@ -297,6 +338,72 @@ export const ImportTvTimePanel = ({language, signedIn}: ImportTvTimePanelProps) 
     setManualErrorByShow({});
   };
 
+  useEffect(() => {
+    if (!signedIn) {
+      return;
+    }
+
+    const resume = loadImportResume();
+    if (!resume) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const resumeImport = async () => {
+      setBusy(true);
+      setError(null);
+      try {
+        const {import: job} = await api.getImport(resume.importId);
+        if (cancelled) {
+          return;
+        }
+
+        setSkippedTitles(resume.skippedTitles);
+        patchProgress({
+          watchlistTotal: resume.watchlistTotal,
+          episodesTotal: resume.episodesTotal,
+          skippedShows: resume.skippedShows,
+          job,
+        });
+
+        if (job.status === "completed") {
+          clearImportResume();
+          patchProgress({phase: "done", remainingEpisodes: 0, job});
+          return;
+        }
+
+        if (job.status === "staged" || job.status === "running") {
+          patchProgress({
+            phase: "importing",
+            remainingEpisodes: Math.max(
+              0,
+              job.episodesStaged - job.episodesImported - job.episodesSkipped - job.episodesFailed,
+            ),
+          });
+          await runImportLoop(job.importId, patchProgress);
+          return;
+        }
+
+        clearImportResume();
+      } catch (resumeError) {
+        if (!cancelled) {
+          clearImportResume();
+          setError(resumeError instanceof Error ? resumeError.message : "Could not resume import.");
+        }
+      } finally {
+        if (!cancelled) {
+          setBusy(false);
+        }
+      }
+    };
+
+    void resumeImport();
+    return () => {
+      cancelled = true;
+    };
+  }, [signedIn]);
+
   const onZip = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
     setZipFile(file);
@@ -322,6 +429,7 @@ export const ImportTvTimePanel = ({language, signedIn}: ImportTvTimePanelProps) 
     normalized: NormalizedTvTimeExport,
     accepted: AcceptedTvTimeShowMapping[],
     finalSkippedTitles: string[],
+    sourceHash: string,
   ) => {
     const built = buildImportFromNormalized(
       normalized,
@@ -344,7 +452,7 @@ export const ImportTvTimePanel = ({language, signedIn}: ImportTvTimePanelProps) 
 
     setSkippedTitles(finalSkippedTitles);
     patchProgress({skippedShows: finalSkippedTitles.length});
-    await runStagedImport(built.watchlist, built.episodes, patchProgress);
+    await runStagedImport(built.watchlist, built.episodes, sourceHash, finalSkippedTitles, patchProgress);
     patchProgress({phase: "done"});
   };
 
@@ -355,6 +463,7 @@ export const ImportTvTimePanel = ({language, signedIn}: ImportTvTimePanelProps) 
 
     patchProgress({phase: "parsing"});
     const bytes = await zipFile.arrayBuffer();
+    const sourceHash = await sha256Hex(bytes);
     const csvs = extractTvTimeCsvsFromZip(bytes);
     const normalized = normalizeTvTimeExport(csvs);
     if (normalized.shows.length === 0 && normalized.episodes.length === 0) {
@@ -383,12 +492,13 @@ export const ImportTvTimePanel = ({language, signedIn}: ImportTvTimePanelProps) 
         normalized,
         accepted,
         reviewRows: toReviewRows(skipped),
+        sourceHash,
       });
       patchProgress({phase: "review", skippedShows: skipped.length});
       return;
     }
 
-    await finishWithMappings(normalized, accepted, []);
+    await finishWithMappings(normalized, accepted, [], sourceHash);
   };
 
   const applyManualId = async (sourceShowId: string) => {
@@ -496,7 +606,7 @@ export const ImportTvTimePanel = ({language, signedIn}: ImportTvTimePanelProps) 
       }
 
       setPendingZip(null);
-      await finishWithMappings(pendingZip.normalized, accepted, stillSkipped);
+      await finishWithMappings(pendingZip.normalized, accepted, stillSkipped, pendingZip.sourceHash);
     } catch (importError) {
       setError(importError instanceof Error ? importError.message : "Import failed.");
     } finally {
@@ -513,9 +623,10 @@ export const ImportTvTimePanel = ({language, signedIn}: ImportTvTimePanelProps) 
     if (watchlist.length === 0 && episodes.length === 0) {
       throw new Error("No valid rows found in the CSV files.");
     }
+    const sourceHash = await sha256Hex(`csv\n${watchlistText ?? ""}\n${episodesText ?? ""}`);
     setSkippedTitles([]);
     patchProgress({skippedShows: 0});
-    await runStagedImport(watchlist, episodes, patchProgress);
+    await runStagedImport(watchlist, episodes, sourceHash, [], patchProgress);
     patchProgress({phase: "done"});
   };
 

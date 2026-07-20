@@ -1,5 +1,5 @@
 import {createHash, randomUUID} from "node:crypto";
-import {FieldValue, QueryDocumentSnapshot, Timestamp, getFirestore} from "firebase-admin/firestore";
+import {FieldValue, QueryDocumentSnapshot, Timestamp, getFirestore, type CollectionReference} from "firebase-admin/firestore";
 import {HttpError} from "../lib/httpError";
 import {
   ImportEpisodeInput,
@@ -19,6 +19,8 @@ import {watchlistService} from "./watchlistService";
 const maxStageChunk = 200;
 const maxRunEpisodeWrites = 100;
 
+const stagingDeletePageSize = 400;
+
 interface ImportDocument {
   provider: ImportProvider;
   status: ImportStatus;
@@ -33,6 +35,8 @@ interface ImportDocument {
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
   completedAt?: Timestamp | null;
+  stagingClearedAt?: Timestamp | null;
+  stagingDocsDeleted?: number;
 }
 
 interface StagedShowDocument {
@@ -179,7 +183,34 @@ class ImportService {
       createdAt: timestampToJson(data.createdAt),
       updatedAt: timestampToJson(data.updatedAt),
       completedAt: timestampToJson(data.completedAt ?? null),
+      stagingClearedAt: timestampToJson(data.stagingClearedAt ?? null),
+      stagingDocsDeleted: data.stagingDocsDeleted ?? 0,
     };
+  }
+
+  /** Deletes stagedShows/stagedEpisodes in pages; keeps the parent import job document. */
+  private async deleteCollectionDocs(collectionRef: CollectionReference): Promise<number> {
+    let deleted = 0;
+    for (;;) {
+      const snapshot = await collectionRef.limit(stagingDeletePageSize).get();
+      if (snapshot.empty) {
+        break;
+      }
+      const batch = getFirestore().batch();
+      for (const doc of snapshot.docs) {
+        batch.delete(doc.ref);
+      }
+      await batch.commit();
+      deleted += snapshot.size;
+    }
+    return deleted;
+  }
+
+  private async clearStaging(userId: string, importId: string): Promise<number> {
+    const ref = this.collection(userId).doc(importId);
+    const showsDeleted = await this.deleteCollectionDocs(ref.collection("stagedShows"));
+    const episodesDeleted = await this.deleteCollectionDocs(ref.collection("stagedEpisodes"));
+    return showsDeleted + episodesDeleted;
   }
 
   async create(userId: string, provider: ImportProvider, sourceHash: string | null): Promise<ImportJobSummary> {
@@ -210,6 +241,8 @@ class ImportService {
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
       completedAt: null,
+      stagingClearedAt: null,
+      stagingDocsDeleted: 0,
     };
     await ref.set(data);
     return this.mapImport(importId, data);
@@ -445,11 +478,14 @@ class ImportService {
     const done = remainingSnapshot.empty && remainingShows.empty;
 
     if (done) {
+      const stagingDocsDeleted = await this.clearStaging(userId, importId);
       await ref.set(
         {
           status: "completed",
           completedAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
+          stagingClearedAt: FieldValue.serverTimestamp(),
+          stagingDocsDeleted,
         },
         {merge: true},
       );

@@ -23,6 +23,8 @@ export interface ImportJobSummary {
   createdAt: string | null;
   updatedAt: string | null;
   completedAt: string | null;
+  stagingClearedAt: string | null;
+  stagingDocsDeleted: number;
 }
 
 export interface ImportRunResult {

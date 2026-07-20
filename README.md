@@ -44,7 +44,7 @@ The project is in MVP hardening. Core web features are implemented, progress-tra
 - GitHub Actions CI for backend build, backend lint, backend unit tests with coverage enforcement, Java-backed Firestore emulator tests, frontend build, frontend component coverage enforcement, and Playwright critical-flow, progress edge-case, and responsive/accessibility smoke coverage.
 - GitHub Actions `Production Smoke` workflow for manual-dispatch or scheduled deployed signed-in validation using protected repository secrets.
 - Account deletion manually validated on 2026-07-13 against the deployed app (`DELETE /me/account`, Auth removal, Firestore cleanup) using a throwaway account.
-- URL routing and shareable deep links with React Router (`/`, `/home`, `/search`, `/movie/:id`, `/tv/:id`, `/watchlist`, `/profile`, `/settings`, `/login`, `/signup`).
+- URL routing and shareable deep links with React Router (`/`, `/home`, `/search`, `/movie/:id`, `/tv/:id`, `/tv/:id/season/:seasonNumber`, `/watchlist`, `/continue-watching`, `/timeline`, `/franchises`, `/franchises/:slug`, `/list/:listId`, `/social`, `/profile`, `/settings`, `/privacy`, `/login`, `/signup`). Canonical route map: `web/src/routes/paths.ts` and `docs/Navigation.md`.
 - Project documentation for architecture, API contracts, Firestore schema, auth, navigation, deployment, coding standards, and dependency audit posture.
 
 ## Tech Stack
@@ -92,6 +92,8 @@ The project is in MVP hardening. Core web features are implemented, progress-tra
 │   │   └── types/
 │   ├── package.json
 │   └── vite.config.ts
+├── Dockerfile
+├── docker-compose.yml
 ├── firebase.json
 ├── firestore.indexes.json
 └── firestore.rules
@@ -159,6 +161,29 @@ Configure local environment values:
 
 For local emulator development, Java is required by the Firestore emulator. Start Auth, Functions, and Firestore together with `npm run serve` in `functions/`, then run the web app with `VITE_USE_FIREBASE_EMULATORS=true`. See `docs/Authentication.md`.
 
+If you prefer not to install Java locally, use Docker (see below).
+
+## Docker (local testing)
+
+Docker provides a Node 22 + Java image for Firebase emulators and an optional Vite web container. Browser traffic still uses `127.0.0.1` / `localhost` because the browser runs on the host.
+
+```bash
+cp .env.docker.example .env
+# Fill TMDB_API_KEY and VITE_FIREBASE_* values
+
+docker compose up --build emulators
+# Emulator UI: http://127.0.0.1:4000
+# API: http://127.0.0.1:5001/episodera/us-central1/api
+
+docker compose up --build
+# Emulators + web at http://127.0.0.1:5173
+
+docker compose --profile test run --rm test-unit
+docker compose --profile test run --rm test-emulator
+```
+
+You can also run only the web app on the host (`cd web && npm run dev`) while emulators run in Docker.
+
 ## Development Commands
 
 Backend:
@@ -194,7 +219,7 @@ npm run preview
 
 `npm run test:coverage` runs the Vitest component/page suite with V8 coverage and enforced thresholds for the currently covered UI surfaces. `npm run test:e2e` runs the signed-in critical flow plus deterministic Playwright coverage for responsive shell accessibility, Continue Watching gap resolution, season batch progress writes, failed/offline progress-write recovery, duplicate-action prevention during pending writes, concurrent browser progress consistency, and per-section failure/recovery (watchlist vs profile, history vs stats).
 
-`npm run smoke:prod` runs an opt-in deployed runtime validation against Firebase Auth and the deployed API. It requires `EPISODERA_FIREBASE_API_KEY` or `VITE_FIREBASE_API_KEY`, `EPISODERA_SMOKE_EMAIL`, and `EPISODERA_SMOKE_PASSWORD`; optionally set `EPISODERA_PROD_API_BASE_URL`, `EPISODERA_SMOKE_SHOW_ID`, and `EPISODERA_SMOKE_ALLOWED_ORIGIN`. The script validates the signed-in happy path, then negative deployed checks for invalid auth (`401`), CORS rejection (`403`), and public read rate limiting (`429`) unless skipped via env flags. Use a dedicated automation account because the script updates profile data, adds/removes one watchlist item, and marks/unmarks S1 E1 for the smoke show.
+`npm run smoke:prod` runs an opt-in deployed runtime validation against Firebase Auth and the deployed API. It requires `EPISODERA_FIREBASE_API_KEY` or `VITE_FIREBASE_API_KEY`, `EPISODERA_SMOKE_EMAIL`, and `EPISODERA_SMOKE_PASSWORD`; optionally set `EPISODERA_PROD_API_BASE_URL`, `EPISODERA_SMOKE_SHOW_ID`, and `EPISODERA_SMOKE_ALLOWED_ORIGIN`. The script validates the signed-in happy path, then negative deployed checks for invalid auth (`401`), CORS rejection (`403`), App Check Phase 3 enforce (authenticated request without App Check → `401 app_check_required` when enforcement is live; skipped with a warning if enforce is off), public read rate limiting (`429`), and a tiny TV Time import path (create → stage → commit → run → `stagingClearedAt`) unless skipped via env flags (`EPISODERA_SMOKE_SKIP_*`). Use a dedicated automation account because the script updates profile data, adds/removes one watchlist item, marks/unmarks S1 E1 for the smoke show, and runs a one-episode import fixture.
 
 Copy `web/.env.smoke.example` to `web/.env.smoke`, replace the placeholder values, then run `npm run smoke:prod:local`.
 
@@ -249,13 +274,13 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 ## Known Gaps
 
 - Reconfirm the latest GitHub Actions CI run passes Firestore emulator progress and rules tests with `npm run test:emulator` after significant backend changes.
-- Local Firestore emulator execution still requires Java and the Firebase Emulator Suite.
+- Local Firestore emulator execution still requires Java and the Firebase Emulator Suite (or Docker Compose emulators / test-emulator).
 - TMDb detail, season, and trending responses use an in-memory TTL cache inside the Functions runtime. A persistent shared cache is still a possible future optimization.
 - TMDb images and metadata must retain visible app attribution, including the official TMDB logo and: "This product uses TMDB and the TMDB APIs but is not endorsed, certified, or otherwise approved by TMDB."
 - Backend and frontend coverage enforcement is now configured for the current automated test surfaces. Playwright covers the signed-in critical flow, responsive/accessibility smoke, previous-episode gap resolution, season batch writes, failed/offline progress-write recovery, duplicate-action prevention during pending writes, and concurrent browser progress consistency. Broader full-app frontend coverage and deeper accessibility automation are still pending.
 - Deployed production smoke is available locally (`npm run smoke:prod:local`) and in GitHub Actions (`Production Smoke` workflow). Hosted runs require protected repository secrets and recorded workflow evidence for release candidates.
 - Production deployment must configure `CORS_ORIGINS` for the Firebase Hosting, staging, and production domains.
-- Rate limiting is implemented with per-Functions-instance in-memory buckets for public reads and authenticated writes. App Check Phase 2 monitor mode verifies `X-Firebase-AppCheck` on the API; Phase 3 enforcement on `requireAuth` routes is gated by `APP_CHECK_ENFORCE_AUTH_WRITES` (default off). Public-read enforcement remains Phase 4. See `docs/AppCheck.md`.
+- Rate limiting is implemented with per-Functions-instance in-memory buckets for public reads and authenticated writes. App Check Phase 2 monitor mode verifies `X-Firebase-AppCheck` on the API; Phase 3 enforcement on `requireAuth` routes is gated by `APP_CHECK_ENFORCE_AUTH_WRITES` (**code default off**; production currently sets this to `true` — confirm with smoke App Check negative check). Public-read enforcement remains Phase 4. See `docs/AppCheck.md`.
 - Dependency audit findings are documented in `docs/DependencyAudit.md`; fixes require semver-major upgrades for Firebase Functions packages and Vite tooling.
 - Production beta readiness still needs runtime validation and an explicit dependency-risk decision.
 - Firebase Crashlytics is not available for the current web-only client; add it when native Apple, Android, Flutter, or Unity clients exist.

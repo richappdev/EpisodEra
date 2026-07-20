@@ -2,7 +2,7 @@
 
 Firestore stores user-owned application state. TMDb remains the source of truth for media metadata, so documents should reference TMDb IDs and cache only the fields needed for display or offline convenience.
 
-**Baseline:** tip `5f00677` (2026-07-18). App Check **Phase 3 enforce** live (Hosting site key + Functions `APP_CHECK_ENFORCE_AUTH_WRITES=true`). TV Time import Phase 1 **code** shipped; Phase 1 acceptance remains **OPEN** — evidence ledger in [`docs/TvTimeImportPhase1Acceptance.md`](./TvTimeImportPhase1Acceptance.md) (A8 browser-ZIP decision **PASS**; A1 tip smoke, A3 soak, A9 staging cleanup still open). Franchise catalogs live in Firestore `franchises/{slug}` and are served only through Cloud Functions (`GET /franchises*`); bundled `functions/src/data/franchises.ts` is the seed source and read-failure fallback. Achievements, challenges, year recap, and discovery suggestions remain computed in Cloud Functions. Append-only `watchEvents` remains planned (Data Schema Phase 2); see Notion *TV Time Data Schema Analysis*.
+**Baseline:** tip `d72b191` (2026-07-20) + local P0 hardening (staging cleanup, App Check smoke probe, import smoke path, SHA-256 sourceHash, import resume). App Check **Phase 3 enforce** is live in production (`APP_CHECK_ENFORCE_AUTH_WRITES=true`); code default remains off until that env flag is set. TV Time import Phase 1 **code** includes A9 staging cleanup; Phase 1 **acceptance** remains **OPEN** — evidence ledger in [`docs/TvTimeImportPhase1Acceptance.md`](./TvTimeImportPhase1Acceptance.md) (A8 **PASS**; A4/A5/A9 **code landed**, tip-matched hosted smoke + soak still open). Franchise catalogs live in Firestore `franchises/{slug}` and are served only through Cloud Functions (`GET /franchises*`); bundled `functions/src/data/franchises.ts` is the seed source and read-failure fallback. Achievements, challenges, year recap, and discovery suggestions remain computed in Cloud Functions. Append-only `watchEvents` remains planned (Data Schema Phase 2); see Notion *TV Time Data Schema Analysis*.
 
 ## Collections
 
@@ -253,11 +253,13 @@ TV Time (and future provider) import jobs. Written only by Cloud Functions; clie
   "errorMessage": null,
   "createdAt": "<timestamp>",
   "updatedAt": "<timestamp>",
-  "completedAt": null
+  "completedAt": null,
+  "stagingClearedAt": null,
+  "stagingDocsDeleted": 0
 }
 ```
 
-`stagedShows` and `stagedEpisodes` hold pending rows before `/run`. Episode progress written by import may include `source` (`tv_time`) and `sourceImportId`, and preserve historical `watchedAt`.
+`stagedShows` and `stagedEpisodes` hold pending rows before `/run`. After a successful import (`done: true`), Functions delete those subcollections and set `stagingClearedAt` / `stagingDocsDeleted` on the job document. Episode progress written by import may include `source` (`tv_time`) and `sourceImportId`, and preserve historical `watchedAt`.
 
 ## mediaMappings/{provider}_{mediaType}_{externalId}
 

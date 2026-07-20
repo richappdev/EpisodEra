@@ -110,7 +110,8 @@ The implementation must remain the final authority for whether each capability i
 
 The highest-priority remaining work is:
 
-1. **Close TV Time Import Phase 1 acceptance** — evidence ledger [`docs/TvTimeImportPhase1Acceptance.md`](./TvTimeImportPhase1Acceptance.md) (A1 tip-matched smoke at `c488249` or chosen closeout tip, A2 deployed import path, A3 ~4.7k soak, A4–A7 gaps, A9 staging cleanup; A8 browser-ZIP **PASS**)
+1. **Close TV Time Import Phase 1 acceptance** — evidence ledger [`docs/TvTimeImportPhase1Acceptance.md`](./TvTimeImportPhase1Acceptance.md) (A1 tip-matched smoke after P0 deploy, A2 import smoke fixture, A3 ~4.7k soak, A4–A7 gaps, A9 staging cleanup code landed / hosted verify open; A8 browser-ZIP **PASS**)
+
 2. Repeat hosted `Production Smoke` on the acceptance tip and retain workflow evidence (latest hosted PASS: `5a9ecf9` — [run 29565696402](https://github.com/richappdev/EpisodEra/actions/runs/29565696402); prior: `0518525`, `c97b0c3`)
 3. Staging Firebase environment separation and staging-specific smoke validation (optional)
 4. Broader WCAG-focused accessibility audit beyond current Playwright smoke assertions
@@ -364,8 +365,8 @@ A feature is complete only when all applicable conditions are met:
 
 | Resource              | Current status                                                                                                          |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| GitHub implementation | Tip `c488249` (2026-07-18): Cinema Memory D0–D3 live + D4 Figma/Canva handoff. Visual tip `fb5cd08`; D4 handoff `b71473e`; tip sync `c488249`. Prior: App Check Phase 3 enforce; personal export; Watchlist Active/Library; Remote Config dormant threshold. TV Time Phase 1 acceptance **OPEN** — ledger [`docs/TvTimeImportPhase1Acceptance.md`](./TvTimeImportPhase1Acceptance.md). Latest hosted smoke PASS is `5a9ecf9` ([run 29565696402](https://github.com/richappdev/EpisodEra/actions/runs/29565696402)), **not** tip-matched. |
-| Notion planning       | MVP Dashboard, Alignment Report, Release Log, and TV Time schema synced to tip `c488249`. Import acceptance still open. |
+| GitHub implementation | Tip `d72b191` (2026-07-20) + local P0 hardening: A9 staging cleanup, SHA-256 import sourceHash, import resume, production-smoke App Check + import path probes. TV Time Phase 1 acceptance **OPEN**. Latest hosted smoke PASS is `5a9ecf9` ([run 29565696402](https://github.com/richappdev/EpisodEra/actions/runs/29565696402)), **not** tip-matched. |
+| Notion planning       | MVP Dashboard is the **only** active SHA page. Child pages link to it (Document status: Needs sync until P0 merge). Import acceptance still open. |
 | Figma design          | Cinema Memory D0–D3 **shipped in GitHub/live app** (`fb5cd08`). Figma file rebuild/verification pending — use [`docs/CinemaMemoryDesign.md`](./CinemaMemoryDesign.md) as the handoff brief. MCP write access may still be limited. |
 | Canva reporting       | Refresh stakeholder decks with Cinema Memory talking points in `CinemaMemoryDesign.md`; keep import acceptance and tip-matched smoke language accurate |
 
@@ -380,6 +381,14 @@ At the time of this update:
 These limitations affect resource synchronization only. They do not change product scope or implementation status.
 
 ## Change Log
+### 2026-07-20 (P0 evidence + import hardening)
+
+* Implemented A9 post-complete staging cleanup (`stagingClearedAt` / `stagingDocsDeleted`).
+* Switched client `sourceHash` to SHA-256 of ZIP/CSV bytes; added sessionStorage resume for staged/running imports.
+* Extended `production-smoke.mjs` with App Check enforce negative probe and tiny import path (create → stage → commit → run → cleanup assert).
+* Reconciled README routes + App Check default-vs-prod wording; pointed Notion child pages at Dashboard as sole active SHA.
+* Next: merge → deploy Functions → tip-matched hosted smoke → soak (A3) to close Phase 1.
+
 ### 2026-07-18 (Tip sync to c488249)
 
 * Rebaselined Notion MVP Dashboard, Alignment Report, Release Log, TV Time schema, and GitHub acceptance/alignment docs to tip `c488249`.

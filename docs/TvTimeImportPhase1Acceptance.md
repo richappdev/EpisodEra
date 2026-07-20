@@ -1,8 +1,9 @@
 # TV Time Import Phase 1 Acceptance
 
-Last updated: 2026-07-18  
+Last updated: 2026-07-20  
 Canonical tip at checklist creation: `5a72102`  
-Current repository tip: `c488249` (rebaseline acceptance tip at closeout)  
+Current repository tip (main): `d72b191`  
+P0 hardening (this change set, uncommitted until merge): A9 staging cleanup, A4 SHA-256 `sourceHash`, A5 session resume, smoke App Check + import path probes  
 Notion counterpart: [TV Time Data Schema Analysis](https://app.notion.com/p/39ca4181b628812e9792c7589cd14c5b)
 
 ## Purpose
@@ -11,11 +12,13 @@ Close Phase 1 as a **product gate**, not as “code exists.” Acceptance blocks
 
 GitHub is the evidence ledger. Notion remains the product-scope record and should mirror this checklist status.
 
+**Document control:** Active repository SHA lives only on the Notion MVP Dashboard (and this ledger after each rebaseline). Child Notion pages must not invent competing baselines.
+
 ## Status summary
 
 | Field | Value |
 | --- | --- |
-| Import Phase 1 **code** | Shipped (resolve, mapping review, stage, commit, run) |
+| Import Phase 1 **code** | Shipped (resolve, mapping review, stage, commit, run, staging cleanup, SHA-256 sourceHash, resume) |
 | Phase 1 **acceptance** | **OPEN** |
 | Gate outcome | Not closed |
 | Blocking next | Phase 2 `watchEvents`; marketing “one-click TV Time migration” as complete |
@@ -25,14 +28,14 @@ GitHub is the evidence ledger. Notion remains the product-scope record and shoul
 | ID | Criterion | Status |
 | --- | --- | --- |
 | A1 | Tip-matched hosted Production Smoke | **OPEN** |
-| A2 | Deployed import path evidence (resolve → mapping → stage → commit → run → cleanup) | **PARTIAL** |
+| A2 | Deployed import path evidence (resolve → mapping → stage → commit → run → cleanup) | **PARTIAL** (smoke fixture landed; needs tip-matched hosted PASS after Functions deploy) |
 | A3 | ~4,744-episode soak | **OPEN** |
-| A4 | Retries / duplicate runs idempotent | **PARTIAL** |
-| A5 | Partial failures visible and recoverable | **PARTIAL** |
-| A6 | Historical `watchedAt` preserved | **PARTIAL** |
+| A4 | Retries / duplicate runs idempotent | **PARTIAL** (SHA-256 sourceHash landed; production duplicate re-run evidence still needed) |
+| A5 | Partial failures visible and recoverable | **PARTIAL** (sessionStorage resume for staged/running landed; downloadable report still P1) |
+| A6 | Historical `watchedAt` preserved | **PARTIAL** (smoke fixture asserts date; soak spot-check still needed) |
 | A7 | Unresolved / skipped records reported | **PARTIAL** |
 | A8 | Browser-ZIP architecture decision recorded | **PASS** |
-| A9 | Staging lifecycle cleanup policy implemented + verified | **OPEN** |
+| A9 | Staging lifecycle cleanup policy implemented + verified | **PARTIAL** (delete-on-complete implemented; needs deployed smoke assert on `stagingClearedAt`) |
 
 Acceptance closes only when **A1–A9 are all PASS**.
 
@@ -73,31 +76,28 @@ From `tv_time_tool/TVTimeDataDesign.md` / Notion sample:
 | Status | **OPEN** |
 | Requirement | Hosted `Production Smoke` success whose workflow `headSha` equals the acceptance tip (or a tip explicitly rebaselined in this file + ResourceAlignment) |
 | Latest hosted PASS | [run 29565696402](https://github.com/richappdev/EpisodEra/actions/runs/29565696402) on `5a9ecf9` (2026-07-17) |
-| Current tip | `c488249` (ahead of smoke `5a9ecf9` and prior ledger tips `b71473e` / `5f00677` / `5a72102`) |
-| Stale Notion baseline | `b147545` is an ancestor of tip; **do not** require exact `b147545` smoke anymore — rebaseline tip when closing |
-| Gap | No tip-matched hosted smoke for `c488249` (or successor chosen at closeout) |
-| Also note | Current `web/scripts/production-smoke.mjs` does **not** call `/me/imports/*` (see A2) |
+| Current tip | `d72b191` (+ local P0 hardening until merge) |
+| Gap | No tip-matched hosted smoke for `d72b191` / P0 tip |
+| Smoke coverage (local script) | Now includes App Check enforce probe + tiny import path + staging cleanup assert |
 
-**Closeout action:** Dispatch Production Smoke on the chosen tip; paste run URL + short SHA into this section and ResourceAlignment.
+**Closeout action:** Merge P0 → deploy Hosting + Functions → dispatch Production Smoke on that tip → paste run URL + short SHA here and on the MVP Dashboard.
 
 ### A2 — Deployed import path evidence
 
 | Step | Code | Deployed evidence |
 | --- | --- | --- |
-| Resolve shows | `POST /me/imports/resolve-tv-time-shows` | **None recorded** |
-| Persist mappings | `PUT /me/imports/media-mappings` | **None recorded** |
-| Create + stage | `POST /me/imports`, `/watchlist`, `/episodes` | **None recorded** |
-| Commit + run | `POST .../commit`, `POST .../run` | **None recorded** |
-| Cleanup staged rows | Not implemented | **N/A until A9** |
+| Resolve shows | `POST /me/imports/resolve-tv-time-shows` | Still needs full ZIP resolve on hosted (smoke uses pre-mapped tmdbId) |
+| Persist mappings | `PUT /me/imports/media-mappings` | Unit/UI covered; hosted ZIP review still open |
+| Create + stage | `POST /me/imports`, `/watchlist`, `/episodes` | Smoke fixture covers after Functions deploy |
+| Commit + run | `POST .../commit`, `POST .../run` | Smoke fixture covers after Functions deploy |
+| Cleanup staged rows | Delete on complete + `stagingClearedAt` | Smoke asserts after Functions deploy |
 
 | Item | Evidence |
 | --- | --- |
 | Status | **PARTIAL** |
-| Unit / component | `importLogic.test.ts`, `tvTimeResolveLogic.test.ts`, `ImportTvTimePanel.test.tsx`, ZIP/CSV/build helpers |
-| Production smoke | Does **not** exercise import routes (`/health`, profile, watchlist, progress, stats, history only) |
-| Gap | No hosted or signed-in production log proving resolve → mapping → stage → commit → run on the live API |
-
-**Closeout action:** Either extend `smoke:prod` with a tiny fixture import (preferred, repeatable) **or** attach a dated manual production run log (account, importId, counters) for the tip SHA.
+| Unit / component | `importLogic.test.ts`, `ImportTvTimePanel.test.tsx` (SHA-256 + resume), ZIP/CSV/build helpers |
+| Production smoke | `web/scripts/production-smoke.mjs` now exercises `/me/imports/*` + `stagingClearedAt` (skip with `EPISODERA_SMOKE_SKIP_IMPORT_PATH_CHECK=true` against pre-A9 Functions) |
+| Gap | Tip-matched hosted PASS after Functions deploy |
 
 ### A3 — ~4,744-episode soak
 
@@ -105,34 +105,28 @@ From `tv_time_tool/TVTimeDataDesign.md` / Notion sample:
 | --- | --- |
 | Status | **OPEN** |
 | Requirement | Full sample-scale (or equivalent ≥4k episode) import completes without timeout/data corruption; record importId, counts, duration, TMDb/Functions cost notes |
-| In-repo artifacts | **None.** `web/e2e-run.log` is a 10-minute **UI** regression soak (2026-07-13), not import. |
+| In-repo artifacts | **None.** |
 | Gap | No pass/fail record for the reference archive |
 
-**Closeout action:** Run against a dedicated throwaway account; store a short evidence note here (no raw ZIP in git). Capture: tip SHA, `episodesImported` / `episodesSkipped` / `episodesFailed`, wall time, whether tab stayed open for the full `run` loop.
+**Closeout action:** Run against a dedicated throwaway account; store a short evidence note here (no raw ZIP in git).
 
 ### A4 — Retries / duplicate runs idempotent
 
 | Item | Evidence |
 | --- | --- |
 | Status | **PARTIAL** |
-| Code | `importService.create` reuses jobs with matching `sourceHash` in `draft`/`staged`/`running`/`completed`; `progressService.importWatchedEpisodes` OR-merges watched + earliest `watchedAt` |
-| Tests | Progress emulator idempotent counts; `importLogic` earliest-`watchedAt` unit test |
-| Gap | Client fingerprint is `${watchlist.length}:${episodes.length}:${firstWatchlistTmdb}:${firstEpisodeTmdb}` — **not** ZIP SHA-256 — so distinct archives can collide and true resume-by-file is weak (`ImportTvTimePanel.tsx`) |
+| Code | `sourceHash` is SHA-256 of ZIP bytes (or CSV payload); `importService.create` reuses jobs with matching hash in `draft`/`staged`/`running`/`completed`; progress OR-merges watched + earliest `watchedAt` |
+| Tests | Component test asserts 64-char hex `sourceHash`; progress emulator idempotent counts |
 | Gap | No recorded duplicate re-run of the same archive on production |
-
-**Closeout action:** Switch `sourceHash` to SHA-256 of ZIP bytes (or normalized CSV payload); prove create returns same `importId` / no duplicate progress on second run; attach counters.
 
 ### A5 — Partial failures visible and recoverable
 
 | Item | Evidence |
 | --- | --- |
 | Status | **PARTIAL** |
-| Visible | Job counters `episodesSkipped` / `episodesFailed`; mapping review for unmatched/ambiguous shows; skipped-title note on done |
-| Recoverable | Mapping review before staging; re-run while job is `running`/`staged` |
-| Gap | Frontend `while (!done)` requires the Settings tab to stay open — refresh loses in-flight orchestration (job may still exist server-side, but UI does not resume) |
-| Gap | No downloadable skipped/failed report |
-
-**Closeout action:** Resume-by-`importId` after refresh (minimum for acceptance); downloadable report may remain P1 if counters + staged `failed` docs are inspectable.
+| Visible | Job counters `episodesSkipped` / `episodesFailed`; mapping review; skipped-title note on done |
+| Recoverable | `sessionStorage` resume for `staged` / `running` after refresh (`importResume.ts`) |
+| Gap | No downloadable skipped/failed report; draft mid-stage still requires re-upload |
 
 ### A6 — Historical `watchedAt` preserved
 
@@ -140,20 +134,16 @@ From `tv_time_tool/TVTimeDataDesign.md` / Notion sample:
 | --- | --- |
 | Status | **PARTIAL** |
 | Code | Import path writes historical `watchedAt`; merge keeps earliest |
-| Tests | `importLogic` earliest timestamp unit test |
-| Gap | No tip-level archive proof that timeline dates match TV Time `first_recorded_at` sample |
-
-**Closeout action:** Spot-check ≥10 episodes across years from the soak import against source CSV; note sample keys in this file.
+| Smoke | Fixture episode uses `2019-06-15T12:00:00.000Z` and asserts progress date prefix |
+| Gap | Soak archive spot-check ≥10 episodes across years |
 
 ### A7 — Unresolved / skipped records reported
 
 | Item | Evidence |
 | --- | --- |
 | Status | **PARTIAL** |
-| UI | Review rows for unresolved shows; done-state skipped title list; episode skip/fail counters |
-| Gap | No exportable report; failed staged episode `skipReason` not surfaced in UI |
-
-**Closeout action:** At minimum, surface failed episode count + reason summary after soak; optional CSV download can stay P1.
+| UI | Review rows; done-state skipped titles; episode skip/fail counters |
+| Gap | No exportable report; failed staged episode `skipReason` cleared with A9 staging delete (counters remain on job) |
 
 ### A8 — Browser-ZIP architecture
 
@@ -166,13 +156,11 @@ From `tv_time_tool/TVTimeDataDesign.md` / Notion sample:
 
 | Item | Evidence |
 | --- | --- |
-| Status | **OPEN** |
-| Design intent | Delete or TTL staged rows after successful import (`TVTimeDataDesign.md`) |
-| Code today | On `done`, job → `completed` + `completedAt`; staged docs remain with `imported`/`failed` flags — **no delete/TTL** |
-| Account delete | `DELETE /me/account` removes `imports/**` with the user tree — not post-import cleanup |
-| Gap | Policy not implemented; no verification |
-
-**Closeout action:** Implement post-complete staged cleanup (or documented short retention + sweeper); prove with before/after doc counts on a test importId.
+| Status | **PARTIAL** |
+| Policy | On successful `done`, delete `stagedShows` + `stagedEpisodes` in pages of 400; set `stagingClearedAt` + `stagingDocsDeleted` on the job doc |
+| Code | `importService.clearStaging` called from `run()` when complete |
+| Verification | Smoke asserts `stagingClearedAt` + `stagingDocsDeleted >= 1` after Functions deploy |
+| Gap | Tip-matched hosted PASS |
 
 ## What is explicitly out of Phase 1 acceptance
 
@@ -186,17 +174,15 @@ From `tv_time_tool/TVTimeDataDesign.md` / Notion sample:
 
 ## Closeout checklist (operator)
 
-Use this sequence; check boxes only with linked evidence.
-
-1. [ ] Implement A9 staging cleanup (and preferably A4 SHA-256 + A5 resume) if still OPEN at run time
+1. [x] Implement A9 staging cleanup (+ A4 SHA-256 + A5 resume) in code
 2. [ ] Land fixes on `main`; record tip short SHA here
-3. [ ] Dispatch hosted Production Smoke on that tip → paste run URL (A1)
-4. [ ] Run deployed import path evidence (smoke extension or manual log) (A2)
+3. [ ] Deploy Functions (+ Hosting if needed); dispatch hosted Production Smoke on that tip → paste run URL (A1)
+4. [ ] Confirm smoke import path + App Check enforce lines in the run log (A2/A9 + App Check)
 5. [ ] Run ~4.7k soak on throwaway account; record counters + duration (A3, A6 spot-check)
 6. [ ] Re-run same archive once; confirm idempotent (A4)
 7. [ ] Confirm skipped/failed visibility after soak (A5, A7)
 8. [ ] Mark all A1–A9 `PASS` in this file
-9. [ ] Update `docs/ResourceAlignment.md` + Notion TV Time Data Schema **Acceptance: Closed** with tip + date
+9. [ ] Update `docs/ResourceAlignment.md` + Notion Dashboard / TV Time schema **Acceptance: Closed** with tip + date
 10. [ ] Only then start Phase 2 `watchEvents`
 
 ## Related docs

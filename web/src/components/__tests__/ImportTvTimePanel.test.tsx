@@ -11,6 +11,7 @@ vi.mock("../../api/client", () => ({
     upsertMediaMapping: vi.fn(),
     detail: vi.fn(),
     createImport: vi.fn(),
+    getImport: vi.fn(),
     stageImportWatchlist: vi.fn(),
     stageImportEpisodes: vi.fn(),
     commitImport: vi.fn(),
@@ -33,6 +34,8 @@ const baseJob: ImportJobSummary = {
   createdAt: null,
   updatedAt: null,
   completedAt: null,
+  stagingClearedAt: null,
+  stagingDocsDeleted: 0,
 };
 
 const makeZipFile = (secondShow = false) => {
@@ -64,6 +67,7 @@ e2,100,Silo,1,2,2024-01-02 00:00:00
 describe("ImportTvTimePanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionStorage.clear();
     vi.mocked(api.resolveTvTimeShows).mockResolvedValue({
       accepted: [
         {
@@ -439,5 +443,71 @@ describe("ImportTvTimePanel", () => {
         expect.objectContaining({externalId: "200", tmdbId: 222, title: "Mystery Shows"}),
       ),
     );
+  });
+
+  it("sends a SHA-256 sourceHash for ZIP imports", async () => {
+    vi.mocked(api.runImport).mockResolvedValue({
+      import: {
+        ...baseJob,
+        status: "completed",
+        watchlistImported: 1,
+        episodesImported: 2,
+        episodesStaged: 2,
+        stagingClearedAt: "2026-07-20T00:00:00.000Z",
+        stagingDocsDeleted: 3,
+      },
+      processedEpisodes: 2,
+      remainingEpisodes: 0,
+      done: true,
+    });
+
+    render(<ImportTvTimePanel language="en-US" signedIn />);
+    fireEvent.change(screen.getByTestId("tv-time-zip-input"), {
+      target: {files: [makeZipFile()]},
+    });
+    fireEvent.click(screen.getByTestId("tv-time-import-start"));
+
+    await waitFor(() => expect(api.createImport).toHaveBeenCalled());
+    const body = vi.mocked(api.createImport).mock.calls[0][0];
+    expect(body.sourceHash).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("resumes a staged import from sessionStorage", async () => {
+    sessionStorage.setItem(
+      "episodera.tvTimeImport.resume",
+      JSON.stringify({
+        importId: "imp_resume",
+        episodesTotal: 2,
+        watchlistTotal: 1,
+        skippedShows: 0,
+        skippedTitles: [],
+      }),
+    );
+    vi.mocked(api.getImport).mockResolvedValue({
+      import: {...baseJob, importId: "imp_resume", status: "staged", episodesStaged: 2},
+    });
+    vi.mocked(api.runImport).mockResolvedValue({
+      import: {
+        ...baseJob,
+        importId: "imp_resume",
+        status: "completed",
+        episodesImported: 2,
+        episodesStaged: 2,
+        stagingClearedAt: "2026-07-20T00:00:00.000Z",
+        stagingDocsDeleted: 3,
+      },
+      processedEpisodes: 2,
+      remainingEpisodes: 0,
+      done: true,
+    });
+
+    render(<ImportTvTimePanel language="en-US" signedIn />);
+
+    await waitFor(() => expect(api.getImport).toHaveBeenCalledWith("imp_resume"));
+    await waitFor(() => expect(api.runImport).toHaveBeenCalledWith("imp_resume", 100));
+    await waitFor(() =>
+      expect(screen.getByTestId("tv-time-import-message")).toHaveTextContent("Import completed"),
+    );
+    expect(sessionStorage.getItem("episodera.tvTimeImport.resume")).toBeNull();
   });
 });
