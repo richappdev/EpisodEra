@@ -7,9 +7,16 @@
       },
       "description": "Days without progress before a watching show moves from Active / Continue Watching into Library (stale). Client falls back to local 14 if the remote value is missing or invalid.",
       "valueType": "NUMBER"
+    },
+    "site_access_blocked": {
+      "defaultValue": {
+        "value": "false"
+      },
+      "description": "When true, the web client shows only the site-blocked page for every URL (under optimization / back soon). Client default is false so a failed Remote Config fetch never locks users out.",
+      "valueType": "BOOLEAN"
     }
   },
   "version": {
-    "description": "Initial dormant_after_days parameter"
+    "description": "Add site_access_blocked site-wide access gate"
   }
 }

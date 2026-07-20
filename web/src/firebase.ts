@@ -15,6 +15,12 @@ import {
   resolveDormantAfterDays,
 } from "./lib/continuation";
 
+/** Remote Config key: when true, the SPA shows only the site-blocked page. */
+export const SITE_ACCESS_BLOCKED_REMOTE_KEY = "site_access_blocked";
+
+/** In-app default: site stays open if Remote Config is missing or fetch fails. */
+export const SITE_ACCESS_BLOCKED_DEFAULT = false;
+
 const firebaseConfig: FirebaseOptions = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY as string | undefined,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN as string | undefined,
@@ -122,6 +128,9 @@ let remoteConfigPromise: Promise<RemoteConfig | null> | null = null;
 const readDormantAfterDaysFromConfig = (remoteConfig: RemoteConfig) =>
   resolveDormantAfterDays(getValue(remoteConfig, DORMANT_AFTER_DAYS_REMOTE_KEY).asNumber());
 
+const readSiteAccessBlockedFromConfig = (remoteConfig: RemoteConfig) =>
+  getValue(remoteConfig, SITE_ACCESS_BLOCKED_REMOTE_KEY).asBoolean();
+
 const ensureRemoteConfig = (): Promise<RemoteConfig | null> => {
   if (!app) {
     return Promise.resolve(null);
@@ -134,6 +143,7 @@ const ensureRemoteConfig = (): Promise<RemoteConfig | null> => {
       : 12 * 60 * 60 * 1000;
     remoteConfig.defaultConfig = {
       [DORMANT_AFTER_DAYS_REMOTE_KEY]: DORMANT_AFTER_DAYS,
+      [SITE_ACCESS_BLOCKED_REMOTE_KEY]: SITE_ACCESS_BLOCKED_DEFAULT,
     };
 
     try {
@@ -173,6 +183,28 @@ export const subscribeDormantAfterDays = (onChange: (days: number) => void): (()
     }
 
     onChange(readDormantAfterDaysFromConfig(remoteConfig));
+  });
+
+  return () => {
+    cancelled = true;
+  };
+};
+
+/**
+ * Subscribes to the site-access-blocked flag from Remote Config.
+ * Emits the local default (`false`) immediately, then the fetched/activated value once available.
+ */
+export const subscribeSiteAccessBlocked = (onChange: (blocked: boolean) => void): (() => void) => {
+  let cancelled = false;
+
+  onChange(SITE_ACCESS_BLOCKED_DEFAULT);
+
+  void ensureRemoteConfig().then((remoteConfig) => {
+    if (cancelled || !remoteConfig) {
+      return;
+    }
+
+    onChange(readSiteAccessBlockedFromConfig(remoteConfig));
   });
 
   return () => {

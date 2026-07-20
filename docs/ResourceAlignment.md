@@ -75,6 +75,7 @@ The currently implemented or substantially implemented product areas include:
 * Domain hooks (`useWatchlist`, `useProgress`, `useProfile`, `useProfileStats`, `useSettings`) with independent section loading, error, and retry
 * Paginated list APIs and load-more UI for watchlist, profile history, and discovery trending/search
 * Remote Config–driven dormant threshold (14-day local fallback)
+* Remote Config site-access gate (`site_access_blocked`; client default `false` so a failed fetch never locks users out)
 
 ## Reliability Work Implemented
 
@@ -399,7 +400,7 @@ These limitations affect resource synchronization only. They do not change produ
 ### 2026-07-18 (Notion + tip sync to 5f00677)
 
 * Rebaselined Notion MVP Dashboard and child pages to tip `5f00677`.
-* Recorded shipped UX: Continue Watching on Home only; Watchlist Active/Library; auto-complete at 100%; Remote Config dormant threshold; personal export.
+* Recorded shipped UX: Continue Watching on Home only; Watchlist Active/Library; auto-complete at 100%; Remote Config dormant threshold; Remote Config `site_access_blocked` site gate (default false); personal export.
 * App Check Phase 3 remains **live**; tip-matched hosted smoke and import acceptance (A1–A9) still open.
 * Updated [`docs/Navigation.md`](./Navigation.md) to match Home Continue Watching + Active/Library Collection.
 

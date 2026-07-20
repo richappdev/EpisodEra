@@ -3,6 +3,8 @@ import {Link, useLocation} from "react-router-dom";
 import {useAuth} from "./auth/AuthContext";
 import {AppProvider, useAppContext} from "./AppContext";
 import {TopBar} from "./components/TopBar";
+import {useSiteAccessBlocked} from "./hooks/useSiteAccessBlocked";
+import {SiteBlockedPage} from "./pages/SiteBlockedPage";
 import {AppRoutes} from "./routes/AppRoutes";
 import {canvasFromPath, isDetailPath, isLandingPath, navFromPath, paths, type NavView} from "./routes/paths";
 import {legalCopy, supportEmail} from "./types/legal";
@@ -54,6 +56,7 @@ const SiteFooter = () => {
 const AppShell = () => {
   const {loading} = useAuth();
   const location = useLocation();
+  const siteAccessBlocked = useSiteAccessBlocked();
   const activeView = resolveActiveView(location.pathname, location.state);
   const canvas = canvasFromPath(location.pathname);
   const isLanding = isLandingPath(location.pathname);
@@ -66,6 +69,10 @@ const AppShell = () => {
       themeMeta.setAttribute("content", "#0B0E12");
     }
   }, [canvas, isLanding]);
+
+  if (siteAccessBlocked) {
+    return <SiteBlockedPage />;
+  }
 
   if (loading) {
     return (
