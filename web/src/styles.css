@@ -1614,9 +1614,7 @@ html[data-chrome="landing"] body {
 .continue-actions {
   align-items: center;
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
-  max-width: 520px;
 }
 
 .continue-button {
@@ -1637,64 +1635,14 @@ html[data-chrome="landing"] body {
   opacity: 0.7;
 }
 
-.continue-button--resume {
-  flex: 0 1 auto;
-  min-width: 7.25rem;
-  padding-inline: 16px;
-}
-
-.continue-button--watched {
+.continue-button--icon {
   background: var(--color-surface-muted);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-soft);
-  flex: 0 0 auto;
-  font-size: 0.92rem;
-  padding-inline: 12px;
-}
-
-.continue-button--menu {
-  background: transparent;
   border: 1px solid var(--color-border);
   color: var(--color-text-soft);
   flex: 0 0 40px;
   min-width: 40px;
   padding: 0;
   width: 40px;
-}
-
-.continue-menu {
-  position: relative;
-}
-
-.continue-menu-panel {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
-  display: grid;
-  gap: 2px;
-  min-width: 220px;
-  padding: 6px;
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
-  z-index: 5;
-}
-
-.continue-menu-panel button {
-  background: transparent;
-  border: 0;
-  border-radius: var(--radius-sm);
-  color: var(--color-text);
-  justify-content: flex-start;
-  min-height: 40px;
-  padding: 0 12px;
-  text-align: left;
-  width: 100%;
-}
-
-.continue-menu-panel button:hover {
-  background: var(--color-surface-muted);
 }
 
 .spin {
@@ -3018,29 +2966,10 @@ html[data-chrome="landing"] body {
     height: 6px;
   }
 
-  .continue-actions {
-    display: grid;
-    gap: 8px;
-    grid-template-columns: minmax(0, 1fr) 44px 44px;
-    max-width: none;
-  }
-
-  .continue-button--resume {
-    min-width: 0;
-    width: 100%;
-  }
-
-  .continue-button--watched,
-  .continue-button--menu {
-    flex: none;
-    justify-self: stretch;
+  .continue-button--icon {
+    flex: 0 0 44px;
     min-width: 44px;
-    padding-inline: 0;
     width: 44px;
-  }
-
-  .continue-watched-label {
-    display: none;
   }
 
   .section-header,

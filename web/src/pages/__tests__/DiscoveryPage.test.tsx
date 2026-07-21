@@ -104,7 +104,8 @@ describe("DiscoveryPage", () => {
 
     expect(await screen.findByRole("heading", {name: "Continue watching"})).toBeVisible();
     expect(screen.getByTestId("continue-card-1001")).toBeVisible();
-    expect(screen.getByTestId("continue-resume-1001")).toBeVisible();
+    expect(screen.getByTestId("continue-watched-1001")).toBeVisible();
+    expect(screen.getByLabelText("Open Critical Flow Show")).toBeVisible();
     expect(screen.getByTestId("continue-see-all")).toHaveAttribute("href", "/watchlist#continue-watching");
     expect(screen.getByTestId("continue-next-1001")).toHaveTextContent("S1 · E2 — The Gap");
     expect(screen.getByRole("list")).toBeVisible();

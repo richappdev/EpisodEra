@@ -1,5 +1,4 @@
-import {useEffect, useId, useRef, useState} from "react";
-import {CheckCircle2, Film, Loader2, MoreHorizontal, Play} from "lucide-react";
+import {Eye, Film, Loader2, Trash2} from "lucide-react";
 import {Link} from "react-router-dom";
 import {
   ContinuationEntry,
@@ -29,9 +28,6 @@ interface ContinueCardProps {
   entry: ContinuationEntry;
   testIdPrefix: string;
   pending: boolean;
-  menuOpen: boolean;
-  onToggleMenu: () => void;
-  onCloseMenu: () => void;
   onSelect: (entry: ContinuationEntry) => void;
   onNextEpisodeWatched: (entry: ContinuationEntry) => void;
   onRemove?: (entry: ContinuationEntry) => void;
@@ -41,44 +37,14 @@ const ContinueCard = ({
   entry,
   testIdPrefix,
   pending,
-  menuOpen,
-  onToggleMenu,
-  onCloseMenu,
   onSelect,
   onNextEpisodeWatched,
   onRemove,
 }: ContinueCardProps) => {
-  const menuId = useId();
-  const menuRef = useRef<HTMLDivElement>(null);
   const {progress} = entry;
   const episodeLine = nextEpisodeDetailLineFor(progress);
   const progressCaption = continueProgressCaptionFor(progress, DEFAULT_EPISODE_RUNTIME_MINUTES);
   const canRemove = Boolean(onRemove && entry.watchlistItem);
-
-  useEffect(() => {
-    if (!menuOpen) {
-      return;
-    }
-
-    const onPointerDown = (event: PointerEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onCloseMenu();
-      }
-    };
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onCloseMenu();
-      }
-    };
-
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [menuOpen, onCloseMenu]);
 
   return (
     <article
@@ -123,16 +89,7 @@ const ContinueCard = ({
 
         <div className="continue-actions">
           <button
-            className="continue-button continue-button--resume"
-            data-testid={`${testIdPrefix}-resume-${entry.tmdbId}`}
-            type="button"
-            onClick={() => onSelect(entry)}
-          >
-            <Play size={16} aria-hidden="true" />
-            Resume
-          </button>
-          <button
-            className="continue-button continue-button--watched"
+            className="continue-button continue-button--icon"
             data-testid={`${testIdPrefix}-watched-${entry.tmdbId}`}
             type="button"
             disabled={pending || !progress.nextEpisode}
@@ -142,68 +99,25 @@ const ContinueCard = ({
             onClick={() => onNextEpisodeWatched(entry)}
           >
             {pending ? (
-              <Loader2 size={16} aria-hidden="true" className="spin" />
+              <Loader2 size={18} aria-hidden="true" className="spin" />
             ) : (
-              <CheckCircle2 size={16} aria-hidden="true" />
+              <Eye size={18} aria-hidden="true" />
             )}
-            <span className="continue-watched-label">{pending ? "Saving..." : "Watched"}</span>
           </button>
 
-          <div className="continue-menu" ref={menuRef}>
+          {canRemove ? (
             <button
-              className="continue-button continue-button--menu"
+              className="continue-button continue-button--icon"
+              data-testid={`${testIdPrefix}-remove-${entry.tmdbId}`}
               type="button"
-              aria-label={`More actions for ${entry.title}`}
-              aria-haspopup="menu"
-              aria-expanded={menuOpen}
-              aria-controls={menuId}
-              data-testid={`${testIdPrefix}-menu-${entry.tmdbId}`}
-              onClick={onToggleMenu}
+              aria-label={`Remove ${entry.title} from Continue watching`}
+              title="Remove from Continue watching"
+              onClick={() => onRemove?.(entry)}
             >
-              <MoreHorizontal size={18} aria-hidden="true" />
+              <Trash2 size={18} aria-hidden="true" />
             </button>
-            {menuOpen ? (
-              <div className="continue-menu-panel" id={menuId} role="menu">
-                {canRemove ? (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    data-testid={`${testIdPrefix}-remove-${entry.tmdbId}`}
-                    onClick={() => {
-                      onCloseMenu();
-                      onRemove?.(entry);
-                    }}
-                  >
-                    Remove from Continue watching
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  role="menuitem"
-                  data-testid={`${testIdPrefix}-restart-${entry.tmdbId}`}
-                  onClick={() => {
-                    onCloseMenu();
-                    onSelect(entry);
-                  }}
-                >
-                  Restart episode
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  data-testid={`${testIdPrefix}-details-${entry.tmdbId}`}
-                  onClick={() => {
-                    onCloseMenu();
-                    onSelect(entry);
-                  }}
-                >
-                  Open series details
-                </button>
-              </div>
-            ) : null}
-          </div>
+          ) : null}
         </div>
-
       </div>
     </article>
   );
@@ -222,8 +136,6 @@ export const ContinueWatchingSection = ({
   onNextEpisodeWatched,
   onRemove,
 }: ContinueWatchingSectionProps) => {
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
-
   if (entries.length === 0) {
     return null;
   }
@@ -261,11 +173,6 @@ export const ContinueWatchingSection = ({
             entry={entry}
             testIdPrefix={testIdPrefix}
             pending={pendingShowIds?.has(entry.tmdbId) ?? false}
-            menuOpen={openMenuId === entry.tmdbId}
-            onToggleMenu={() =>
-              setOpenMenuId((current) => (current === entry.tmdbId ? null : entry.tmdbId))
-            }
-            onCloseMenu={() => setOpenMenuId(null)}
             onSelect={onSelect}
             onNextEpisodeWatched={onNextEpisodeWatched}
             onRemove={onRemove}
