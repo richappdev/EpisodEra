@@ -4,6 +4,7 @@ import {useAuth} from "./auth/AuthContext";
 import {AppProvider, useAppContext} from "./AppContext";
 import {TopBar} from "./components/TopBar";
 import {useSiteAccessBlocked} from "./hooks/useSiteAccessBlocked";
+import {applyDocumentSeo} from "./lib/documentSeo";
 import {SiteBlockedPage} from "./pages/SiteBlockedPage";
 import {AppRoutes} from "./routes/AppRoutes";
 import {canvasFromPath, isDetailPath, isLandingPath, navFromPath, paths, type NavView} from "./routes/paths";
@@ -55,6 +56,7 @@ const SiteFooter = () => {
 
 const AppShell = () => {
   const {loading} = useAuth();
+  const {language} = useAppContext();
   const location = useLocation();
   const siteAccessBlocked = useSiteAccessBlocked();
   const activeView = resolveActiveView(location.pathname, location.state);
@@ -69,6 +71,10 @@ const AppShell = () => {
       themeMeta.setAttribute("content", "#0B0E12");
     }
   }, [canvas, isLanding]);
+
+  useEffect(() => {
+    applyDocumentSeo(location.pathname, language);
+  }, [language, location.pathname]);
 
   if (siteAccessBlocked) {
     return <SiteBlockedPage />;
