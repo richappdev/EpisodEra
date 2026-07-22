@@ -96,7 +96,7 @@ export const DailyPuzzlePage = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user?.uid]);
 
   useEffect(() => {
     void load();

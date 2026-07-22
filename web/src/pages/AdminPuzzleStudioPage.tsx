@@ -83,7 +83,7 @@ export const AdminPuzzleStudioPage = () => {
     if (user) {
       void refreshList();
     }
-  }, [user, refreshList]);
+  }, [user?.uid, refreshList]);
 
   if (!user) {
     return (

@@ -11,8 +11,18 @@ import {UserProfile} from "../../types/profile";
 vi.mock("../../api/client", () => ({
   api: {
     meAchievements: vi.fn(),
+    getPuzzleStats: vi.fn(),
   },
 }));
+
+const puzzleStats = {
+  gamesPlayed: 4,
+  gamesWon: 3,
+  currentStreak: 2,
+  longestStreak: 3,
+  winsByAttempt: {1: 1, 2: 1, 3: 1},
+  lastPlayedPuzzleDate: "2026-07-21",
+};
 
 const renderProfile = (ui: ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
 
@@ -74,6 +84,7 @@ describe("ProfilePage", () => {
         },
       ],
     });
+    vi.mocked(api.getPuzzleStats).mockResolvedValue(puzzleStats);
   });
 
   it("renders stats and recent history for a signed-in user", async () => {
@@ -113,6 +124,8 @@ describe("ProfilePage", () => {
     expect(screen.getByTestId("profile-open-settings")).toHaveAttribute("href", "/settings");
     expect(screen.getByTestId("profile-open-social")).toHaveAttribute("href", "/social");
     await waitFor(() => expect(screen.getByTestId("achievements-panel")).toHaveTextContent("Detective"));
+    await waitFor(() => expect(screen.getByTestId("puzzle-stats")).toHaveTextContent("2"));
+    expect(screen.getByTestId("puzzle-stats")).toHaveTextContent("3/4");
   });
 
   it("surfaces recap loading and retry errors", async () => {

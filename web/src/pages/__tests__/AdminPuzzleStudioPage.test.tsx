@@ -1,4 +1,4 @@
-import {render, screen, waitFor} from "@testing-library/react";
+import {fireEvent, render, screen, waitFor} from "@testing-library/react";
 import {MemoryRouter} from "react-router-dom";
 import {beforeEach, describe, expect, it, vi} from "vitest";
 import {api} from "../../api/client";
@@ -16,22 +16,26 @@ vi.mock("../../api/client", () => ({
   },
 }));
 
-vi.mock("../../auth/AuthContext", () => ({
-  useAuth: () => ({
-    user: {email: "admin@example.com", uid: "admin-1"} as never,
-    loading: false,
-    configError: null,
-    getIdToken: async () => "token",
-    signOutUser: async () => undefined,
-  }),
+const mockAuth = vi.hoisted(() => ({
+  user: {email: "admin@example.com", uid: "admin-1"} as never,
+  loading: false,
+  configError: null as string | null,
+  getIdToken: async () => "token",
+  signOutUser: async () => undefined,
 }));
+
+vi.mock("../../auth/AuthContext", () => ({
+  useAuth: () => mockAuth,
+}));
+
+const blankImage = "data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=";
 
 const listedPuzzle = {
   puzzleId: "2026-07-22",
   puzzleDate: "2026-07-22",
   status: "published",
   difficulty: "medium",
-  imageUrl: "https://example.com/desktop.webp",
+  imageUrl: blankImage,
   choices: [
     {choiceId: "a", title: "Breaking Bad"},
     {choiceId: "b", title: "Ozark"},
@@ -45,7 +49,7 @@ const listedPuzzle = {
 
 const puzzleDetail = {
   ...listedPuzzle,
-  mobileImageUrl: "https://example.com/mobile.webp",
+  mobileImageUrl: blankImage,
   correctChoiceId: "a",
   correctShowId: 1396,
   correctTitle: "Breaking Bad",
@@ -78,9 +82,8 @@ describe("AdminPuzzleStudioPage edit flow", () => {
       expect(screen.getByText(/2026-07-22 — published \/ medium/i)).toBeInTheDocument();
     });
 
-    expect(screen.getByRole("button", {name: /^edit$/i})).toBeInTheDocument();
-
-    screen.getByRole("button", {name: /^edit$/i}).click();
+    const editButton = screen.getByRole("button", {name: /^edit$/i});
+    editButton.click();
 
     await waitFor(() => {
       expect(api.adminGetPuzzle).toHaveBeenCalledWith("2026-07-22");
@@ -92,5 +95,109 @@ describe("AdminPuzzleStudioPage edit flow", () => {
     expect(screen.getByDisplayValue("Crime")).toBeInTheDocument();
     expect(screen.getByRole("button", {name: /Update puzzle/i})).toBeInTheDocument();
     expect(screen.getByText("Ozark")).toBeInTheDocument();
+  });
+
+  it("searches shows, loads stills, and saves a scheduled puzzle", async () => {
+    vi.mocked(api.adminSearchTv).mockResolvedValue({
+      items: [
+        {
+          id: 1396,
+          title: "Breaking Bad",
+          overview: "A chemistry teacher",
+          releaseDate: "2008-01-20",
+          popularity: 100,
+          poster: null,
+        },
+      ],
+    });
+    vi.mocked(api.adminSuggestDistractors).mockResolvedValue({
+      distractors: [
+        {id: 2, title: "Ozark"},
+        {id: 3, title: "Narcos"},
+        {id: 4, title: "Better Call Saul"},
+      ],
+    });
+    vi.mocked(api.adminEpisodeStills).mockResolvedValue({
+      items: [
+        {
+          filePath: "/still.jpg",
+          desktopUrl: blankImage,
+          mobileUrl: blankImage,
+          width: 1280,
+          height: 720,
+          aspectRatio: 16 / 9,
+          voteAverage: 5,
+        },
+      ],
+    });
+    vi.mocked(api.adminUpsertPuzzle).mockResolvedValue({
+      puzzleId: "2026-07-23",
+      status: "scheduled",
+    });
+
+    render(
+      <MemoryRouter>
+        <AdminPuzzleStudioPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(screen.getByText(/Recent puzzles/i)).toBeInTheDocument());
+
+    fireEvent.change(screen.getByPlaceholderText("Breaking Bad"), {target: {value: "Breaking"}});
+    fireEvent.click(screen.getByRole("button", {name: /^search$/i}));
+
+    await waitFor(() => expect(screen.getByRole("button", {name: "Breaking Bad"})).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", {name: "Breaking Bad"}));
+
+    await waitFor(() => expect(screen.getByText("Ozark")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", {name: /Load episode stills/i}));
+    await waitFor(() => expect(api.adminEpisodeStills).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole("button", {name: /Save puzzle/i}));
+    await waitFor(() => expect(api.adminUpsertPuzzle).toHaveBeenCalled());
+    expect(screen.getAllByText(/Saved puzzle 2026-07-23/i).length).toBeGreaterThan(0);
+  });
+
+  it("publishes scheduled puzzles from the studio", async () => {
+    vi.mocked(api.adminSearchTv).mockResolvedValue({
+      items: [
+        {
+          id: 1396,
+          title: "Breaking Bad",
+          overview: "",
+          releaseDate: "2008-01-20",
+          popularity: 1,
+          poster: null,
+        },
+      ],
+    });
+    vi.mocked(api.adminSuggestDistractors).mockResolvedValue({
+      distractors: [
+        {id: 2, title: "Ozark"},
+        {id: 3, title: "Narcos"},
+        {id: 4, title: "Better Call Saul"},
+      ],
+    });
+    vi.mocked(api.adminPublishScheduledPuzzles).mockResolvedValue({
+      published: ["2026-07-22"],
+      skipped: [],
+    });
+
+    render(
+      <MemoryRouter>
+        <AdminPuzzleStudioPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(screen.getByPlaceholderText("Breaking Bad")).toBeInTheDocument());
+    fireEvent.change(screen.getByPlaceholderText("Breaking Bad"), {target: {value: "Breaking"}});
+    fireEvent.click(screen.getByRole("button", {name: /^search$/i}));
+    await waitFor(() => expect(screen.getByRole("button", {name: "Breaking Bad"})).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", {name: "Breaking Bad"}));
+
+    await waitFor(() => expect(screen.getByRole("button", {name: /Publish due scheduled/i})).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", {name: /Publish due scheduled/i}));
+    await waitFor(() => expect(api.adminPublishScheduledPuzzles).toHaveBeenCalled());
+    expect(screen.getByText(/Published: 2026-07-22/i)).toBeInTheDocument();
   });
 });
