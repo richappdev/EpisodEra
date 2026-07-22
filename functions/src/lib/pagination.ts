@@ -1,4 +1,4 @@
-import {FieldPath, Timestamp, type Query, type QueryDocumentSnapshot} from "firebase-admin/firestore";
+import {Timestamp, type Query, type QueryDocumentSnapshot} from "firebase-admin/firestore";
 import {HttpError} from "./httpError";
 
 export interface PaginationQuery {
@@ -103,12 +103,17 @@ export const listPaginated = async <T>(
   mapDocument: (doc: QueryDocumentSnapshot) => T,
   orderField = "updatedAt",
 ): Promise<PaginatedResult<T>> => {
-  // Tie-break on document id so cursors remain stable when order-field values collide.
-  let query: Query = baseQuery.orderBy(FieldPath.documentId()).limit(pagination.pageSize + 1);
+  // Callers already apply a single orderBy(orderField). Do not add orderBy(documentId):
+  // that requires composite indexes we do not ship, and fails every list with FAILED_PRECONDITION.
+  let query: Query = baseQuery.limit(pagination.pageSize + 1);
 
   if (pagination.pageToken) {
     const cursor = decodePageToken(pagination.pageToken);
-    query = query.startAfter(...cursor.values);
+    if (cursor.values.length === 0) {
+      throw new HttpError(400, "pageToken is invalid.", "invalid_page_token");
+    }
+    // Match the single orderBy on baseQuery (order-field value only).
+    query = query.startAfter(cursor.values[0]);
   }
 
   const pageSnapshot = await query.get();
