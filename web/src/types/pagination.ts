@@ -6,6 +6,8 @@ export interface PaginatedResponse<T> {
 }
 
 export interface PaginationParams {
+  /** TMDb / discovery page number (1-based). */
+  page?: number;
   pageSize?: number;
   pageToken?: string;
 }
@@ -15,6 +17,9 @@ export const maxPageSize = 100;
 
 export const withPagination = (path: string, pagination?: PaginationParams) => {
   const params = new URLSearchParams();
+  if (pagination?.page) {
+    params.set("page", String(pagination.page));
+  }
   if (pagination?.pageSize) {
     params.set("pageSize", String(pagination.pageSize));
   }

@@ -6,11 +6,11 @@ describe("withPagination", () => {
     expect(withPagination("/watchlist")).toBe("/watchlist");
   });
 
-  it("appends pageSize and pageToken query params", () => {
+  it("appends page, pageSize, and pageToken query params", () => {
     expect(withPagination("/watchlist", {pageSize: 50})).toBe("/watchlist?pageSize=50");
     expect(withPagination("/watchlist", {pageSize: 50, pageToken: "abc"})).toBe(
       "/watchlist?pageSize=50&pageToken=abc",
     );
-    expect(withPagination("/search?q=test", {pageSize: 25})).toBe("/search?q=test&pageSize=25");
+    expect(withPagination("/search?q=test", {page: 3})).toBe("/search?q=test&page=3");
   });
 });
