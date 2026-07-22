@@ -11,17 +11,22 @@ import {
   rankTitles,
   totalWatchTimeMinutes,
 } from "./statsLogic";
+import {likesService} from "./likesService";
 import {watchlistService} from "./watchlistService";
 
 class StatsService {
   async get(userId: string): Promise<UserStats> {
     const cached = await derivedCacheService.getStats(userId);
     if (cached) {
-      return cached;
+      return {
+        ...cached,
+        likedCount: cached.likedCount ?? 0,
+      };
     }
 
-    const [watchlistItems, progressItems, historyItems] = await Promise.all([
+    const [watchlistItems, likedItems, progressItems, historyItems] = await Promise.all([
       listAllDocuments((pagination) => watchlistService.list(userId, pagination)),
+      listAllDocuments((pagination) => likesService.list(userId, pagination)),
       listAllDocuments((pagination) => progressService.list(userId, pagination)),
       listAllDocuments((pagination) => historyService.list(userId, pagination)),
     ]);
@@ -43,6 +48,7 @@ class StatsService {
       currentlyWatchingCount: watchlistItems.filter((item) => item.mediaType === "tv" && item.status === "watching").length,
       completedShowsCount: new Set([...completedWatchlistShowIds, ...fullyWatchedShowIds]).size,
       watchlistCount: watchlistItems.length,
+      likedCount: likedItems.length,
       progressShowCount: progressItems.length,
       totalWatchTimeMinutes: totalWatchTimeMinutes(historyItems),
       longestStreakDays: streaks.longestStreakDays,

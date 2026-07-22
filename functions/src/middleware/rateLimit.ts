@@ -27,6 +27,7 @@ const publicReadPaths = [
 
 const writePaths = [
   /^\/watchlist(?:\/|$)/,
+  /^\/likes(?:\/|$)/,
   /^\/progress(?:\/|$)/,
   /^\/me\/profile(?:\?|$)/,
   /^\/me\/settings(?:\?|$)/,

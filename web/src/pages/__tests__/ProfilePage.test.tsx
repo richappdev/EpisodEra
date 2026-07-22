@@ -115,6 +115,7 @@ describe("ProfilePage", () => {
     expect(screen.getByTestId("stat-longest-streak")).toHaveTextContent("1");
     expect(screen.getByTestId("stat-currently-watching")).toHaveTextContent("1");
     expect(screen.getByTestId("stat-watchlist-count")).toHaveTextContent("1");
+    expect(screen.getByTestId("stat-liked-count")).toHaveTextContent("0");
     expect(screen.getByTestId("top-shows-list")).toHaveTextContent("Critical Flow Show");
     expect(screen.getByTestId("top-genres-list")).toHaveTextContent("Drama");
     expect(screen.getByTestId("year-recap-card")).toHaveTextContent("2026 Recap");

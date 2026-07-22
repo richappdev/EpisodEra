@@ -18,6 +18,7 @@ export interface UserStats {
   currentlyWatchingCount: number;
   completedShowsCount: number;
   watchlistCount: number;
+  likedCount: number;
   progressShowCount: number;
   totalWatchTimeMinutes: number;
   longestStreakDays: number;

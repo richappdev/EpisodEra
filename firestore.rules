@@ -62,6 +62,20 @@ service cloud.firestore {
         && (!('backdrop' in request.resource.data) || isNullableString(request.resource.data.backdrop));
     }
 
+    function validLikeItem(itemId) {
+      return itemId.matches('^(movie|tv)_[1-9][0-9]*$')
+        && request.resource.data.keys().hasOnly([
+          'tmdbId', 'mediaType', 'title', 'poster', 'backdrop', 'likedAt'
+        ])
+        && request.resource.data.keys().hasAll(['tmdbId', 'mediaType', 'title'])
+        && request.resource.data.tmdbId is int
+        && request.resource.data.tmdbId > 0
+        && validMediaType(request.resource.data.mediaType)
+        && request.resource.data.title is string
+        && (!('poster' in request.resource.data) || isNullableString(request.resource.data.poster))
+        && (!('backdrop' in request.resource.data) || isNullableString(request.resource.data.backdrop));
+    }
+
     function validNextEpisode(value) {
       return value == null || (
         value is map
@@ -205,6 +219,11 @@ service cloud.firestore {
       match /watchlist/{itemId} {
         allow read, delete: if isOwner(userId);
         allow create, update: if isOwner(userId) && validWatchlistItem(itemId);
+      }
+
+      match /likes/{itemId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && validLikeItem(itemId);
       }
 
       match /ratings/{itemId} {

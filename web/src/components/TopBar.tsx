@@ -4,6 +4,7 @@ import {
   Bookmark,
   Clapperboard,
   Gamepad2,
+  Heart,
   History,
   Home,
   LogIn,
@@ -72,6 +73,13 @@ export const TopBar = ({activeView}: TopBarProps) => {
       testId: "nav-watchlist",
       label: copy.watchlist,
       icon: <Bookmark size={18} aria-hidden="true" />,
+    },
+    {
+      view: "likes",
+      to: paths.likes,
+      testId: "nav-likes",
+      label: copy.likes,
+      icon: <Heart size={18} aria-hidden="true" />,
     },
     {
       view: "profile",

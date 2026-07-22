@@ -18,6 +18,7 @@ export interface UserStats {
   currentlyWatchingCount: number;
   completedShowsCount: number;
   watchlistCount: number;
+  likedCount: number;
   progressShowCount: number;
   totalWatchTimeMinutes: number;
   longestStreakDays: number;
@@ -47,6 +48,7 @@ export const emptyStats = (): UserStats => ({
   currentlyWatchingCount: 0,
   completedShowsCount: 0,
   watchlistCount: 0,
+  likedCount: 0,
   progressShowCount: 0,
   totalWatchTimeMinutes: 0,
   longestStreakDays: 0,

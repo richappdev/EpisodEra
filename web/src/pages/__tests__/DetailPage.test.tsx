@@ -7,6 +7,7 @@ import {movieDetail, progress, seasonDetail, tvDetail, watchlistItem} from "../.
 const renderDetail = (overrides: Partial<Parameters<typeof DetailPage>[0]> = {}) => {
   const props = {
     detail: tvDetail,
+    liked: false,
     onAddToWatchlist: vi.fn(),
     onBack: vi.fn(),
     onEpisodeUnwatched: vi.fn(),
@@ -18,6 +19,7 @@ const renderDetail = (overrides: Partial<Parameters<typeof DetailPage>[0]> = {})
     onMarkSelectedEpisodes: vi.fn(),
     onRemoveFromWatchlist: vi.fn(),
     onSeasonChange: vi.fn(),
+    onToggleLike: vi.fn(),
     onWatchlistStatusChange: vi.fn(),
     progress,
     progressError: null,
@@ -140,10 +142,32 @@ describe("DetailPage", () => {
     expect(props.onAddToWatchlist).toHaveBeenCalledWith(tvDetail);
   });
 
+  it("toggles like independent of watchlist membership", async () => {
+    const user = userEvent.setup();
+    const props = renderDetail({liked: false, progress: null, watchlistItem: null});
+
+    const likeButton = screen.getByTestId("detail-like-toggle");
+    expect(likeButton).toHaveAttribute("aria-pressed", "false");
+    expect(likeButton).toHaveTextContent("Like");
+
+    await user.click(likeButton);
+    expect(props.onToggleLike).toHaveBeenCalledWith(tvDetail);
+  });
+
+  it("shows liked heart state when already liked", () => {
+    renderDetail({liked: true, progress: null, watchlistItem: null});
+
+    const likeButton = screen.getByTestId("detail-like-toggle");
+    expect(likeButton).toHaveAttribute("aria-pressed", "true");
+    expect(likeButton).toHaveTextContent("Liked");
+    expect(likeButton).toHaveClass("is-active");
+  });
+
   it("blocks episode writes while signed out", () => {
     renderDetail({progress: null, signedIn: false, watchlistItem: null});
 
     expect(screen.getByText("Sign in to save this title.")).toBeVisible();
+    expect(screen.queryByTestId("detail-like-toggle")).not.toBeInTheDocument();
     expect(screen.getByText("Sign in to track watched episodes.")).toBeVisible();
     expect(screen.getByTestId("episode-toggle-s01e01")).toBeDisabled();
   });

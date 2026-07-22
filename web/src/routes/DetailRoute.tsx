@@ -35,10 +35,12 @@ export const MediaDetailRoute = ({mediaType}: MediaDetailRouteProps) => {
     addToWatchlist,
     autoMarkPreviousEpisodesWatched,
     language,
+    likedItems,
     refreshStats,
     removeWatchlistItem,
     removeProgressItem,
     syncWatchlistStatusFromProgress,
+    toggleLike,
     updateWatchlistStatus,
     upsertProgressItem,
     watchlistItems,
@@ -138,6 +140,14 @@ export const MediaDetailRoute = ({mediaType}: MediaDetailRouteProps) => {
         ? watchlistItems.find((item) => item.mediaType === detail.mediaType && item.tmdbId === detail.id) ?? null
         : null,
     [detail, watchlistItems],
+  );
+
+  const isLiked = useMemo(
+    () =>
+      detail
+        ? likedItems.some((item) => item.mediaType === detail.mediaType && item.tmdbId === detail.id)
+        : false,
+    [detail, likedItems],
   );
 
   const handleSeasonChange = (nextSeason: number) => {
@@ -458,6 +468,7 @@ export const MediaDetailRoute = ({mediaType}: MediaDetailRouteProps) => {
       {detailError && <div className="floating-error">{detailError}</div>}
       <DetailPage
         detail={detail}
+        liked={isLiked}
         onEpisodeWatched={markEpisodeWatched}
         onEpisodeUnwatched={markEpisodeUnwatched}
         onAddToWatchlist={addToWatchlist}
@@ -469,6 +480,7 @@ export const MediaDetailRoute = ({mediaType}: MediaDetailRouteProps) => {
         onMarkSelectedEpisodes={markSelectedEpisodes}
         onRemoveFromWatchlist={removeWatchlistItem}
         onSeasonChange={handleSeasonChange}
+        onToggleLike={toggleLike}
         onWatchlistStatusChange={updateWatchlistStatus}
         progress={progress}
         progressError={progressError}

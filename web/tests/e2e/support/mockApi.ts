@@ -65,6 +65,7 @@ export interface MockApiState {
   abortNextProgressWrite: boolean;
   failNextProgressWrite: boolean;
   failOnceEndpoints: Set<FailOnceEndpoint>;
+  likedItem: Record<string, unknown> | null;
   progressBatchBodies: EpisodeWriteBody[];
   releaseProgressWrite: (() => void) | null;
   watchlistItem: Record<string, unknown> | null;
@@ -75,6 +76,7 @@ export const createMockApiState = (options: MockApiStateOptions = {}): MockApiSt
   abortNextProgressWrite: false,
   failNextProgressWrite: false,
   failOnceEndpoints: new Set(),
+  likedItem: null,
   progressBatchBodies: [],
   releaseProgressWrite: null,
   watchlistItem: options.initialWatchlistStatus ? watchlistItemFor(options.initialWatchlistStatus) : null,
@@ -159,6 +161,11 @@ export const installMockApi = async (page: Page, options: MockApiOptions = {}) =
       return json(route, listPage(items));
     }
 
+    if (method === "GET" && path === "/likes") {
+      const items = state.likedItem ? [state.likedItem] : [];
+      return json(route, listPage(items));
+    }
+
     if (method === "GET" && path === "/progress") {
       const progress = currentProgress();
       return json(route, listPage(progress ? [summaryFromProgress(progress)] : []));
@@ -169,12 +176,12 @@ export const installMockApi = async (page: Page, options: MockApiOptions = {}) =
         return json(route, {error: {message: "Temporary stats outage."}}, 503);
       }
 
-      return json(route, statsFromState(state.watchlistItem, currentProgress()));
+      return json(route, statsFromState(state.watchlistItem, currentProgress(), state.likedItem));
     }
 
     if (method === "GET" && path === "/me/recap") {
       const year = Number(new URL(request.url()).searchParams.get("year") ?? new Date().getUTCFullYear());
-      const stats = statsFromState(state.watchlistItem, currentProgress());
+      const stats = statsFromState(state.watchlistItem, currentProgress(), state.likedItem);
       return json(route, {
         year,
         totalWatchedMovies: stats.totalWatchedMovies,
@@ -379,6 +386,19 @@ export const installMockApi = async (page: Page, options: MockApiOptions = {}) =
       return json(route, state.watchlistItem, 201);
     }
 
+    if (method === "POST" && path === "/likes") {
+      state.likedItem = {
+        itemId: `tv_${showId}`,
+        tmdbId: showId,
+        mediaType: "tv",
+        title: showSummary.title,
+        poster: null,
+        backdrop: null,
+        likedAt: now,
+      };
+      return json(route, state.likedItem, 201);
+    }
+
     if (method === "PATCH" && path === `/watchlist/tv_${showId}/status`) {
       const body = await request.postDataJSON();
       state.watchlistItem = {...state.watchlistItem, status: body.status, updatedAt: now};
@@ -387,6 +407,11 @@ export const installMockApi = async (page: Page, options: MockApiOptions = {}) =
 
     if (method === "DELETE" && path === `/watchlist/tv_${showId}`) {
       state.watchlistItem = null;
+      return json(route, null, 204);
+    }
+
+    if (method === "DELETE" && path === `/likes/tv_${showId}`) {
+      state.likedItem = null;
       return json(route, null, 204);
     }
 
@@ -550,12 +575,17 @@ const summaryFromProgress = (item: Record<string, unknown>) => {
   return summary;
 };
 
-const statsFromState = (watchlistItem: Record<string, unknown> | null, progress: Record<string, unknown> | null) => ({
+const statsFromState = (
+  watchlistItem: Record<string, unknown> | null,
+  progress: Record<string, unknown> | null,
+  likedItem: Record<string, unknown> | null = null,
+) => ({
   totalWatchedMovies: 0,
   totalWatchedEpisodes: progress?.watchedEpisodeCount ?? 0,
   currentlyWatchingCount: watchlistItem?.status === "watching" ? 1 : 0,
   completedShowsCount: watchlistItem?.status === "completed" ? 1 : 0,
   watchlistCount: watchlistItem ? 1 : 0,
+  likedCount: likedItem ? 1 : 0,
   progressShowCount: progress ? 1 : 0,
   totalWatchTimeMinutes: Number(progress?.watchedEpisodeCount ?? 0) * 42,
   longestStreakDays: progress ? 1 : 0,

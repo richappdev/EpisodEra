@@ -5,6 +5,7 @@ import {useAuth} from "./auth/AuthContext";
 import {useProfile} from "./hooks/useProfile";
 import {useProfileStats} from "./hooks/useProfileStats";
 import {useProgress} from "./hooks/useProgress";
+import {useLikes} from "./hooks/useLikes";
 import {useSettings} from "./hooks/useSettings";
 import {useWatchlist} from "./hooks/useWatchlist";
 import {
@@ -14,6 +15,7 @@ import {
 } from "./lib/continuation";
 import {setAnalyticsUserId} from "./firebase";
 import {HistoryEntry} from "./types/history";
+import {LikedItem} from "./types/likes";
 import {MediaDetail, MediaSummary} from "./types/media";
 import {UserProfile} from "./types/profile";
 import {ShowProgressSummary} from "./types/progress";
@@ -31,6 +33,10 @@ interface AppContextValue {
   historyLoadingMore: boolean;
   historyTotalCount: number;
   language: SupportedLanguage;
+  likedError: string | null;
+  likedItems: LikedItem[];
+  likedLoading: boolean;
+  likedTotalCount: number;
   pendingShowIds: ReadonlySet<number>;
   preferredProviderIds: number[];
   profile: UserProfile | null;
@@ -73,15 +79,18 @@ interface AppContextValue {
   markContinuationEpisodeWatched: (entry: ContinuationEntry) => Promise<ShowProgressSummary | null>;
   openAuth: () => void;
   openContinuationDetail: (entry: ContinuationEntry, nav: NavView) => void;
-  openMediaDetail: (item: MediaSummary | WatchlistItem, nav: NavView) => void;
+  openMediaDetail: (item: MediaSummary | WatchlistItem | LikedItem, nav: NavView) => void;
   refreshStats: () => void;
   reloadStats: () => void;
   reloadHistory: () => void;
+  reloadLikes: () => void;
   reloadWatchlist: () => void;
+  removeLikedItem: (item: LikedItem) => void;
   removeWatchlistItem: (item: WatchlistItem) => void;
   setProfile: (profile: UserProfile | null) => void;
   signOutAndReset: () => Promise<void>;
   syncWatchlistStatusFromProgress: (progress: ShowProgressSummary) => void;
+  toggleLike: (detail: MediaDetail) => void;
   updateHistoryWatchedAt: (historyId: string, watchedAt: string) => Promise<HistoryEntry>;
   updateWatchlistStatus: (item: WatchlistItem, status: WatchlistStatus) => void;
   upsertWatchlistItem: (item: WatchlistItem) => void;
@@ -112,6 +121,9 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
   const watchlist = useWatchlist(user, () => {
     void profileStats.refresh();
   });
+  const likes = useLikes(user, () => {
+    void profileStats.refresh();
+  });
   const progress = useProgress(user, () => {
     void profileStats.refresh();
   });
@@ -120,7 +132,7 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
     setAnalyticsUserId(user?.uid ?? null);
   }, [user]);
 
-  const openMediaDetail = (item: MediaSummary | WatchlistItem, nav: NavView) => {
+  const openMediaDetail = (item: MediaSummary | WatchlistItem | LikedItem, nav: NavView) => {
     const mediaType = item.mediaType;
     const id = "tmdbId" in item ? item.tmdbId : item.id;
     navigate(mediaPath({mediaType, id}), {state: {nav}});
@@ -141,6 +153,23 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
 
   const addToWatchlist = (selectedDetail: MediaDetail) => {
     void watchlist.addToWatchlist({
+      tmdbId: selectedDetail.id,
+      mediaType: selectedDetail.mediaType,
+      title: selectedDetail.title,
+      poster: selectedDetail.images.poster,
+      backdrop: selectedDetail.images.backdrop,
+    });
+  };
+
+  const toggleLike = (selectedDetail: MediaDetail) => {
+    const itemId = `${selectedDetail.mediaType}_${selectedDetail.id}`;
+    const existing = likes.items.find((candidate) => candidate.itemId === itemId);
+    if (existing) {
+      void likes.removeLikedItem(existing);
+      return;
+    }
+
+    void likes.addLikedItem({
       tmdbId: selectedDetail.id,
       mediaType: selectedDetail.mediaType,
       title: selectedDetail.title,
@@ -218,6 +247,10 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
       stats: profileStats.stats,
       statsError: profileStats.statsError,
       statsLoading: profileStats.statsLoading,
+      likedError: likes.error,
+      likedItems: likes.items,
+      likedLoading: likes.loading,
+      likedTotalCount: likes.totalCount,
       watchlistError: watchlist.error,
       watchlistHasMore: watchlist.hasMore,
       watchlistItems: watchlist.items,
@@ -252,8 +285,14 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
       reloadHistory: () => {
         void profileStats.reloadHistory();
       },
+      reloadLikes: () => {
+        void likes.reload();
+      },
       reloadWatchlist: () => {
         void watchlist.reload();
+      },
+      removeLikedItem: (item: LikedItem) => {
+        void likes.removeLikedItem(item);
       },
       removeWatchlistItem: (item: WatchlistItem) => {
         void watchlist.removeWatchlistItem(item);
@@ -261,6 +300,7 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
       setProfile: profileState.setProfile,
       signOutAndReset,
       syncWatchlistStatusFromProgress,
+      toggleLike,
       updateHistoryWatchedAt: profileStats.updateHistoryWatchedAt,
       updateWatchlistStatus: (item: WatchlistItem, status: WatchlistStatus) => {
         void watchlist.updateWatchlistStatus(item, status);
@@ -269,7 +309,7 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
       upsertProgressItem: progress.upsertProgressItem,
       removeProgressItem: progress.removeProgressItem,
     }),
-    [profileState.profile, profileStats, progress, settings, watchlist, user],
+    [likes, profileState.profile, profileStats, progress, settings, watchlist, user],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

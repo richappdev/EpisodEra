@@ -4,6 +4,7 @@ export type NavView =
   | "trending"
   | "search"
   | "watchlist"
+  | "likes"
   | "timeline"
   | "franchises"
   | "social"
@@ -25,6 +26,7 @@ export const paths = {
   tv: (id: number | string) => `/tv/${id}`,
   tvSeason: (id: number | string, seasonNumber: number | string) => `/tv/${id}/season/${seasonNumber}`,
   watchlist: "/watchlist",
+  likes: "/likes",
   continueWatching: "/continue-watching",
   timeline: "/timeline",
   franchises: "/franchises",
@@ -57,6 +59,9 @@ export const navFromPath = (pathname: string): NavView => {
   }
   if (pathname.startsWith("/continue-watching") || pathname.startsWith("/watchlist")) {
     return "watchlist";
+  }
+  if (pathname.startsWith("/likes")) {
+    return "likes";
   }
   if (pathname.startsWith("/timeline")) {
     return "timeline";

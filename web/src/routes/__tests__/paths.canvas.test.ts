@@ -12,6 +12,7 @@ describe("canvasFromPath", () => {
     expect(canvasFromPath(paths.movie(1))).toBe("cinema");
     expect(canvasFromPath(paths.tv(2))).toBe("cinema");
     expect(canvasFromPath(paths.watchlist)).toBe("cinema");
+    expect(canvasFromPath(paths.likes)).toBe("cinema");
     expect(canvasFromPath(paths.timeline)).toBe("cinema");
     expect(canvasFromPath(paths.profile)).toBe("cinema");
     expect(canvasFromPath(paths.settings)).toBe("cinema");
@@ -30,6 +31,7 @@ describe("landing and home paths", () => {
   it("maps /home to trending nav and /continue-watching to watchlist", () => {
     expect(navFromPath("/home")).toBe("trending");
     expect(navFromPath("/continue-watching")).toBe("watchlist");
+    expect(navFromPath("/likes")).toBe("likes");
     expect(paths.landing).toBe("/");
     expect(paths.home).toBe("/home");
   });

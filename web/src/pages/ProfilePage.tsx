@@ -200,6 +200,11 @@ export const ProfilePage = ({
               <span>saved titles</span>
             </div>
             <div>
+              <span className="media-kind">Liked</span>
+              <strong data-testid="stat-liked-count">{stats.likedCount}</strong>
+              <span>liked titles</span>
+            </div>
+            <div>
               <span className="media-kind">Progress</span>
               <strong data-testid="stat-progress-show-count">{stats.progressShowCount}</strong>
               <span>tracked shows</span>

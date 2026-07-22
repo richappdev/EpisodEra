@@ -1,4 +1,5 @@
 import {MediaDetail, TvSeasonDetail} from "../types/media";
+import {LikedItem} from "../types/likes";
 import {ShowProgress, ShowProgressSummary} from "../types/progress";
 import {UserStats, YearRecap} from "../types/stats";
 import {WatchlistItem} from "../types/watchlist";
@@ -88,6 +89,16 @@ export const watchlistItem: WatchlistItem = {
   updatedAt: now,
 };
 
+export const likedItem: LikedItem = {
+  itemId: `tv_${tvDetail.id}`,
+  tmdbId: tvDetail.id,
+  mediaType: "tv",
+  title: tvDetail.title,
+  poster: null,
+  backdrop: null,
+  likedAt: now,
+};
+
 export const progressSummary: ShowProgressSummary = {
   showId: String(tvDetail.id),
   tmdbId: tvDetail.id,
@@ -123,6 +134,7 @@ export const stats: UserStats = {
   currentlyWatchingCount: 1,
   completedShowsCount: 0,
   watchlistCount: 1,
+  likedCount: 0,
   progressShowCount: 1,
   totalWatchTimeMinutes: 42,
   longestStreakDays: 1,

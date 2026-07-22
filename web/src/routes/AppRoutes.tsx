@@ -11,6 +11,7 @@ import {SettingsPage} from "../pages/SettingsPage";
 import {SocialPage} from "../pages/SocialPage";
 import {TimelinePage} from "../pages/TimelinePage";
 import {WatchlistPage} from "../pages/WatchlistPage";
+import {LikesPage} from "../pages/LikesPage";
 import {HistoryEntry} from "../types/history";
 import {AuthRoute, ContinueWatchingRoute} from "./AuthRoute";
 import {MediaDetailRoute} from "./DetailRoute";
@@ -54,6 +55,32 @@ const RootRoute = () => {
     return <Navigate replace to={paths.home} />;
   }
   return <LandingPage />;
+};
+
+const LikesRoute = () => {
+  const {user} = useAuth();
+  const {
+    likedError,
+    likedItems,
+    likedLoading,
+    likedTotalCount,
+    openMediaDetail,
+    reloadLikes,
+    removeLikedItem,
+  } = useAppContext();
+
+  return (
+    <LikesPage
+      error={likedError}
+      items={likedItems}
+      loading={likedLoading}
+      signedIn={Boolean(user)}
+      totalCount={likedTotalCount}
+      onRemove={removeLikedItem}
+      onRetry={reloadLikes}
+      onSelect={(item) => openMediaDetail(item, "likes")}
+    />
+  );
 };
 
 const WatchlistRoute = () => {
@@ -352,6 +379,7 @@ export const AppRoutes = () => (
       <Route element={<MediaDetailRoute mediaType="tv" />} path="/tv/:id" />
       <Route element={<MediaDetailRoute mediaType="tv" />} path="/tv/:id/season/:seasonNumber" />
       <Route element={<WatchlistRoute />} path={paths.watchlist} />
+      <Route element={<LikesRoute />} path={paths.likes} />
       <Route element={<ContinueWatchingRoute />} path={paths.continueWatching} />
       <Route element={<TimelineRoute />} path={paths.timeline} />
       <Route element={<FranchiseListRoute />} path={paths.franchises} />

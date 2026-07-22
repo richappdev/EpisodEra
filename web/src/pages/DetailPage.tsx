@@ -10,6 +10,7 @@ import {
   ExternalLink,
   Eye,
   EyeOff,
+  Heart,
   ListChecks,
   Star,
   Trash2,
@@ -42,6 +43,7 @@ const statusLabels: Record<WatchlistStatus, string> = {
 
 interface DetailPageProps {
   detail: MediaDetail;
+  liked: boolean;
   onEpisodeWatched: (episode: EpisodeSummary) => void;
   onEpisodeUnwatched: (episode: EpisodeSummary) => void;
   onAddToWatchlist: (detail: MediaDetail) => void;
@@ -53,6 +55,7 @@ interface DetailPageProps {
   onMarkSelectedEpisodes: (episodes: EpisodeSummary[], watched: boolean) => void;
   onRemoveFromWatchlist: (item: WatchlistItem) => void;
   onSeasonChange: (seasonNumber: number) => void;
+  onToggleLike: (detail: MediaDetail) => void;
   onWatchlistStatusChange: (item: WatchlistItem, status: WatchlistStatus) => void;
   progress: ShowProgress | null;
   progressError: string | null;
@@ -67,6 +70,7 @@ interface DetailPageProps {
 
 export const DetailPage = ({
   detail,
+  liked,
   onEpisodeWatched,
   onEpisodeUnwatched,
   onAddToWatchlist,
@@ -78,6 +82,7 @@ export const DetailPage = ({
   onMarkSelectedEpisodes,
   onRemoveFromWatchlist,
   onSeasonChange,
+  onToggleLike,
   onWatchlistStatusChange,
   progress,
   progressError,
@@ -413,101 +418,117 @@ export const DetailPage = ({
             <div className="detail-actions detail-icon-rail" role="group" aria-label="Title actions">
               {!signedIn ? (
                 <span className="auth-note">Sign in to save this title.</span>
-              ) : watchlistItem ? (
+              ) : (
                 <>
-                  {detail.mediaType === "movie" ? (
-                    <button
-                      className={
-                        watchlistItem.status === "watched" ? "rail-button is-active" : "rail-button"
-                      }
-                      type="button"
-                      data-testid="detail-watchlist-status"
-                      aria-pressed={watchlistItem.status === "watched"}
-                      aria-label={
-                        watchlistItem.status === "watched"
-                          ? `Mark ${detail.title} as not watched`
-                          : `Mark ${detail.title} as watched`
-                      }
-                      title={watchlistItem.status === "watched" ? "Watched" : "Not watched"}
-                      onClick={() =>
-                        onWatchlistStatusChange(
-                          watchlistItem,
-                          watchlistItem.status === "watched" ? "unwatched" : "watched",
-                        )
-                      }
-                    >
-                      {watchlistItem.status === "watched" ? (
-                        <Eye size={18} aria-hidden="true" />
-                      ) : (
-                        <EyeOff size={18} aria-hidden="true" />
-                      )}
-                      <span>{watchlistItem.status === "watched" ? "Watched" : "Unwatched"}</span>
-                    </button>
-                  ) : (
-                    tvWatchlistStatuses.map((status) => {
-                      const active = watchlistItem.status === status;
-                      const Icon =
-                        status === "planned"
-                          ? Bookmark
-                          : status === "watching"
-                            ? Eye
-                            : status === "completed"
-                              ? CheckCircle2
-                              : Circle;
-                      return (
-                        <button
-                          key={status}
-                          className={active ? "rail-button is-active" : "rail-button"}
-                          type="button"
-                          data-testid={`detail-status-${status}`}
-                          aria-pressed={active}
-                          title={statusLabels[status]}
-                          onClick={() => onWatchlistStatusChange(watchlistItem, status)}
-                        >
-                          <Icon size={18} aria-hidden="true" />
-                          <span>{statusLabels[status]}</span>
-                        </button>
-                      );
-                    })
-                  )}
                   <button
-                    className="rail-button rail-button-danger"
-                    data-testid="detail-remove-watchlist"
+                    className={liked ? "rail-button is-active" : "rail-button"}
                     type="button"
-                    onClick={() => onRemoveFromWatchlist(watchlistItem)}
+                    data-testid="detail-like-toggle"
+                    aria-pressed={liked}
+                    aria-label={liked ? `Unlike ${detail.title}` : `Like ${detail.title}`}
+                    title={liked ? "Liked" : "Like"}
+                    onClick={() => onToggleLike(detail)}
                   >
-                    <Trash2 size={16} aria-hidden="true" />
-                    <span>Remove</span>
+                    <Heart size={18} aria-hidden="true" fill={liked ? "currentColor" : "none"} />
+                    <span>{liked ? "Liked" : "Like"}</span>
                   </button>
-                  {detail.mediaType === "tv" && (
-                    <select
-                      className="sr-only"
-                      aria-label={`Watchlist status for ${detail.title}`}
-                      data-testid="detail-watchlist-status"
-                      tabIndex={-1}
-                      value={watchlistItem.status}
-                      onChange={(event) =>
-                        onWatchlistStatusChange(watchlistItem, event.target.value as WatchlistStatus)
-                      }
+                  {watchlistItem ? (
+                    <>
+                      {detail.mediaType === "movie" ? (
+                        <button
+                          className={
+                            watchlistItem.status === "watched" ? "rail-button is-active" : "rail-button"
+                          }
+                          type="button"
+                          data-testid="detail-watchlist-status"
+                          aria-pressed={watchlistItem.status === "watched"}
+                          aria-label={
+                            watchlistItem.status === "watched"
+                              ? `Mark ${detail.title} as not watched`
+                              : `Mark ${detail.title} as watched`
+                          }
+                          title={watchlistItem.status === "watched" ? "Watched" : "Not watched"}
+                          onClick={() =>
+                            onWatchlistStatusChange(
+                              watchlistItem,
+                              watchlistItem.status === "watched" ? "unwatched" : "watched",
+                            )
+                          }
+                        >
+                          {watchlistItem.status === "watched" ? (
+                            <Eye size={18} aria-hidden="true" />
+                          ) : (
+                            <EyeOff size={18} aria-hidden="true" />
+                          )}
+                          <span>{watchlistItem.status === "watched" ? "Watched" : "Unwatched"}</span>
+                        </button>
+                      ) : (
+                        tvWatchlistStatuses.map((status) => {
+                          const active = watchlistItem.status === status;
+                          const Icon =
+                            status === "planned"
+                              ? Bookmark
+                              : status === "watching"
+                                ? Eye
+                                : status === "completed"
+                                  ? CheckCircle2
+                                  : Circle;
+                          return (
+                            <button
+                              key={status}
+                              className={active ? "rail-button is-active" : "rail-button"}
+                              type="button"
+                              data-testid={`detail-status-${status}`}
+                              aria-pressed={active}
+                              title={statusLabels[status]}
+                              onClick={() => onWatchlistStatusChange(watchlistItem, status)}
+                            >
+                              <Icon size={18} aria-hidden="true" />
+                              <span>{statusLabels[status]}</span>
+                            </button>
+                          );
+                        })
+                      )}
+                      <button
+                        className="rail-button rail-button-danger"
+                        data-testid="detail-remove-watchlist"
+                        type="button"
+                        onClick={() => onRemoveFromWatchlist(watchlistItem)}
+                      >
+                        <Trash2 size={16} aria-hidden="true" />
+                        <span>Remove</span>
+                      </button>
+                      {detail.mediaType === "tv" && (
+                        <select
+                          className="sr-only"
+                          aria-label={`Watchlist status for ${detail.title}`}
+                          data-testid="detail-watchlist-status"
+                          tabIndex={-1}
+                          value={watchlistItem.status}
+                          onChange={(event) =>
+                            onWatchlistStatusChange(watchlistItem, event.target.value as WatchlistStatus)
+                          }
+                        >
+                          {tvWatchlistStatuses.map((status) => (
+                            <option key={status} value={status}>
+                              {statusLabels[status]}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </>
+                  ) : (
+                    <button
+                      className="rail-button is-active"
+                      data-testid="detail-add-watchlist"
+                      type="button"
+                      onClick={() => onAddToWatchlist(detail)}
                     >
-                      {tvWatchlistStatuses.map((status) => (
-                        <option key={status} value={status}>
-                          {statusLabels[status]}
-                        </option>
-                      ))}
-                    </select>
+                      <Bookmark size={16} aria-hidden="true" />
+                      <span>Add to watchlist</span>
+                    </button>
                   )}
                 </>
-              ) : (
-                <button
-                  className="rail-button is-active"
-                  data-testid="detail-add-watchlist"
-                  type="button"
-                  onClick={() => onAddToWatchlist(detail)}
-                >
-                  <Bookmark size={16} aria-hidden="true" />
-                  <span>Add to watchlist</span>
-                </button>
               )}
             </div>
           </div>

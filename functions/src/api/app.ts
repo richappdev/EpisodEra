@@ -15,6 +15,7 @@ import {meExportRouter} from "./meExportRoutes";
 import {meRouter} from "./meRoutes";
 import {discoveryRouter} from "./discoveryRoutes";
 import {progressRouter} from "./progressRoutes";
+import {likesRouter} from "./likesRoutes";
 import {watchlistRouter} from "./watchlistRoutes";
 import {puzzleRouter} from "./puzzleRoutes";
 
@@ -68,6 +69,7 @@ app.get("/health", (_req, res) => {
 app.use("/", mediaRouter);
 app.use("/", discoveryRouter);
 app.use("/", watchlistRouter);
+app.use("/", likesRouter);
 app.use("/", progressRouter);
 app.use("/", meExportRouter);
 app.use("/", meRouter);

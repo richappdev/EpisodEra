@@ -21,6 +21,7 @@ import {
   DiscussionComment,
   FriendsResponse,
 } from "../types/social";
+import {AddLikedItemInput, LikedItem, LikedResponse} from "../types/likes";
 import {AddWatchlistItemInput, WatchlistItem, WatchlistResponse, WatchlistStatus} from "../types/watchlist";
 import {
   ImportEpisodeInput,
@@ -229,6 +230,11 @@ export const api = {
   updateWatchlistStatus: (itemId: string, status: WatchlistStatus) =>
     request<WatchlistItem>(`/watchlist/${itemId}/status`, {method: "PATCH", body: {status}}),
   removeWatchlistItem: (itemId: string) => request<null>(`/watchlist/${itemId}`, {method: "DELETE"}),
+  listLikedItems: (pagination?: PaginationParams) =>
+    request<LikedResponse>(withPagination("/likes", pagination)),
+  addLikedItem: (input: AddLikedItemInput) =>
+    request<LikedItem>("/likes", {method: "POST", body: input}),
+  removeLikedItem: (itemId: string) => request<null>(`/likes/${itemId}`, {method: "DELETE"}),
   deleteAccount: () => request<null>("/me/account", {method: "DELETE"}),
   resolveTvTimeShows: (shows: ResolveTvTimeShowInput[]) =>
     request<ResolveTvTimeShowsResponse>("/me/imports/resolve-tv-time-shows", {

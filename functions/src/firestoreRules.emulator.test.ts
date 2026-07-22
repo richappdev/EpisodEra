@@ -51,6 +51,48 @@ const withUnauthedDb = async () => {
 
 const skipWithoutEmulator = emulatorHost ? false : "Set FIRESTORE_EMULATOR_HOST to run Firestore rules tests.";
 
+test("rules allow users to read and write their own valid liked items", {
+  skip: skipWithoutEmulator,
+}, async () => {
+  await clearData();
+  const db = await withAuthedDb("alice");
+
+  await assertSucceeds(setDoc(doc(db, "users/alice/likes/movie_550"), {
+    tmdbId: 550,
+    mediaType: "movie",
+    title: "Fight Club",
+    poster: null,
+    backdrop: null,
+  }));
+
+  await assertSucceeds(getDoc(doc(db, "users/alice/likes/movie_550")));
+});
+
+test("rules reject unexpected fields on liked items and deny cross-user likes access", {
+  skip: skipWithoutEmulator,
+}, async () => {
+  await clearData();
+  const aliceDb = await withAuthedDb("alice");
+  const bobDb = await withAuthedDb("bob");
+
+  await assertFails(setDoc(doc(aliceDb, "users/alice/likes/tv_95396"), {
+    tmdbId: 95396,
+    mediaType: "tv",
+    title: "Severance",
+    ownerUid: "alice",
+  }));
+
+  await assertSucceeds(setDoc(doc(aliceDb, "users/alice/likes/tv_95396"), {
+    tmdbId: 95396,
+    mediaType: "tv",
+    title: "Severance",
+    poster: null,
+    backdrop: null,
+  }));
+
+  await assertFails(getDoc(doc(bobDb, "users/alice/likes/tv_95396")));
+});
+
 test("rules allow users to read and write their own valid watchlist items", {
   skip: skipWithoutEmulator,
 }, async () => {
