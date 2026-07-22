@@ -73,8 +73,8 @@ const AppShell = () => {
   }, [canvas, isLanding]);
 
   useEffect(() => {
-    applyDocumentSeo(location.pathname, language);
-  }, [language, location.pathname]);
+    applyDocumentSeo(location.pathname, language, {siteBlocked: siteAccessBlocked});
+  }, [language, location.pathname, siteAccessBlocked]);
 
   if (siteAccessBlocked) {
     return <SiteBlockedPage />;

@@ -2,6 +2,7 @@ import {useCallback, useEffect, useState} from "react";
 import {useNavigate, useParams} from "react-router-dom";
 import {api} from "../api/client";
 import {useAuth} from "../auth/AuthContext";
+import {useDocumentPageTitle} from "../hooks/useDocumentPageTitle";
 import {FranchiseListPage} from "../pages/FranchiseListPage";
 import {FranchiseDetailPage} from "../pages/FranchiseDetailPage";
 import {FranchiseOrder, FranchiseProgress, FranchiseSummary} from "../types/franchise";
@@ -105,6 +106,8 @@ export const FranchiseDetailRoute = () => {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useDocumentPageTitle(progress?.name);
 
   return (
     <FranchiseDetailPage

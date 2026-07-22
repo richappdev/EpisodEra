@@ -34,6 +34,7 @@ import {
 import {UserDataExport} from "../types/export";
 import {
   AdminPuzzleDraft,
+  AdminPuzzleDetail,
   DailyPuzzlePayload,
   GuessRequest,
   GuessResponse,
@@ -288,6 +289,8 @@ export const api = {
         locale: string;
       }>;
     }>("/admin/puzzles"),
+  adminGetPuzzle: (puzzleId: string) =>
+    request<AdminPuzzleDetail>(`/admin/puzzles/${encodeURIComponent(puzzleId)}`),
   adminUpsertPuzzle: (body: AdminPuzzleDraft) =>
     request<{puzzleId: string}>("/admin/puzzles", {method: "POST", body}),
   adminPublishScheduledPuzzles: () =>

@@ -3323,6 +3323,21 @@ html[data-chrome="landing"] body {
   object-fit: cover;
 }
 
+.admin-puzzle-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-puzzle-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 @media (max-width: 640px) {
   .daily-puzzle-choices {
     grid-template-columns: 1fr;

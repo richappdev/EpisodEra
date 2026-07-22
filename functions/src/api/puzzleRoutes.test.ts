@@ -26,11 +26,13 @@ const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   res.status(500).json({error: {code: "internal", message: "Internal server error."}});
 };
 
-const createTestApp = () => {
+const createTestApp = (options?: {adminEmail?: string}) => {
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => {
-    (req as AuthenticatedRequest).user = undefined;
+    (req as AuthenticatedRequest).user = options?.adminEmail
+      ? {uid: "admin-user", email: options.adminEmail}
+      : undefined;
     next();
   });
   app.use("/", puzzleRouter);
@@ -133,4 +135,58 @@ test("POST /puzzles/:id/guess validates choiceId", async () => {
   });
   assert.equal(response.status, 400);
   assert.equal(response.payload.error?.code, "invalid_choice");
+});
+
+test("GET /admin/puzzles/:puzzleId returns editorial puzzle detail", async () => {
+  const previousAllowlist = process.env.PUZZLE_ADMIN_EMAILS;
+  process.env.PUZZLE_ADMIN_EMAILS = "admin@example.com";
+  const original = puzzleService.getPuzzleForAdmin;
+  puzzleService.getPuzzleForAdmin = async () => ({
+    puzzleId: "2026-07-22",
+    puzzleDate: "2026-07-22",
+    imageUrl: "https://example.com/a.webp",
+    mobileImageUrl: null,
+    choices: puzzleFixture.choices,
+    maxAttempts: 3,
+    nextPuzzleAt: "2026-07-23T00:00:00.000Z",
+    locale: "en-US",
+    correctChoiceId: "a",
+    correctShowId: 1396,
+    correctTitle: "Breaking Bad",
+    hints: [{revealAfterAttempt: 1, type: "year", value: "2008"}],
+    status: "published",
+    difficulty: "medium",
+    seasonNumber: 1,
+    episodeNumber: 1,
+  });
+
+  try {
+    const response = await request(createTestApp({adminEmail: "admin@example.com"}), "/admin/puzzles/2026-07-22");
+    assert.equal(response.status, 200);
+    assert.equal(response.payload.puzzleId, "2026-07-22");
+    assert.equal(response.payload.correctTitle, "Breaking Bad");
+  } finally {
+    puzzleService.getPuzzleForAdmin = original;
+    if (previousAllowlist === undefined) {
+      delete process.env.PUZZLE_ADMIN_EMAILS;
+    } else {
+      process.env.PUZZLE_ADMIN_EMAILS = previousAllowlist;
+    }
+  }
+});
+
+test("GET /admin/puzzles/:puzzleId rejects invalid ids", async () => {
+  const previousAllowlist = process.env.PUZZLE_ADMIN_EMAILS;
+  process.env.PUZZLE_ADMIN_EMAILS = "admin@example.com";
+  try {
+    const response = await request(createTestApp({adminEmail: "admin@example.com"}), "/admin/puzzles/not-a-date");
+    assert.equal(response.status, 400);
+    assert.equal(response.payload.error?.code, "invalid_puzzle_id");
+  } finally {
+    if (previousAllowlist === undefined) {
+      delete process.env.PUZZLE_ADMIN_EMAILS;
+    } else {
+      process.env.PUZZLE_ADMIN_EMAILS = previousAllowlist;
+    }
+  }
 });

@@ -248,6 +248,10 @@ class PuzzleService {
     this.validatePuzzleInput(input);
     const puzzleId = input.puzzleDate;
     const nowIso = new Date().toISOString();
+    const existingPrivate = await this.privateCollection().doc(puzzleId).get();
+    const existingData = existingPrivate.exists ? (existingPrivate.data() as PrivatePuzzleDoc) : null;
+    const createdAt = existingData?.createdAt ?? nowIso;
+    const publishedAt = input.status === "published" ? (existingData?.publishedAt ?? nowIso) : null;
     const publicDoc: PublicPuzzleDoc = {
       id: puzzleId,
       puzzleDate: input.puzzleDate,
@@ -267,9 +271,9 @@ class PuzzleService {
       difficulty: input.difficulty,
       seasonNumber: input.seasonNumber,
       episodeNumber: input.episodeNumber,
-      createdAt: nowIso,
+      createdAt,
       updatedAt: nowIso,
-      publishedAt: input.status === "published" ? nowIso : null,
+      publishedAt,
     };
 
     const batch = getFirestore().batch();
@@ -285,6 +289,54 @@ class PuzzleService {
     );
     await batch.commit();
     return {puzzleId};
+  }
+
+  async getPuzzleForAdmin(puzzleId: string): Promise<{
+    puzzleId: string;
+    puzzleDate: string;
+    imageUrl: string;
+    mobileImageUrl: string | null;
+    choices: PuzzleChoice[];
+    maxAttempts: number;
+    nextPuzzleAt: string;
+    locale: string;
+    correctChoiceId: string;
+    correctShowId: number;
+    correctTitle: string;
+    hints: PrivatePuzzleDoc["hints"];
+    status: PrivatePuzzleDoc["status"];
+    difficulty: PrivatePuzzleDoc["difficulty"];
+    seasonNumber: number | null;
+    episodeNumber: number | null;
+  }> {
+    const [publicSnap, privateSnap] = await Promise.all([
+      this.publicCollection().doc(puzzleId).get(),
+      this.privateCollection().doc(puzzleId).get(),
+    ]);
+    if (!publicSnap.exists || !privateSnap.exists) {
+      throw new HttpError(404, "Puzzle not found.", "puzzle_not_found");
+    }
+    const publicData = this.mapPublic(publicSnap.id, publicSnap.data() as Record<string, unknown>);
+    const privateData = privateSnap.data() as PrivatePuzzleDoc & {correctTitle?: string};
+    const correctChoice = publicData.choices.find((choice) => choice.choiceId === privateData.correctChoiceId);
+    return {
+      puzzleId: publicData.id,
+      puzzleDate: publicData.puzzleDate,
+      imageUrl: publicData.imageUrl,
+      mobileImageUrl: publicData.mobileImageUrl,
+      choices: publicData.choices,
+      maxAttempts: publicData.maxAttempts,
+      nextPuzzleAt: publicData.nextPuzzleAt,
+      locale: publicData.locale,
+      correctChoiceId: privateData.correctChoiceId,
+      correctShowId: privateData.correctShowId,
+      correctTitle: privateData.correctTitle ?? correctChoice?.title ?? "",
+      hints: privateData.hints ?? [],
+      status: privateData.status,
+      difficulty: privateData.difficulty,
+      seasonNumber: privateData.seasonNumber ?? null,
+      episodeNumber: privateData.episodeNumber ?? null,
+    };
   }
 
   async publishScheduledPuzzles(now = new Date()): Promise<{published: string[]}> {

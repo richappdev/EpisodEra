@@ -365,8 +365,8 @@ A feature is complete only when all applicable conditions are met:
 
 | Resource              | Current status                                                                                                          |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| GitHub implementation | Tip `d72b191` (2026-07-20) + local P0 hardening: A9 staging cleanup, SHA-256 import sourceHash, import resume, production-smoke App Check + import path probes. TV Time Phase 1 acceptance **OPEN**. Latest hosted smoke PASS is `5a9ecf9` ([run 29565696402](https://github.com/richappdev/EpisodEra/actions/runs/29565696402)), **not** tip-matched. |
-| Notion planning       | MVP Dashboard is the **only** active SHA page. Child pages link to it (Document status: Needs sync until P0 merge). Import acceptance still open. |
+| GitHub implementation | Tip `3811117` (2026-07-22). P0 hardening landed in `9a0420e`; Daily Puzzle landed in `c06053b`; puzzle-admin environment documentation landed in `3811117`. TV Time Phase 1 acceptance remains **OPEN**. Latest recorded hosted smoke PASS is `5a9ecf9`, not tip-matched. |
+| Notion planning       | MVP Dashboard is the only active SHA page. Child pages link to it. Import acceptance remains open; Daily Puzzle implementation/ops status is tracked separately from its product plan. |
 | Figma design          | Cinema Memory D0–D3 **shipped in GitHub/live app** (`fb5cd08`). Figma file rebuild/verification pending — use [`docs/CinemaMemoryDesign.md`](./CinemaMemoryDesign.md) as the handoff brief. MCP write access may still be limited. |
 | Canva reporting       | Refresh stakeholder decks with Cinema Memory talking points in `CinemaMemoryDesign.md`; keep import acceptance and tip-matched smoke language accurate |
 
@@ -381,13 +381,20 @@ At the time of this update:
 These limitations affect resource synchronization only. They do not change product scope or implementation status.
 
 ## Change Log
+### 2026-07-22 (Daily Puzzle + baseline sync)
+
+* Shipped the Daily Puzzle player, Functions-backed attempts/stats, editorial puzzle studio, scheduler, routes, analytics, profile stats, and achievement integration in `c06053b`.
+* Documented `PUZZLE_ADMIN_EMAILS` in `3811117`.
+* Rebaselined active documentation from `d72b191` to `3811117`; P0 import hardening is merged, while hosted smoke and soak evidence remain open.
+* Current uncommitted work adds loading/editing of existing puzzles through `GET /admin/puzzles/:puzzleId`; document it as shipped only after commit.
+
 ### 2026-07-20 (P0 evidence + import hardening)
 
 * Implemented A9 post-complete staging cleanup (`stagingClearedAt` / `stagingDocsDeleted`).
 * Switched client `sourceHash` to SHA-256 of ZIP/CSV bytes; added sessionStorage resume for staged/running imports.
 * Extended `production-smoke.mjs` with App Check enforce negative probe and tiny import path (create → stage → commit → run → cleanup assert).
 * Reconciled README routes + App Check default-vs-prod wording; pointed Notion child pages at Dashboard as sole active SHA.
-* Next: merge → deploy Functions → tip-matched hosted smoke → soak (A3) to close Phase 1.
+* Landed in `9a0420e`; next: deploy/verify the current release candidate, record tip-matched hosted smoke, and run the A3 soak.
 
 ### 2026-07-18 (Tip sync to c488249)
 

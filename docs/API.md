@@ -47,6 +47,7 @@ TMDb detail and TV season reads use a 24-hour per-Functions-instance in-memory T
 | `POST` | `/puzzles/:puzzleId/guess` | Public with player id (optional auth) | `200` |
 | `GET` | `/puzzles/stats` | Firebase ID token | `200` |
 | `GET` | `/admin/puzzles` | Admin allowlist | `200` |
+| `GET` | `/admin/puzzles/:puzzleId` | Admin allowlist | `200` |
 | `POST` | `/admin/puzzles` | Admin allowlist | `201` |
 | `POST` | `/admin/puzzles/publish-scheduled` | Admin allowlist | `200` |
 | `GET` | `/admin/puzzles/search-tv` | Admin allowlist | `200` |
@@ -721,6 +722,8 @@ X-Episodera-Player-Id: <required-when-signed-out>
 ```
 
 Admin studio routes require Firebase Auth plus an email listed in `PUZZLE_ADMIN_EMAILS`. Scheduled puzzles publish via `POST /admin/puzzles/publish-scheduled` or the `publishScheduledPuzzle` Cloud Scheduler function (01:00 UTC).
+
+`GET /admin/puzzles/:puzzleId` returns the combined public/private editorial detail for an existing `YYYY-MM-DD` puzzle so the studio can load and update it. This endpoint is present in the current working tree and should be treated as pending until that change is committed.
 
 ## Franchises and Smart Discovery
 

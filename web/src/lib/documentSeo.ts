@@ -54,8 +54,30 @@ const pageTitles: Record<SupportedLanguage, Partial<Record<string, string>>> = {
   },
 };
 
+const siteBlockedTitles: Record<SupportedLanguage, string> = {
+  "en-US": "Under optimization",
+  "zh-TW": "網站優化中",
+};
+
 export const htmlLangFor = (language: SupportedLanguage): string =>
   language === "zh-TW" ? "zh-Hant" : "en";
+
+export const brandedPageTitle = (label: string): string => `${label} · Episodera`;
+
+export const mediaDetailPageLabel = (
+  title: string,
+  options: {language: SupportedLanguage; seasonNumber?: number | null} = {
+    language: "en-US",
+  },
+): string => {
+  if (options.seasonNumber == null) {
+    return title;
+  }
+
+  return options.language === "zh-TW"
+    ? `${title} · 第 ${options.seasonNumber} 季`
+    : `${title} · Season ${options.seasonNumber}`;
+};
 
 export const titleForPath = (pathname: string, language: SupportedLanguage): string => {
   const defaults = defaultSeoCopy[language];
@@ -65,19 +87,27 @@ export const titleForPath = (pathname: string, language: SupportedLanguage): str
 
   const exact = pageTitles[language][pathname];
   if (exact) {
-    return `${exact} · Episodera`;
+    return brandedPageTitle(exact);
   }
 
-  if (pathname.startsWith("/movie/") || pathname.startsWith("/tv/")) {
-    return language === "zh-TW" ? "作品詳情 · Episodera" : "Title · Episodera";
+  if (pathname.startsWith("/list/")) {
+    return brandedPageTitle(language === "zh-TW" ? "清單" : "List");
+  }
+
+  if (pathname.startsWith("/movie/")) {
+    return brandedPageTitle(language === "zh-TW" ? "電影" : "Movie");
+  }
+
+  if (pathname.startsWith("/tv/")) {
+    return brandedPageTitle(language === "zh-TW" ? "影集" : "TV show");
   }
 
   if (pathname.startsWith(`${paths.franchises}/`)) {
-    return language === "zh-TW" ? "片單宇宙 · Episodera" : "Franchise · Episodera";
+    return brandedPageTitle(language === "zh-TW" ? "片單宇宙" : "Franchise");
   }
 
   if (pathname.startsWith(`${paths.play}/`)) {
-    return language === "zh-TW" ? "遊戲 · Episodera" : "Play · Episodera";
+    return brandedPageTitle(language === "zh-TW" ? "遊戲" : "Play");
   }
 
   return defaults.title;
@@ -90,16 +120,32 @@ const setMetaContent = (selector: string, content: string) => {
   }
 };
 
-export const applyDocumentSeo = (pathname: string, language: SupportedLanguage) => {
+const setDocumentTitle = (title: string) => {
+  document.title = title;
+  setMetaContent('meta[property="og:title"]', title);
+  setMetaContent('meta[name="twitter:title"]', title);
+};
+
+export const applyBrandedDocumentTitle = (label: string) => {
+  setDocumentTitle(brandedPageTitle(label));
+};
+
+export const applyDocumentSeo = (
+  pathname: string,
+  language: SupportedLanguage,
+  options: {pageLabel?: string | null; siteBlocked?: boolean} = {},
+) => {
   const defaults = defaultSeoCopy[language];
-  const title = titleForPath(pathname, language);
+  const title = options.siteBlocked
+    ? brandedPageTitle(siteBlockedTitles[language])
+    : options.pageLabel
+      ? brandedPageTitle(options.pageLabel)
+      : titleForPath(pathname, language);
 
   document.documentElement.lang = htmlLangFor(language);
-  document.title = title;
+  setDocumentTitle(title);
   setMetaContent('meta[name="description"]', defaults.description);
-  setMetaContent('meta[property="og:title"]', title);
   setMetaContent('meta[property="og:description"]', defaults.description);
   setMetaContent('meta[property="og:locale"]', language === "zh-TW" ? "zh_TW" : "en_US");
-  setMetaContent('meta[name="twitter:title"]', title);
   setMetaContent('meta[name="twitter:description"]', defaults.description);
 };

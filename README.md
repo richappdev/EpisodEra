@@ -31,6 +31,7 @@ The project is in MVP hardening. Core web features are implemented, progress-tra
   - watched count
   - progress percentage
 - Continue Watching shortcuts for in-progress TV shows using the backend-calculated next unwatched episode.
+- Daily Puzzle at `/play/daily-puzzle` with anonymous or signed-in play, four opaque choices, three attempts, progressive hints, sharing, show/watchlist actions, signed-in streak aggregates, and a Functions-protected editorial studio at `/admin/puzzles`.
 - Profile and stats:
   - watched movies
   - watched episodes
@@ -44,7 +45,7 @@ The project is in MVP hardening. Core web features are implemented, progress-tra
 - GitHub Actions CI for backend build, backend lint, backend unit tests with coverage enforcement, Java-backed Firestore emulator tests, frontend build, frontend component coverage enforcement, and Playwright critical-flow, progress edge-case, and responsive/accessibility smoke coverage.
 - GitHub Actions `Production Smoke` workflow for manual-dispatch or scheduled deployed signed-in validation using protected repository secrets.
 - Account deletion manually validated on 2026-07-13 against the deployed app (`DELETE /me/account`, Auth removal, Firestore cleanup) using a throwaway account.
-- URL routing and shareable deep links with React Router (`/`, `/home`, `/search`, `/movie/:id`, `/tv/:id`, `/tv/:id/season/:seasonNumber`, `/watchlist`, `/continue-watching`, `/timeline`, `/franchises`, `/franchises/:slug`, `/list/:listId`, `/social`, `/profile`, `/settings`, `/privacy`, `/login`, `/signup`). Canonical route map: `web/src/routes/paths.ts` and `docs/Navigation.md`.
+- URL routing and shareable deep links with React Router (`/`, `/home`, `/search`, `/movie/:id`, `/tv/:id`, `/tv/:id/season/:seasonNumber`, `/watchlist`, `/continue-watching`, `/timeline`, `/franchises`, `/franchises/:slug`, `/list/:listId`, `/play`, `/play/daily-puzzle`, `/admin/puzzles`, `/social`, `/profile`, `/settings`, `/privacy`, `/login`, `/signup`). Canonical route map: `web/src/routes/paths.ts` and `docs/Navigation.md`.
 - Project documentation for architecture, API contracts, Firestore schema, auth, navigation, deployment, coding standards, and dependency audit posture.
 
 ## Tech Stack
@@ -114,6 +115,8 @@ Read-only endpoints:
 - `GET /movie/:id`
 - `GET /tv/:id`
 - `GET /tv/:id/season/:seasonNumber`
+- `GET /puzzles/today`
+- `POST /puzzles/:puzzleId/guess`
 
 Authenticated user endpoints:
 

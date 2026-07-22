@@ -2,15 +2,20 @@ import {useCallback, useEffect, useState} from "react";
 import {useNavigate, useParams} from "react-router-dom";
 import {api} from "../api/client";
 import {useAppContext} from "../AppContext";
+import {useDocumentPageTitle} from "../hooks/useDocumentPageTitle";
 import {ListPage} from "../pages/ListPage";
 import {MediaSummary} from "../types/media";
+import {SupportedLanguage} from "../types/settings";
 import {mediaPath} from "./paths";
+
+const listFallbackTitle = (language: SupportedLanguage) =>
+  language === "zh-TW" ? "清單" : "List";
 
 export const ListRoute = () => {
   const {listId = ""} = useParams();
   const navigate = useNavigate();
   const {language, preferredProviderIds, watchRegion} = useAppContext();
-  const [title, setTitle] = useState("List");
+  const [title, setTitle] = useState(() => listFallbackTitle(language));
   const [reason, setReason] = useState<string | null>(null);
   const [items, setItems] = useState<MediaSummary[]>([]);
   const [page, setPage] = useState(1);
@@ -61,8 +66,14 @@ export const ListRoute = () => {
   );
 
   useEffect(() => {
+    setTitle(listFallbackTitle(language));
+  }, [language, listId]);
+
+  useEffect(() => {
     void load(1, false);
   }, [load]);
+
+  useDocumentPageTitle(title);
 
   return (
     <ListPage

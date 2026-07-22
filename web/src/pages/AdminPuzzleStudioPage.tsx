@@ -5,7 +5,7 @@ import {api} from "../api/client";
 import {useAuth} from "../auth/AuthContext";
 import {SectionError} from "../components/SectionError";
 import {paths} from "../routes/paths";
-import {AdminPuzzleDraft, PuzzleHint} from "../types/dailyPuzzle";
+import {AdminPuzzleDetail, AdminPuzzleDraft, PuzzleHint} from "../types/dailyPuzzle";
 import {utcPuzzleDate} from "../lib/dailyPuzzleLogic";
 
 interface SearchHit {
@@ -32,6 +32,16 @@ const defaultHints = (): PuzzleHint[] => [
   {revealAfterAttempt: 2, type: "genre", value: ""},
 ];
 
+const stillFromSavedUrls = (imageUrl: string, mobileImageUrl: string | null): StillItem => ({
+  filePath: "saved-image",
+  desktopUrl: imageUrl,
+  mobileUrl: mobileImageUrl || imageUrl,
+  width: 0,
+  height: 0,
+  aspectRatio: 16 / 9,
+  voteAverage: 0,
+});
+
 export const AdminPuzzleStudioPage = () => {
   const {user} = useAuth();
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +59,7 @@ export const AdminPuzzleStudioPage = () => {
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium");
   const [status, setStatus] = useState<"draft" | "scheduled" | "published">("scheduled");
   const [puzzleDate, setPuzzleDate] = useState(utcPuzzleDate());
+  const [editingPuzzleId, setEditingPuzzleId] = useState<string | null>(null);
   const [existing, setExisting] = useState<Array<{id: string; puzzleDate: string; status: string; difficulty: string}>>([]);
 
   const refreshList = useCallback(async () => {
@@ -101,6 +112,7 @@ export const AdminPuzzleStudioPage = () => {
 
   const selectShow = async (show: SearchHit) => {
     setSelectedShow(show);
+    setEditingPuzzleId(null);
     setMessage(null);
     try {
       const suggestion = await api.adminSuggestDistractors(show.id);
@@ -112,6 +124,53 @@ export const AdminPuzzleStudioPage = () => {
       ]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not suggest distractors.");
+    }
+  };
+
+  const applyPuzzleToForm = (puzzle: AdminPuzzleDetail) => {
+    const correctChoice = puzzle.choices.find((choice) => choice.choiceId === puzzle.correctChoiceId);
+    const distractorChoices = puzzle.choices.filter((choice) => choice.choiceId !== puzzle.correctChoiceId);
+    const savedStill = stillFromSavedUrls(puzzle.imageUrl, puzzle.mobileImageUrl);
+
+    setEditingPuzzleId(puzzle.puzzleId);
+    setPuzzleDate(puzzle.puzzleDate);
+    setSelectedShow({
+      id: puzzle.correctShowId,
+      title: puzzle.correctTitle || correctChoice?.title || "Unknown show",
+      overview: "",
+      releaseDate: null,
+      popularity: 0,
+      poster: null,
+    });
+    setSeasonNumber(puzzle.seasonNumber ?? 1);
+    setEpisodeNumber(puzzle.episodeNumber ?? 1);
+    setStills([savedStill]);
+    setSelectedStill(savedStill);
+    setDistractors(
+      distractorChoices.map((choice, index) => ({
+        id: -(index + 1),
+        title: choice.title,
+      })),
+    );
+    setHints(puzzle.hints.length > 0 ? puzzle.hints : defaultHints());
+    setDifficulty(puzzle.difficulty);
+    setStatus(puzzle.status);
+    setSearchHits([]);
+    setQuery("");
+  };
+
+  const loadPuzzleForEdit = async (puzzleId: string) => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const puzzle = await api.adminGetPuzzle(puzzleId);
+      applyPuzzleToForm(puzzle);
+      setMessage(`Editing puzzle ${puzzle.puzzleDate}.`);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load puzzle.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -162,6 +221,7 @@ export const AdminPuzzleStudioPage = () => {
     setMessage(null);
     try {
       const result = await api.adminUpsertPuzzle(draft);
+      setEditingPuzzleId(result.puzzleId);
       setMessage(`Saved puzzle ${result.puzzleId}.`);
       await refreshList();
     } catch (err) {
@@ -219,6 +279,7 @@ export const AdminPuzzleStudioPage = () => {
       {selectedShow && (
         <section className="admin-puzzle-form">
           <h3>{selectedShow.title}</h3>
+          {editingPuzzleId && <p className="muted-copy">Editing saved puzzle {editingPuzzleId}</p>}
           <label>
             Puzzle date (UTC)
             <input type="date" value={puzzleDate} onChange={(event) => setPuzzleDate(event.target.value)} />
@@ -299,7 +360,7 @@ export const AdminPuzzleStudioPage = () => {
 
           <div className="daily-puzzle-actions">
             <button className="continue-button" type="button" disabled={loading} onClick={() => void savePuzzle()}>
-              Save puzzle
+              {editingPuzzleId ? "Update puzzle" : "Save puzzle"}
             </button>
             <button className="text-button" type="button" disabled={loading} onClick={() => void publishScheduled()}>
               Publish due scheduled
@@ -316,10 +377,20 @@ export const AdminPuzzleStudioPage = () => {
         {existing.length === 0 ? (
           <p className="muted-copy">No puzzles yet.</p>
         ) : (
-          <ul>
+          <ul className="admin-puzzle-list">
             {existing.map((item) => (
-              <li key={item.id}>
-                {item.puzzleDate} — {item.status} / {item.difficulty}
+              <li key={item.id} className="admin-puzzle-list-item">
+                <span>
+                  {item.puzzleDate} — {item.status} / {item.difficulty}
+                </span>
+                <button
+                  className="text-button"
+                  type="button"
+                  disabled={loading}
+                  onClick={() => void loadPuzzleForEdit(item.id)}
+                >
+                  Edit
+                </button>
               </li>
             ))}
           </ul>

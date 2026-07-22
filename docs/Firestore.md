@@ -2,7 +2,7 @@
 
 Firestore stores user-owned application state. TMDb remains the source of truth for media metadata, so documents should reference TMDb IDs and cache only the fields needed for display or offline convenience.
 
-**Baseline:** tip `d72b191` (2026-07-20) + local P0 hardening (staging cleanup, App Check smoke probe, import smoke path, SHA-256 sourceHash, import resume). App Check **Phase 3 enforce** is live in production (`APP_CHECK_ENFORCE_AUTH_WRITES=true`); code default remains off until that env flag is set. TV Time import Phase 1 **code** includes A9 staging cleanup; Phase 1 **acceptance** remains **OPEN** — evidence ledger in [`docs/TvTimeImportPhase1Acceptance.md`](./TvTimeImportPhase1Acceptance.md) (A8 **PASS**; A4/A5/A9 **code landed**, tip-matched hosted smoke + soak still open). Franchise catalogs live in Firestore `franchises/{slug}` and are served only through Cloud Functions (`GET /franchises*`); bundled `functions/src/data/franchises.ts` is the seed source and read-failure fallback. Achievements, challenges, year recap, and discovery suggestions remain computed in Cloud Functions. Append-only `watchEvents` remains planned (Data Schema Phase 2); see Notion *TV Time Data Schema Analysis*.
+**Baseline:** tip `3811117` (2026-07-22). P0 import hardening landed in `9a0420e`; Daily Puzzle landed in `c06053b`. App Check **Phase 3 enforce** is live in production (`APP_CHECK_ENFORCE_AUTH_WRITES=true`); code default remains off until that env flag is set. TV Time import Phase 1 **acceptance** remains **OPEN**—A8 is **PASS**, while A4/A5/A9 code has landed and hosted smoke plus soak evidence remain open. Franchise catalogs and Daily Puzzle documents are Functions-only Firestore data. Append-only `watchEvents` remains planned.
 
 ## Collections
 
@@ -22,6 +22,11 @@ mediaMappings/{provider}_{mediaType}_{externalId}
 franchises/{slug}
 public/discussions/{movie|tv}_{tmdbId}/{commentId}
 public/{document}
+puzzlePublic/{puzzleId}
+puzzlePrivate/{puzzleId}
+puzzleAttempts/{playerId__puzzleId}
+userGameStats/{userId}
+gameConfig/dailyPuzzle
 ```
 
 ## users/{userId}
@@ -316,6 +321,18 @@ npm run seed:franchises
 
 **Read fallback (Functions):** live Firestore → stale in-memory cache → bundled `functions/src/data/franchises.ts`. A healthy empty published set returns an empty list (no silent bundled merge). Unknown slugs still return `404 franchise_not_found`.
 
+## Daily Puzzle collections
+
+Daily Puzzle data is written and read through Cloud Functions; direct client reads and writes are denied.
+
+- `puzzlePublic/{puzzleId}` stores the playable image URLs, opaque choices, attempt limit, locale, and next-puzzle time.
+- `puzzlePrivate/{puzzleId}` stores the correct choice/show, hints, editorial status, difficulty, episode context, and publication timestamps.
+- `puzzleAttempts/{playerId__puzzleId}` stores selected choices, attempt count, completion, and win state for authenticated or anonymous players.
+- `userGameStats/{userId}` stores signed-in aggregate play/win counts, streaks, and wins by attempt.
+- `gameConfig/dailyPuzzle` stores scheduler publication-check metadata.
+
+The current MVP does not store a complete per-user puzzle-history list. Puzzle images use opaque TMDb URLs; a processed Firebase Storage asset pipeline remains optional follow-up work.
+
 ## Not stored in Firestore
 
 - Achievements, challenges, year recap, discovery suggestions: computed in Cloud Functions (franchise progress overlays use the remote/bundled catalogs above)
@@ -335,6 +352,7 @@ The current `firestore.rules` policy is intentionally narrow:
 - Users can read their own `imports` tree; client writes are denied (Cloud Functions only).
 - `mediaMappings/**` client read/write is denied (Cloud Functions only).
 - `franchises/**` client read/write is denied (Cloud Functions only).
+- Daily Puzzle collections (`puzzlePublic`, `puzzlePrivate`, `puzzleAttempts`, `userGameStats`, and `gameConfig`) deny client read/write; Cloud Functions mediate access.
 - `public/**` is read-only for all clients (includes discussions).
 - Everything else is denied by default.
 

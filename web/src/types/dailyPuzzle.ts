@@ -111,3 +111,22 @@ export interface AdminPuzzleDraft {
   status: "draft" | "scheduled" | "published";
   locale?: string;
 }
+
+export interface AdminPuzzleDetail {
+  puzzleId: string;
+  puzzleDate: string;
+  imageUrl: string;
+  mobileImageUrl: string | null;
+  choices: PuzzleChoice[];
+  maxAttempts: number;
+  nextPuzzleAt: string;
+  locale: string;
+  correctChoiceId: string;
+  correctShowId: number;
+  correctTitle: string;
+  hints: PuzzleHint[];
+  status: "draft" | "scheduled" | "published";
+  difficulty: "easy" | "medium" | "hard";
+  seasonNumber: number | null;
+  episodeNumber: number | null;
+}

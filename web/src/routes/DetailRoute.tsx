@@ -5,6 +5,8 @@ import {useAuth} from "../auth/AuthContext";
 import {useAppContext} from "../AppContext";
 import {DetailPage} from "../pages/DetailPage";
 import {trackEvent} from "../firebase";
+import {useDocumentPageTitle} from "../hooks/useDocumentPageTitle";
+import {mediaDetailPageLabel} from "../lib/documentSeo";
 import {
   availableUnwatchedEpisodes,
   availableWatchedEpisodes,
@@ -53,6 +55,14 @@ export const MediaDetailRoute = ({mediaType}: MediaDetailRouteProps) => {
   const [seasonError, setSeasonError] = useState<string | null>(null);
   const [seasonLoading, setSeasonLoading] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState(1);
+
+  const pageTitleLabel = detail
+    ? mediaDetailPageLabel(detail.title, {
+        language,
+        seasonNumber: routeSeasonNumber ? selectedSeason : null,
+      })
+    : null;
+  useDocumentPageTitle(pageTitleLabel);
 
   useEffect(() => {
     if (!mediaId) {

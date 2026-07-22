@@ -1,9 +1,9 @@
 # TV Time Import Phase 1 Acceptance
 
-Last updated: 2026-07-20  
+Last updated: 2026-07-22
 Canonical tip at checklist creation: `5a72102`  
-Current repository tip (main): `d72b191`  
-P0 hardening (this change set, uncommitted until merge): A9 staging cleanup, A4 SHA-256 `sourceHash`, A5 session resume, smoke App Check + import path probes  
+Current repository tip (main): `3811117`
+P0 hardening landed in `9a0420e`: A9 staging cleanup, A4 SHA-256 `sourceHash`, A5 session resume, smoke App Check + import path probes
 Notion counterpart: [TV Time Data Schema Analysis](https://app.notion.com/p/39ca4181b628812e9792c7589cd14c5b)
 
 ## Purpose
@@ -76,11 +76,11 @@ From `tv_time_tool/TVTimeDataDesign.md` / Notion sample:
 | Status | **OPEN** |
 | Requirement | Hosted `Production Smoke` success whose workflow `headSha` equals the acceptance tip (or a tip explicitly rebaselined in this file + ResourceAlignment) |
 | Latest hosted PASS | [run 29565696402](https://github.com/richappdev/EpisodEra/actions/runs/29565696402) on `5a9ecf9` (2026-07-17) |
-| Current tip | `d72b191` (+ local P0 hardening until merge) |
-| Gap | No tip-matched hosted smoke for `d72b191` / P0 tip |
+| Current tip | `3811117` (P0 hardening landed in `9a0420e`; Daily Puzzle landed in `c06053b`) |
+| Gap | No tip-matched hosted smoke for the current release candidate |
 | Smoke coverage (local script) | Now includes App Check enforce probe + tiny import path + staging cleanup assert |
 
-**Closeout action:** Merge P0 → deploy Hosting + Functions → dispatch Production Smoke on that tip → paste run URL + short SHA here and on the MVP Dashboard.
+**Closeout action:** Deploy the current release candidate → dispatch Production Smoke on that tip → paste the run URL and short SHA here and on the MVP Dashboard.
 
 ### A2 — Deployed import path evidence
 
@@ -175,7 +175,7 @@ From `tv_time_tool/TVTimeDataDesign.md` / Notion sample:
 ## Closeout checklist (operator)
 
 1. [x] Implement A9 staging cleanup (+ A4 SHA-256 + A5 resume) in code
-2. [ ] Land fixes on `main`; record tip short SHA here
+2. [x] Land fixes on `main`; recorded as `9a0420e`
 3. [ ] Deploy Functions (+ Hosting if needed); dispatch hosted Production Smoke on that tip → paste run URL (A1)
 4. [ ] Confirm smoke import path + App Check enforce lines in the run log (A2/A9 + App Check)
 5. [ ] Run ~4.7k soak on throwaway account; record counters + duration (A3, A6 spot-check)

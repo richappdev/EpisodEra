@@ -224,3 +224,21 @@ puzzleRouter.post(
     }
   },
 );
+
+puzzleRouter.get(
+  "/admin/puzzles/:puzzleId",
+  requireAuth,
+  requireAppCheck,
+  requirePuzzleAdmin,
+  async (req, res, next) => {
+    try {
+      const puzzleId = String(req.params.puzzleId ?? "").trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(puzzleId)) {
+        throw new HttpError(400, "puzzleId must be YYYY-MM-DD.", "invalid_puzzle_id");
+      }
+      res.json(await puzzleService.getPuzzleForAdmin(puzzleId));
+    } catch (error) {
+      next(error);
+    }
+  },
+);

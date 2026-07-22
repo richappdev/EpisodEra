@@ -42,6 +42,7 @@ describe("App site-access gate", () => {
     );
 
     expect(screen.getByRole("heading", {name: "This website is under optimization"})).toBeInTheDocument();
+    expect(document.title).toBe("Under optimization · Episodera");
     expect(screen.queryByTestId("top-bar")).not.toBeInTheDocument();
     expect(screen.queryByTestId("app-routes")).not.toBeInTheDocument();
     expect(screen.queryByText("Loading account...")).not.toBeInTheDocument();
