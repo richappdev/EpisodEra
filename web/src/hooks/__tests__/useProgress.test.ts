@@ -26,15 +26,17 @@ describe("useProgress", () => {
 
   it("loads all progress pages for a signed-in user", async () => {
     vi.mocked(api.listProgress)
-      .mockResolvedValueOnce(paginated([progressSummary], {hasMore: true, pageSize: 100}))
-      .mockResolvedValueOnce(paginated([secondSummary], {page: 2, hasMore: false, pageSize: 100}));
+      .mockResolvedValueOnce(
+        paginated([progressSummary], {hasMore: true, pageSize: 100, nextPageToken: "token-2"}),
+      )
+      .mockResolvedValueOnce(paginated([secondSummary], {hasMore: false, pageSize: 100}));
 
     const {result} = renderHook(() => useProgress(mockUser));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(api.listProgress).toHaveBeenNthCalledWith(1, {page: 1, pageSize: 100});
-    expect(api.listProgress).toHaveBeenNthCalledWith(2, {page: 2, pageSize: 100});
+    expect(api.listProgress).toHaveBeenNthCalledWith(1, {pageSize: 100, pageToken: undefined});
+    expect(api.listProgress).toHaveBeenNthCalledWith(2, {pageSize: 100, pageToken: "token-2"});
     expect(result.current.items).toEqual([progressSummary, secondSummary]);
   });
 

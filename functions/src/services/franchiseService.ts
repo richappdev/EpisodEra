@@ -1,5 +1,5 @@
 import {HttpError} from "../lib/httpError";
-import {fetchAllPages} from "../lib/pagination";
+import {listAllDocuments} from "../lib/pagination";
 import {FranchiseOrder, FranchiseProgress, FranchiseSummary} from "../models/franchise";
 import {franchiseCatalogLoader} from "./franchiseCatalogLoader";
 import {buildFranchiseProgress, listFranchiseSummaries} from "./franchiseLogic";
@@ -29,9 +29,9 @@ class FranchiseService {
     const catalog = await this.getCatalog(slug);
     const order = parseOrder(orderParam);
     const [watchlistItems, progressItems, historyItems, settings] = await Promise.all([
-      fetchAllPages((pagination) => watchlistService.list(userId, pagination)),
-      fetchAllPages((pagination) => progressService.list(userId, pagination)),
-      fetchAllPages((pagination) => historyService.list(userId, pagination)),
+      listAllDocuments((pagination) => watchlistService.list(userId, pagination)),
+      listAllDocuments((pagination) => progressService.list(userId, pagination)),
+      listAllDocuments((pagination) => historyService.list(userId, pagination)),
       settingsService.get(userId),
     ]);
 

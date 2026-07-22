@@ -1,14 +1,13 @@
 export interface PaginatedResponse<T> {
   items: T[];
-  page: number;
   pageSize: number;
-  totalCount: number;
+  nextPageToken: string | null;
   hasMore: boolean;
 }
 
 export interface PaginationParams {
-  page?: number;
   pageSize?: number;
+  pageToken?: string;
 }
 
 export const defaultPageSize = 25;
@@ -16,11 +15,11 @@ export const maxPageSize = 100;
 
 export const withPagination = (path: string, pagination?: PaginationParams) => {
   const params = new URLSearchParams();
-  if (pagination?.page) {
-    params.set("page", String(pagination.page));
-  }
   if (pagination?.pageSize) {
     params.set("pageSize", String(pagination.pageSize));
+  }
+  if (pagination?.pageToken) {
+    params.set("pageToken", pagination.pageToken);
   }
 
   const query = params.toString();

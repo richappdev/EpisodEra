@@ -1,5 +1,6 @@
 import {UserStats, YearRecap} from "../models/stats";
-import {fetchAllPages} from "../lib/pagination";
+import {listAllDocuments} from "../lib/pagination";
+import {derivedCacheService} from "./derivedCacheService";
 import {historyService} from "./historyService";
 import {progressService} from "./progressService";
 import {
@@ -14,10 +15,15 @@ import {watchlistService} from "./watchlistService";
 
 class StatsService {
   async get(userId: string): Promise<UserStats> {
+    const cached = await derivedCacheService.getStats(userId);
+    if (cached) {
+      return cached;
+    }
+
     const [watchlistItems, progressItems, historyItems] = await Promise.all([
-      fetchAllPages((pagination) => watchlistService.list(userId, pagination)),
-      fetchAllPages((pagination) => progressService.list(userId, pagination)),
-      fetchAllPages((pagination) => historyService.list(userId, pagination)),
+      listAllDocuments((pagination) => watchlistService.list(userId, pagination)),
+      listAllDocuments((pagination) => progressService.list(userId, pagination)),
+      listAllDocuments((pagination) => historyService.list(userId, pagination)),
     ]);
     const fullyWatchedShowIds = new Set(
       progressItems
@@ -31,7 +37,7 @@ class StatsService {
     );
     const streaks = computeStreaks(historyItems);
 
-    return {
+    const stats: UserStats = {
       totalWatchedMovies: watchlistItems.filter((item) => item.mediaType === "movie" && item.status === "watched").length,
       totalWatchedEpisodes: progressItems.reduce((total, progress) => total + progress.watchedEpisodeCount, 0),
       currentlyWatchingCount: watchlistItems.filter((item) => item.mediaType === "tv" && item.status === "watching").length,
@@ -46,11 +52,21 @@ class StatsService {
       topGenres: rankGenres(historyItems),
       mostActiveMonth: mostActiveMonth(historyItems),
     };
+
+    await derivedCacheService.setStats(userId, stats);
+    return stats;
   }
 
   async getYearRecap(userId: string, year: number): Promise<YearRecap> {
-    const historyItems = await fetchAllPages((pagination) => historyService.list(userId, pagination));
-    return buildYearRecap(historyItems, year);
+    const cached = await derivedCacheService.getYearRecap(userId, year);
+    if (cached) {
+      return cached;
+    }
+
+    const historyItems = await listAllDocuments((pagination) => historyService.list(userId, pagination));
+    const recap = buildYearRecap(historyItems, year);
+    await derivedCacheService.setYearRecap(userId, year, recap);
+    return recap;
   }
 }
 

@@ -5,11 +5,10 @@ export const mockUser = {uid: "user-1"} as User;
 
 export const paginated = <T>(
   items: T[],
-  options: Partial<Pick<PaginatedResponse<T>, "page" | "pageSize" | "totalCount" | "hasMore">> = {},
+  options: Partial<Pick<PaginatedResponse<T>, "pageSize" | "nextPageToken" | "hasMore">> = {},
 ): PaginatedResponse<T> => ({
   items,
-  page: options.page ?? 1,
   pageSize: options.pageSize ?? 25,
-  totalCount: options.totalCount ?? items.length,
-  hasMore: options.hasMore ?? false,
+  nextPageToken: options.nextPageToken ?? null,
+  hasMore: options.hasMore ?? Boolean(options.nextPageToken),
 });

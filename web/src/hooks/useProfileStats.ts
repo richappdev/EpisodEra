@@ -19,7 +19,7 @@ export const useProfileStats = (user: User | null) => {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyLoadingMore, setHistoryLoadingMore] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
-  const [historyPage, setHistoryPage] = useState(1);
+  const [historyNextPageToken, setHistoryNextPageToken] = useState<string | null>(null);
   const [historyHasMore, setHistoryHasMore] = useState(false);
   const [historyTotalCount, setHistoryTotalCount] = useState(0);
 
@@ -34,7 +34,7 @@ export const useProfileStats = (user: User | null) => {
     setHistoryLoading(false);
     setHistoryLoadingMore(false);
     setHistoryError(null);
-    setHistoryPage(1);
+    setHistoryNextPageToken(null);
     setHistoryHasMore(false);
     setHistoryTotalCount(0);
   }, []);
@@ -78,7 +78,7 @@ export const useProfileStats = (user: User | null) => {
   );
 
   const loadHistoryPage = useCallback(
-    async (nextPage: number, append: boolean) => {
+    async (pageToken: string | undefined, append: boolean) => {
       if (!user) {
         return;
       }
@@ -91,11 +91,14 @@ export const useProfileStats = (user: User | null) => {
       }
 
       try {
-        const response = await api.meHistory({page: nextPage, pageSize: defaultHistoryPageSize});
-        setHistoryItems((current) => (append ? [...current, ...response.items] : response.items));
-        setHistoryPage(response.page);
+        const response = await api.meHistory({pageSize: defaultHistoryPageSize, pageToken});
+        setHistoryItems((current) => {
+          const next = append ? [...current, ...response.items] : response.items;
+          setHistoryTotalCount(next.length);
+          return next;
+        });
+        setHistoryNextPageToken(response.nextPageToken);
         setHistoryHasMore(response.hasMore);
-        setHistoryTotalCount(response.totalCount);
       } catch (reason) {
         setHistoryError(toErrorMessage(reason, "Could not load history."));
       } finally {
@@ -109,15 +112,15 @@ export const useProfileStats = (user: User | null) => {
     [user],
   );
 
-  const reloadHistory = useCallback(() => loadHistoryPage(1, false), [loadHistoryPage]);
+  const reloadHistory = useCallback(() => loadHistoryPage(undefined, false), [loadHistoryPage]);
 
   const loadMoreHistory = useCallback(() => {
-    if (!historyHasMore || historyLoading || historyLoadingMore) {
+    if (!historyHasMore || !historyNextPageToken || historyLoading || historyLoadingMore) {
       return;
     }
 
-    void loadHistoryPage(historyPage + 1, true);
-  }, [historyHasMore, historyLoading, historyLoadingMore, historyPage, loadHistoryPage]);
+    void loadHistoryPage(historyNextPageToken, true);
+  }, [historyHasMore, historyLoading, historyLoadingMore, historyNextPageToken, loadHistoryPage]);
 
   const refresh = useCallback(async () => {
     if (!user) {

@@ -95,6 +95,20 @@ export const shouldHideSpoiler = (input: {
   );
 };
 
+export const shouldHideSpoilerByHistoryId = (input: {
+  hideSpoilersUntilWatched: boolean;
+  historyId: string | null;
+  watchedHistoryIds: Set<string>;
+}) => {
+  if (!input.hideSpoilersUntilWatched) {
+    return false;
+  }
+  if (!input.historyId) {
+    return false;
+  }
+  return !input.watchedHistoryIds.has(input.historyId);
+};
+
 export const evaluateChallenges = (input: {
   history: HistoryEntry[];
   completedFranchises: number;

@@ -7,20 +7,18 @@ import {WatchlistItem, WatchlistStatus} from "../types/watchlist";
 import {toErrorMessage} from "./errorMessage";
 
 const loadAllWatchlist = async () => {
-  let page = 1;
   const items: WatchlistItem[] = [];
+  let pageToken: string | undefined;
   let hasMore = true;
-  let totalCount = 0;
 
   while (hasMore) {
-    const response = await api.listWatchlist({page, pageSize: maxPageSize});
+    const response = await api.listWatchlist({pageSize: maxPageSize, pageToken});
     items.push(...response.items);
-    totalCount = response.totalCount;
-    hasMore = response.hasMore;
-    page += 1;
+    pageToken = response.nextPageToken ?? undefined;
+    hasMore = Boolean(response.nextPageToken);
   }
 
-  return {items, totalCount};
+  return {items, totalCount: items.length};
 };
 
 export const useWatchlist = (user: User | null, onLibraryChange?: () => void) => {

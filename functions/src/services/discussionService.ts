@@ -1,11 +1,10 @@
 import {FieldValue, Timestamp, getFirestore} from "firebase-admin/firestore";
 import {HttpError} from "../lib/httpError";
-import {fetchAllPages} from "../lib/pagination";
 import {DiscussionComment} from "../models/social";
-import {historyService} from "./historyService";
+import {historyIdForCoords, historyService} from "./historyService";
 import {profileService} from "./profileService";
 import {settingsService} from "./settingsService";
-import {shouldHideSpoiler} from "./socialLogic";
+import {shouldHideSpoilerByHistoryId} from "./socialLogic";
 
 interface DiscussionDocument {
   userId: string;
@@ -34,22 +33,38 @@ class DiscussionService {
     tmdbId: number,
   ): Promise<{items: DiscussionComment[]}> {
     const snapshot = await this.collection(mediaType, tmdbId).orderBy("createdAt", "desc").limit(50).get();
-    const viewerHistory = userId
-      ? await fetchAllPages((pagination) => historyService.list(userId, pagination))
-      : [];
     const hideSpoilers = userId
       ? (await settingsService.get(userId)).hideSpoilersUntilWatched
       : true;
 
+    const historyIds = snapshot.docs
+      .map((doc) => {
+        const data = doc.data() as DiscussionDocument;
+        return historyIdForCoords({
+          mediaType: data.mediaType,
+          tmdbId: data.tmdbId,
+          seasonNumber: data.seasonNumber,
+          episodeNumber: data.episodeNumber,
+        });
+      })
+      .filter((value): value is string => Boolean(value));
+
+    const watchedHistoryIds = userId && hideSpoilers
+      ? await historyService.existsMany(userId, historyIds)
+      : new Set<string>();
+
     const items = snapshot.docs.map((doc) => {
       const data = doc.data() as DiscussionDocument;
-      const spoilerHidden = shouldHideSpoiler({
-        hideSpoilersUntilWatched: hideSpoilers,
+      const historyId = historyIdForCoords({
         mediaType: data.mediaType,
         tmdbId: data.tmdbId,
         seasonNumber: data.seasonNumber,
         episodeNumber: data.episodeNumber,
-        viewerHistory,
+      });
+      const spoilerHidden = shouldHideSpoilerByHistoryId({
+        hideSpoilersUntilWatched: hideSpoilers,
+        historyId,
+        watchedHistoryIds,
       });
       return {
         commentId: doc.id,
@@ -83,14 +98,19 @@ class DiscussionService {
       throw new HttpError(400, "Comment body must be 2-500 characters.", "invalid_discussion_body");
     }
 
-    const history = await fetchAllPages((pagination) => historyService.list(userId, pagination));
-    const watched = !shouldHideSpoiler({
-      hideSpoilersUntilWatched: true,
+    const historyId = historyIdForCoords({
       mediaType: input.mediaType,
       tmdbId: input.tmdbId,
       seasonNumber: input.seasonNumber ?? null,
       episodeNumber: input.episodeNumber ?? null,
-      viewerHistory: history,
+    });
+    const watchedHistoryIds = historyId
+      ? await historyService.existsMany(userId, [historyId])
+      : new Set<string>();
+    const watched = !shouldHideSpoilerByHistoryId({
+      hideSpoilersUntilWatched: true,
+      historyId,
+      watchedHistoryIds,
     });
 
     if (!watched) {

@@ -29,6 +29,16 @@ Gen2 HTTPS functions deploy to Cloud Run. Both API URLs above should remain heal
 | Performance Monitoring | Web SDK | Initialized at app startup |
 | Emulators | `firebase.json` | Auth `9099`, Functions `5001`, Firestore `8080`, UI `4000` |
 
+## Firestore ops checklist
+
+| Item | Notes |
+| --- | --- |
+| Database | `(default)`, Standard Native, `asia-east1`, free tier |
+| Usage | Console → Firestore → Usage |
+| Billing | Set a GCP budget alert before leaving free tier |
+| Delete protection | Enable on `(default)` once past experiments |
+| Cost patterns | Cursor list APIs; `watchedEpisodeKeys` on progress; history `existsMany` for spoilers; `users/{uid}/derived/*` caches |
+
 ## Live endpoint checks (2026-07-13)
 
 Automated HTTP checks from the agent environment:

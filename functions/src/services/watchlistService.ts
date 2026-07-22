@@ -12,6 +12,7 @@ import {
 import {listPaginated, PaginatedResult, PaginationQuery} from "../lib/pagination";
 import {ShowProgressSummary} from "../models/progress";
 import {historyService} from "./historyService";
+import {derivedCacheService} from "./derivedCacheService";
 import {mergeWatchlistStatus} from "./importLogic";
 import {
   promotedTvWatchlistStatus,
@@ -226,7 +227,9 @@ class WatchlistService {
       );
     });
 
-    return this.get(userId, itemId);
+    const item = await this.get(userId, itemId);
+    await derivedCacheService.invalidateUserLibraryCaches(userId);
+    return item;
   }
 
   /** Import merge: never downgrade status; keep existing titles when present. */
@@ -273,6 +276,8 @@ class WatchlistService {
         tmdbId: item.tmdbId,
         title: item.title,
       });
+    } else {
+      await derivedCacheService.invalidateUserLibraryCaches(userId);
     }
 
     return item;
@@ -306,7 +311,11 @@ class WatchlistService {
         });
       } else if (previousStatus === "watched") {
         await historyService.removeMovie(userId, data.tmdbId);
+      } else {
+        await derivedCacheService.invalidateUserLibraryCaches(userId);
       }
+    } else {
+      await derivedCacheService.invalidateUserLibraryCaches(userId);
     }
 
     return this.get(userId, itemId);
@@ -348,6 +357,8 @@ class WatchlistService {
 
     if (parsed.mediaType === "movie" && snapshot.exists) {
       await historyService.removeMovie(userId, parsed.tmdbId);
+    } else {
+      await derivedCacheService.invalidateUserLibraryCaches(userId);
     }
   }
 

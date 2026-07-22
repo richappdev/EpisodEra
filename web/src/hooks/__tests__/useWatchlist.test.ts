@@ -34,15 +34,17 @@ describe("useWatchlist", () => {
 
   it("loads all pages when a user is present", async () => {
     vi.mocked(api.listWatchlist)
-      .mockResolvedValueOnce(paginated([watchlistItem], {hasMore: true, pageSize: 100, totalCount: 2}))
-      .mockResolvedValueOnce(paginated([secondItem], {page: 2, hasMore: false, pageSize: 100, totalCount: 2}));
+      .mockResolvedValueOnce(
+        paginated([watchlistItem], {hasMore: true, pageSize: 100, nextPageToken: "token-2"}),
+      )
+      .mockResolvedValueOnce(paginated([secondItem], {hasMore: false, pageSize: 100}));
 
     const {result} = renderHook(() => useWatchlist(mockUser));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(api.listWatchlist).toHaveBeenNthCalledWith(1, {page: 1, pageSize: 100});
-    expect(api.listWatchlist).toHaveBeenNthCalledWith(2, {page: 2, pageSize: 100});
+    expect(api.listWatchlist).toHaveBeenNthCalledWith(1, {pageSize: 100, pageToken: undefined});
+    expect(api.listWatchlist).toHaveBeenNthCalledWith(2, {pageSize: 100, pageToken: "token-2"});
     expect(result.current.items).toEqual([watchlistItem, secondItem]);
     expect(result.current.totalCount).toBe(2);
     expect(result.current.hasMore).toBe(false);

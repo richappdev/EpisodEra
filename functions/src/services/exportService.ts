@@ -1,6 +1,6 @@
 import {EXPORT_SCHEMA_VERSION, UserDataExport} from "../models/export";
 import {ShowProgress} from "../models/progress";
-import {fetchAllPages} from "../lib/pagination";
+import {listAllDocuments} from "../lib/pagination";
 import {historyService} from "./historyService";
 import {progressService} from "./progressService";
 import {watchlistService} from "./watchlistService";
@@ -24,11 +24,12 @@ const mapInChunks = async <T, R>(
 class ExportService {
   async build(userId: string): Promise<UserDataExport> {
     const [history, progressSummaries, watchlist] = await Promise.all([
-      fetchAllPages((pagination) => historyService.list(userId, pagination)),
-      fetchAllPages((pagination) => progressService.list(userId, pagination)),
-      fetchAllPages((pagination) => watchlistService.list(userId, pagination)),
+      listAllDocuments((pagination) => historyService.list(userId, pagination)),
+      listAllDocuments((pagination) => progressService.list(userId, pagination)),
+      listAllDocuments((pagination) => watchlistService.list(userId, pagination)),
     ]);
 
+    // progressService.get uses watchedEpisodeKeys + batched gets when available.
     const progress = (
       await mapInChunks(progressSummaries, PROGRESS_FETCH_CONCURRENCY, async (summary) => {
         const detail = await progressService.get(userId, summary.showId);

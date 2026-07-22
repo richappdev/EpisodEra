@@ -78,17 +78,15 @@ test("exportService.build assembles history, progress with episodes, and watchli
 
   historyService.list = (async () => ({
     items: [historyEntry],
-    page: 1,
     pageSize: 100,
-    totalCount: 1,
+    nextPageToken: null,
     hasMore: false,
   })) as typeof historyService.list;
 
   progressService.list = (async () => ({
     items: [progressSummary],
-    page: 1,
     pageSize: 100,
-    totalCount: 1,
+    nextPageToken: null,
     hasMore: false,
   })) as typeof progressService.list;
 
@@ -96,9 +94,8 @@ test("exportService.build assembles history, progress with episodes, and watchli
 
   watchlistService.list = (async () => ({
     items: [watchlistItem],
-    page: 1,
     pageSize: 100,
-    totalCount: 1,
+    nextPageToken: null,
     hasMore: false,
   })) as typeof watchlistService.list;
 
@@ -131,17 +128,15 @@ test("exportService.build skips missing progress details", async () => {
 
   historyService.list = (async () => ({
     items: [],
-    page: 1,
     pageSize: 100,
-    totalCount: 0,
+    nextPageToken: null,
     hasMore: false,
   })) as typeof historyService.list;
 
   progressService.list = (async () => ({
     items: [progressSummary],
-    page: 1,
     pageSize: 100,
-    totalCount: 1,
+    nextPageToken: null,
     hasMore: false,
   })) as typeof progressService.list;
 
@@ -149,9 +144,8 @@ test("exportService.build skips missing progress details", async () => {
 
   watchlistService.list = (async () => ({
     items: [],
-    page: 1,
     pageSize: 100,
-    totalCount: 0,
+    nextPageToken: null,
     hasMore: false,
   })) as typeof watchlistService.list;
 

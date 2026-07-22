@@ -3,6 +3,8 @@ import {HttpError} from "../lib/httpError";
 import {listPaginated, PaginatedResult, PaginationQuery} from "../lib/pagination";
 import {MediaType} from "../models/media";
 import {HistoryEntry, UpdateHistoryInput} from "../models/history";
+import {episodeKeyFor} from "./progressLogic";
+import {derivedCacheService} from "./derivedCacheService";
 
 interface HistoryDocument {
   tmdbId: number;
@@ -36,8 +38,30 @@ interface EpisodeHistoryInput {
   runtimeMinutes?: number | null;
 }
 
+const EXISTS_CHUNK_SIZE = 100;
+
 const timestampToJson = (value: Timestamp | undefined) =>
   value ? value.toDate().toISOString() : null;
+
+export const historyIdForMovie = (tmdbId: number) => `movie_${tmdbId}`;
+
+export const historyIdForEpisode = (tmdbId: number, seasonNumber: number, episodeNumber: number) =>
+  `tv_${tmdbId}_${episodeKeyFor(seasonNumber, episodeNumber)}`;
+
+export const historyIdForCoords = (input: {
+  mediaType: "movie" | "tv";
+  tmdbId: number;
+  seasonNumber: number | null;
+  episodeNumber: number | null;
+}): string | null => {
+  if (input.mediaType === "movie") {
+    return historyIdForMovie(input.tmdbId);
+  }
+  if (input.seasonNumber == null || input.episodeNumber == null) {
+    return null;
+  }
+  return historyIdForEpisode(input.tmdbId, input.seasonNumber, input.episodeNumber);
+};
 
 export const mapHistoryDocument = (historyId: string, data: HistoryDocument): HistoryEntry => ({
   historyId,
@@ -87,9 +111,46 @@ class HistoryService {
   async list(userId: string, pagination: PaginationQuery): Promise<PaginatedResult<HistoryEntry>> {
     const baseQuery = this.collection(userId).orderBy("watchedAt", "desc");
 
-    return listPaginated(baseQuery, pagination, (doc) =>
-      mapHistoryDocument(doc.id, doc.data() as HistoryDocument),
+    return listPaginated(
+      baseQuery,
+      pagination,
+      (doc) => mapHistoryDocument(doc.id, doc.data() as HistoryDocument),
+      "watchedAt",
     );
+  }
+
+  async listRecent(userId: string, options: {since: Date; limit: number}): Promise<HistoryEntry[]> {
+    const snapshot = await this.collection(userId)
+      .where("watchedAt", ">=", Timestamp.fromDate(options.since))
+      .orderBy("watchedAt", "desc")
+      .limit(options.limit)
+      .get();
+
+    return snapshot.docs.map((doc) => mapHistoryDocument(doc.id, doc.data() as HistoryDocument));
+  }
+
+  async existsMany(userId: string, historyIds: string[]): Promise<Set<string>> {
+    const uniqueIds = [...new Set(historyIds.filter(Boolean))];
+    const existing = new Set<string>();
+    if (uniqueIds.length === 0) {
+      return existing;
+    }
+
+    const firestore = getFirestore();
+    const collection = this.collection(userId);
+
+    for (let index = 0; index < uniqueIds.length; index += EXISTS_CHUNK_SIZE) {
+      const chunk = uniqueIds.slice(index, index + EXISTS_CHUNK_SIZE);
+      const refs = chunk.map((historyId) => collection.doc(historyId));
+      const snapshots = await firestore.getAll(...refs);
+      for (const snapshot of snapshots) {
+        if (snapshot.exists) {
+          existing.add(snapshot.id);
+        }
+      }
+    }
+
+    return existing;
   }
 
   async get(userId: string, historyId: string): Promise<HistoryEntry> {
@@ -118,17 +179,20 @@ class HistoryService {
     );
 
     const updated = await ref.get();
-    return mapHistoryDocument(updated.id, updated.data() as HistoryDocument);
+    const mapped = mapHistoryDocument(updated.id, updated.data() as HistoryDocument);
+    await derivedCacheService.invalidateUserLibraryCaches(userId);
+    return mapped;
   }
 
   async delete(userId: string, historyId: string): Promise<HistoryEntry> {
     const entry = await this.get(userId, historyId);
     await this.collection(userId).doc(historyId).delete();
+    await derivedCacheService.invalidateUserLibraryCaches(userId);
     return entry;
   }
 
   async recordMovie(userId: string, input: MovieHistoryInput): Promise<void> {
-    const ref = this.collection(userId).doc(`movie_${input.tmdbId}`);
+    const ref = this.collection(userId).doc(historyIdForMovie(input.tmdbId));
     const existing = await ref.get();
     const isRewatch = existing.exists;
 
@@ -150,10 +214,12 @@ class HistoryService {
       },
       {merge: true},
     );
+    await derivedCacheService.invalidateUserLibraryCaches(userId);
   }
 
   async removeMovie(userId: string, tmdbId: number): Promise<void> {
-    await this.collection(userId).doc(`movie_${tmdbId}`).delete();
+    await this.collection(userId).doc(historyIdForMovie(tmdbId)).delete();
+    await derivedCacheService.invalidateUserLibraryCaches(userId);
   }
 
   async recordEpisode(userId: string, input: EpisodeHistoryInput): Promise<void> {
@@ -179,10 +245,12 @@ class HistoryService {
       },
       {merge: true},
     );
+    await derivedCacheService.invalidateUserLibraryCaches(userId);
   }
 
   async removeEpisode(userId: string, tmdbId: number, episodeKey: string): Promise<void> {
     await this.collection(userId).doc(`tv_${tmdbId}_${episodeKey}`).delete();
+    await derivedCacheService.invalidateUserLibraryCaches(userId);
   }
 }
 

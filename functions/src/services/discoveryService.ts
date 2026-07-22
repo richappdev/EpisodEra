@@ -19,7 +19,7 @@ import {
   parseProviderIds,
   streamingProviders,
 } from "./recommendationLogic";
-import {fetchAllPages} from "../lib/pagination";
+import {listAllDocuments} from "../lib/pagination";
 import {historyService} from "./historyService";
 import {progressService} from "./progressService";
 import {settingsService} from "./settingsService";
@@ -235,9 +235,9 @@ class DiscoveryService {
     context: {maxMinutes: number | null; providerIds: number[]; language: SupportedLanguage},
   ): Promise<MediaSummary[]> {
     const [watchlistItems, progressItems, historyItems, {catalogs}] = await Promise.all([
-      fetchAllPages((pagination) => watchlistService.list(uid, pagination)),
-      fetchAllPages((pagination) => progressService.list(uid, pagination)),
-      fetchAllPages((pagination) => historyService.list(uid, pagination)),
+      listAllDocuments((pagination) => watchlistService.list(uid, pagination)),
+      listAllDocuments((pagination) => progressService.list(uid, pagination)),
+      listAllDocuments((pagination) => historyService.list(uid, pagination)),
       franchiseCatalogLoader.listPublished(),
     ]);
 

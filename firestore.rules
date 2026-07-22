@@ -81,7 +81,7 @@ service cloud.firestore {
       return showId.matches('^[1-9][0-9]*$')
         && request.resource.data.keys().hasOnly([
           'tmdbId', 'title', 'poster', 'totalEpisodes', 'watchedEpisodeCount', 'progressPercent',
-          'currentSeason', 'currentEpisode', 'nextEpisode', 'updatedAt'
+          'currentSeason', 'currentEpisode', 'nextEpisode', 'watchedEpisodeKeys', 'updatedAt'
         ])
         && request.resource.data.keys().hasAll([
           'tmdbId', 'title', 'totalEpisodes', 'watchedEpisodeCount', 'progressPercent',
@@ -101,7 +101,14 @@ service cloud.firestore {
         && request.resource.data.progressPercent <= 100
         && isNullablePositiveInt(request.resource.data.currentSeason)
         && isNullablePositiveInt(request.resource.data.currentEpisode)
-        && (!('nextEpisode' in request.resource.data) || validNextEpisode(request.resource.data.nextEpisode));
+        && (!('nextEpisode' in request.resource.data) || validNextEpisode(request.resource.data.nextEpisode))
+        && (
+          !('watchedEpisodeKeys' in request.resource.data)
+          || (
+            request.resource.data.watchedEpisodeKeys is list
+            && request.resource.data.watchedEpisodeKeys.size() <= 2000
+          )
+        );
     }
 
     function validEpisode(episodeKey) {
@@ -223,6 +230,10 @@ service cloud.firestore {
       match /settings/{settingsId} {
         allow read, delete: if isOwner(userId);
         allow create, update: if isOwner(userId) && validSettings(settingsId);
+      }
+
+      match /derived/{derivedId} {
+        allow read, write: if false;
       }
 
       match /friends/{friendId} {
