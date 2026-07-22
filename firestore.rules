@@ -259,6 +259,26 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /puzzlePublic/{puzzleId} {
+      allow read, write: if false;
+    }
+
+    match /puzzlePrivate/{puzzleId} {
+      allow read, write: if false;
+    }
+
+    match /puzzleAttempts/{attemptId} {
+      allow read, write: if false;
+    }
+
+    match /userGameStats/{userId} {
+      allow read, write: if false;
+    }
+
+    match /gameConfig/{configId} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

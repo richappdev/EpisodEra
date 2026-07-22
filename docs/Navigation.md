@@ -22,6 +22,9 @@ The MVP uses **React Router 6** (`react-router-dom`) with browser history and sh
 | `/franchises` | Franchise catalog | Public | cinema | Curated universes |
 | `/franchises/:slug` | Franchise progress | Public catalog; auth for progress | cinema | Release / chronological order |
 | `/list/:listId` | Discovery list (full grid) | Public; franchise continuation richer when signed in | cinema | Opened from Home rail **More** |
+| `/play` | Games hub alias | Public | cinema | Redirects to `/play/daily-puzzle` until a hub ships |
+| `/play/daily-puzzle` | Daily show selection puzzle | Public play; auth for synced stats / watchlist | cinema | Four choices, three attempts, progressive hints |
+| `/admin/puzzles` | Puzzle studio | Admin allowlist | cinema | Editorial create / schedule / publish |
 | `/social` | Friends, feed, challenges | Required for data | cinema | Friend codes + compatibility |
 | `/profile` | Profile, statistics, history, Year Recap | Required for data | cinema | Quiet figures; Year Recap band |
 | `/settings` | Settings | Optional | cinema | Language, providers, privacy/social toggles, TV Time import, personal export, account deletion |
@@ -42,6 +45,8 @@ Unknown paths redirect to `/` (signed-in users then bounce to `/home`).
 | Discovery list | `/list/:listId` | `ListPage` via `ListRoute` | `GET /discover/lists/:listId` |
 | Search | `/search`, `/search?q=` | `DiscoveryPage` | `GET /search?q=` |
 | Franchises | `/franchises`, `/franchises/:slug` | `FranchiseListPage` / `FranchiseDetailPage` | `GET /franchises`, `GET /me/franchises/:slug/progress` |
+| Daily puzzle | `/play`, `/play/daily-puzzle` | `DailyPuzzlePage` | `GET /puzzles/today`, `POST /puzzles/:puzzleId/guess` |
+| Puzzle studio | `/admin/puzzles` | `AdminPuzzleStudioPage` | Admin puzzle APIs + TMDB stills |
 | Movie detail | `/movie/:id` | `DetailPage` via `MediaDetailRoute` | `GET /movie/:id` |
 | TV detail | `/tv/:id`, `/tv/:id/season/:seasonNumber` | `DetailPage` via `MediaDetailRoute` | `GET /tv/:id`, `GET /tv/:id/season/:seasonNumber` |
 | Episode progress | TV detail routes | Embedded in `DetailPage` | Progress APIs |

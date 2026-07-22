@@ -263,6 +263,11 @@ export const DiscoveryPage = ({
 
       {view === "trending" && (
         <div className="home-discovery">
+          <p className="daily-puzzle-home-promo">
+            <Link className="text-button" data-testid="home-daily-puzzle" to={paths.dailyPuzzle}>
+              Play today&apos;s daily puzzle
+            </Link>
+          </p>
           {onSelectContinuation &&
             onNextEpisodeWatched &&
             continueWatching.length > 0 && (

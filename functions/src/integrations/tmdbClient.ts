@@ -85,6 +85,30 @@ export class TmdbClient {
     );
   }
 
+  async tvEpisodeImages(
+    seriesId: number,
+    seasonNumber: number,
+    episodeNumber: number,
+  ): Promise<Array<{filePath: string; width: number; height: number; aspectRatio: number; voteAverage: number}>> {
+    const payload = await this.get<{
+      stills?: Array<{
+        file_path: string;
+        width: number;
+        height: number;
+        aspect_ratio: number;
+        vote_average: number;
+      }>;
+    }>(`/tv/${seriesId}/season/${seasonNumber}/episode/${episodeNumber}/images`);
+
+    return (payload.stills ?? []).map((still) => ({
+      filePath: still.file_path,
+      width: still.width,
+      height: still.height,
+      aspectRatio: still.aspect_ratio,
+      voteAverage: still.vote_average,
+    }));
+  }
+
   async discoverMovies(
     options: {
       page?: number;

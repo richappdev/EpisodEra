@@ -8,7 +8,8 @@ export type NavView =
   | "franchises"
   | "social"
   | "profile"
-  | "settings";
+  | "settings"
+  | "play";
 
 /** Single product canvas — dark cinema across all routes. */
 export type CanvasMode = "cinema";
@@ -29,6 +30,10 @@ export const paths = {
   franchises: "/franchises",
   franchise: (slug: string) => `/franchises/${encodeURIComponent(slug)}`,
   list: (listId: string) => `/list/${encodeURIComponent(listId)}`,
+  play: "/play",
+  dailyPuzzle: "/play/daily-puzzle",
+  playGame: (slug: string) => `/play/${encodeURIComponent(slug)}`,
+  adminPuzzles: "/admin/puzzles",
   social: "/social",
   profile: "/profile",
   settings: "/settings",
@@ -58,6 +63,9 @@ export const navFromPath = (pathname: string): NavView => {
   }
   if (pathname.startsWith("/franchises")) {
     return "franchises";
+  }
+  if (pathname.startsWith("/play") || pathname.startsWith("/admin/puzzles")) {
+    return "play";
   }
   if (pathname.startsWith("/list/")) {
     return "trending";

@@ -18,6 +18,8 @@ import {DiscoveryRoute} from "./DiscoveryRoute";
 import {FranchiseDetailRoute, FranchiseListRoute} from "./FranchiseRoute";
 import {ListRoute} from "./ListRoute";
 import {isDetailPath, isLandingPath, navFromPath, paths} from "./paths";
+import {DailyPuzzlePage} from "../pages/DailyPuzzlePage";
+import {AdminPuzzleStudioPage} from "../pages/AdminPuzzleStudioPage";
 
 const ScreenAnalytics = () => {
   const location = useLocation();
@@ -355,6 +357,9 @@ export const AppRoutes = () => (
       <Route element={<FranchiseListRoute />} path={paths.franchises} />
       <Route element={<FranchiseDetailRoute />} path="/franchises/:slug" />
       <Route element={<ListRoute />} path="/list/:listId" />
+      <Route element={<Navigate replace to={paths.dailyPuzzle} />} path={paths.play} />
+      <Route element={<DailyPuzzlePage />} path={paths.dailyPuzzle} />
+      <Route element={<AdminPuzzleStudioPage />} path={paths.adminPuzzles} />
       <Route element={<ProfileRoute />} path={paths.profile} />
       <Route element={<SocialRoute />} path={paths.social} />
       <Route element={<SettingsRoute />} path={paths.settings} />

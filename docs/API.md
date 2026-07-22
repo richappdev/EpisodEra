@@ -43,6 +43,15 @@ TMDb detail and TV season reads use a 24-hour per-Functions-instance in-memory T
 | `GET` | `/movie/:id` | Public | `200` |
 | `GET` | `/tv/:id` | Public | `200` |
 | `GET` | `/tv/:id/season/:seasonNumber` | Public | `200` |
+| `GET` | `/puzzles/today` | Public (optional auth / `X-Episodera-Player-Id`) | `200` |
+| `POST` | `/puzzles/:puzzleId/guess` | Public with player id (optional auth) | `200` |
+| `GET` | `/puzzles/stats` | Firebase ID token | `200` |
+| `GET` | `/admin/puzzles` | Admin allowlist | `200` |
+| `POST` | `/admin/puzzles` | Admin allowlist | `201` |
+| `POST` | `/admin/puzzles/publish-scheduled` | Admin allowlist | `200` |
+| `GET` | `/admin/puzzles/search-tv` | Admin allowlist | `200` |
+| `GET` | `/admin/puzzles/tv/:showId/season/:seasonNumber/episode/:episodeNumber/stills` | Admin allowlist | `200` |
+| `POST` | `/admin/puzzles/suggest-distractors` | Admin allowlist | `200` |
 | `GET` | `/watchlist` | Firebase ID token | `200` |
 | `POST` | `/watchlist` | Firebase ID token | `201` |
 | `PATCH` | `/watchlist/:itemId/status` | Firebase ID token | `200` |
@@ -693,6 +702,25 @@ Privacy-related settings fields:
 ```
 
 Profile responses may include generated `friendCode` used for friend requests.
+
+## Daily puzzle
+
+Public play uses opaque choice ids. The correct answer lives only in `puzzlePrivate` (Functions Admin SDK). Anonymous players send a stable `X-Episodera-Player-Id` header (client localStorage). Signed-in users use `uid:{firebaseUid}` and sync `userGameStats`.
+
+```http
+GET /puzzles/today
+X-Episodera-Player-Id: <optional-anonymous-id>
+```
+
+```http
+POST /puzzles/:puzzleId/guess
+Content-Type: application/json
+X-Episodera-Player-Id: <required-when-signed-out>
+
+{"choiceId":"a"}
+```
+
+Admin studio routes require Firebase Auth plus an email listed in `PUZZLE_ADMIN_EMAILS`. Scheduled puzzles publish via `POST /admin/puzzles/publish-scheduled` or the `publishScheduledPuzzle` Cloud Scheduler function (01:00 UTC).
 
 ## Franchises and Smart Discovery
 

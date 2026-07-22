@@ -27,6 +27,8 @@ const pageTitles: Record<SupportedLanguage, Partial<Record<string, string>>> = {
     [paths.continueWatching]: "Continue watching",
     [paths.timeline]: "Timeline",
     [paths.franchises]: "Franchises",
+    [paths.dailyPuzzle]: "Daily puzzle",
+    [paths.adminPuzzles]: "Puzzle studio",
     [paths.social]: "Social",
     [paths.profile]: "Profile",
     [paths.settings]: "Settings",
@@ -41,6 +43,8 @@ const pageTitles: Record<SupportedLanguage, Partial<Record<string, string>>> = {
     [paths.continueWatching]: "繼續觀看",
     [paths.timeline]: "時間軸",
     [paths.franchises]: "片單宇宙",
+    [paths.dailyPuzzle]: "每日謎題",
+    [paths.adminPuzzles]: "謎題工作室",
     [paths.social]: "社群",
     [paths.profile]: "個人檔案",
     [paths.settings]: "設定",
@@ -70,6 +74,10 @@ export const titleForPath = (pathname: string, language: SupportedLanguage): str
 
   if (pathname.startsWith(`${paths.franchises}/`)) {
     return language === "zh-TW" ? "片單宇宙 · Episodera" : "Franchise · Episodera";
+  }
+
+  if (pathname.startsWith(`${paths.play}/`)) {
+    return language === "zh-TW" ? "遊戲 · Episodera" : "Play · Episodera";
   }
 
   return defaults.title;

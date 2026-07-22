@@ -32,8 +32,17 @@ import {
   ResolveTvTimeShowsResponse,
 } from "../types/import";
 import {UserDataExport} from "../types/export";
+import {
+  AdminPuzzleDraft,
+  DailyPuzzlePayload,
+  GuessRequest,
+  GuessResponse,
+  UserGameStats,
+} from "../types/dailyPuzzle";
 import {getAppCheckToken} from "../firebase";
 
+const playerHeaders = (playerId?: string) =>
+  playerId ? {"X-Episodera-Player-Id": playerId} : undefined;
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:5001/episodera/us-central1/api";
 
 let tokenProvider: (() => Promise<string | null>) | null = null;
@@ -46,6 +55,7 @@ interface RequestOptions {
   body?: unknown;
   method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   token?: string | null;
+  headers?: Record<string, string>;
 }
 
 const withLanguage = (path: string, language: SupportedLanguage) => {
@@ -64,6 +74,12 @@ const request = async <T>(path: string, options: RequestOptions = {}): Promise<T
   const appCheckToken = await getAppCheckToken();
   if (appCheckToken) {
     headers.set("X-Firebase-AppCheck", appCheckToken);
+  }
+
+  if (options.headers) {
+    for (const [key, value] of Object.entries(options.headers)) {
+      headers.set(key, value);
+    }
   }
 
   if (options.body !== undefined) {
@@ -249,4 +265,53 @@ export const api = {
       method: "POST",
       body: {maxEpisodeWrites},
     }),
+  getDailyPuzzle: (playerId?: string) =>
+    request<DailyPuzzlePayload>("/puzzles/today", {headers: playerHeaders(playerId)}),
+  submitPuzzleGuess: (puzzleId: string, body: GuessRequest, playerId?: string) =>
+    request<GuessResponse>(`/puzzles/${encodeURIComponent(puzzleId)}/guess`, {
+      method: "POST",
+      body,
+      headers: playerHeaders(playerId),
+    }),
+  getPuzzleStats: () => request<UserGameStats>("/puzzles/stats"),
+  adminListPuzzles: () =>
+    request<{
+      items: Array<{
+        puzzleId: string;
+        puzzleDate: string;
+        status: string;
+        difficulty: string;
+        imageUrl: string;
+        choices: DailyPuzzlePayload["choices"];
+        maxAttempts: number;
+        nextPuzzleAt: string;
+        locale: string;
+      }>;
+    }>("/admin/puzzles"),
+  adminUpsertPuzzle: (body: AdminPuzzleDraft) =>
+    request<{puzzleId: string}>("/admin/puzzles", {method: "POST", body}),
+  adminPublishScheduledPuzzles: () =>
+    request<{published: string[]}>("/admin/puzzles/publish-scheduled", {method: "POST", body: {}}),
+  adminSearchTv: (query: string) =>
+    request<{items: Array<{id: number; title: string; overview: string; releaseDate: string | null; popularity: number; poster: string | null}>}>(
+      `/admin/puzzles/search-tv?q=${encodeURIComponent(query)}`,
+    ),
+  adminEpisodeStills: (showId: number, seasonNumber: number, episodeNumber: number) =>
+    request<{
+      items: Array<{
+        filePath: string;
+        width: number;
+        height: number;
+        aspectRatio: number;
+        voteAverage: number;
+        storagePath: string;
+        desktopUrl: string;
+        mobileUrl: string;
+      }>;
+    }>(`/admin/puzzles/tv/${showId}/season/${seasonNumber}/episode/${episodeNumber}/stills`),
+  adminSuggestDistractors: (showId: number) =>
+    request<{answer: {id: number; title: string}; distractors: Array<{id: number; title: string}>}>(
+      "/admin/puzzles/suggest-distractors",
+      {method: "POST", body: {showId}},
+    ),
 };

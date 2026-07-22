@@ -3143,3 +3143,188 @@ html[data-chrome="landing"] body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Daily puzzle */
+.daily-puzzle-page {
+  display: grid;
+  gap: 20px;
+}
+
+.daily-puzzle-banner {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-action) 18%, transparent);
+  color: var(--color-text, #e8edf4);
+}
+
+.daily-puzzle-attempts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.daily-puzzle-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 55%, transparent);
+  background: transparent;
+}
+
+.daily-puzzle-dot.filled {
+  background: var(--color-primary);
+}
+
+.daily-puzzle-still {
+  margin: 0;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--color-surface);
+  aspect-ratio: 16 / 9;
+}
+
+.daily-puzzle-still img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.daily-puzzle-image-error {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: 24px;
+  text-align: center;
+  color: color-mix(in srgb, #fff 70%, transparent);
+}
+
+.daily-puzzle-hint,
+.daily-puzzle-result {
+  margin: 0;
+}
+
+.daily-puzzle-answer-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 2vw, 1.8rem);
+  margin: 6px 0;
+}
+
+.daily-puzzle-share-marks {
+  letter-spacing: 0.08em;
+  font-size: 1.2rem;
+}
+
+.daily-puzzle-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.daily-puzzle-choice {
+  min-height: 48px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 88%, #000);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.daily-puzzle-choice:hover:not(:disabled),
+.daily-puzzle-choice:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.daily-puzzle-choice.wrong,
+.daily-puzzle-choice:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+.daily-puzzle-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.daily-puzzle-actions .continue-button,
+.daily-puzzle-actions .text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.daily-puzzle-stats {
+  display: grid;
+  gap: 12px;
+}
+
+.daily-puzzle-attribution {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.daily-puzzle-home-promo {
+  margin: 0 0 8px;
+}
+
+.admin-puzzle-studio {
+  display: grid;
+  gap: 20px;
+}
+
+.admin-puzzle-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.admin-puzzle-form {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-puzzle-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-stills {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.admin-still-button {
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  overflow: hidden;
+  background: transparent;
+  cursor: pointer;
+}
+
+.admin-still-button.selected {
+  border-color: var(--color-primary);
+}
+
+.admin-still-button img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+@media (max-width: 640px) {
+  .daily-puzzle-choices {
+    grid-template-columns: 1fr;
+  }
+}

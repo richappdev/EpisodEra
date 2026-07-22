@@ -3,20 +3,21 @@ export type AchievementId =
   | "anime-explorer"
   | "loyal-fan"
   | "completionist"
-  | "rewatcher";
+  | "rewatcher"
+  | "daily-puzzler";
 
 export interface AchievementDefinition {
   id: AchievementId;
   title: string;
   description: string;
-  category: "viewing" | "franchise" | "social";
+  category: "viewing" | "franchise" | "social" | "game";
 }
 
 export interface AchievementProgress {
   id: AchievementId;
   title: string;
   description: string;
-  category: "viewing" | "franchise" | "social";
+  category: "viewing" | "franchise" | "social" | "game";
   unlocked: boolean;
   unlockedAt: string | null;
   current: number;

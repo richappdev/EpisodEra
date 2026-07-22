@@ -8,6 +8,7 @@ import {
   Clock,
   Film,
   Flame,
+  Gamepad2,
   ListChecks,
   Loader2,
   PlayCircle,
@@ -21,6 +22,7 @@ import {YearRecapCard} from "../components/YearRecapCard";
 import {formatWatchTime} from "../lib/seasonProgress";
 import {paths} from "../routes/paths";
 import {AchievementProgress, AchievementsResponse} from "../types/achievement";
+import {UserGameStats} from "../types/dailyPuzzle";
 import {HistoryEntry} from "../types/history";
 import {UserProfile} from "../types/profile";
 import {UserStats, YearRecap} from "../types/stats";
@@ -91,10 +93,12 @@ export const ProfilePage = ({
 }: ProfilePageProps) => {
   const [achievements, setAchievements] = useState<AchievementsResponse | null>(null);
   const [achievementsError, setAchievementsError] = useState<string | null>(null);
+  const [puzzleStats, setPuzzleStats] = useState<UserGameStats | null>(null);
 
   useEffect(() => {
     if (!signedIn) {
       setAchievements(null);
+      setPuzzleStats(null);
       return;
     }
 
@@ -103,6 +107,13 @@ export const ProfilePage = ({
       .then(setAchievements)
       .catch((reason: unknown) => {
         setAchievementsError(reason instanceof Error ? reason.message : "Could not load achievements.");
+      });
+
+    void api
+      .getPuzzleStats()
+      .then(setPuzzleStats)
+      .catch(() => {
+        setPuzzleStats(null);
       });
   }, [signedIn]);
 
@@ -204,6 +215,33 @@ export const ProfilePage = ({
               <span>month</span>
             </div>
           </section>
+
+          {puzzleStats && (
+            <section className="stats-grid stats-figures" aria-label="Daily puzzle stats" data-testid="puzzle-stats">
+              <article className="stat-figure">
+                <Gamepad2 size={20} aria-hidden="true" />
+                <span>Puzzle streak</span>
+                <strong>{puzzleStats.currentStreak}</strong>
+              </article>
+              <article className="stat-figure">
+                <Flame size={20} aria-hidden="true" />
+                <span>Best puzzle streak</span>
+                <strong>{puzzleStats.longestStreak}</strong>
+              </article>
+              <article className="stat-figure">
+                <Award size={20} aria-hidden="true" />
+                <span>Puzzles won</span>
+                <strong>
+                  {puzzleStats.gamesWon}/{puzzleStats.gamesPlayed}
+                </strong>
+              </article>
+              <article className="stat-figure">
+                <Link className="text-button" to={paths.dailyPuzzle}>
+                  Play today&apos;s puzzle
+                </Link>
+              </article>
+            </section>
+          )}
 
           <section className="stats-breakdown memory-lists" data-testid="stats-breakdown">
             <div>

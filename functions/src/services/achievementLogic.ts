@@ -3,6 +3,7 @@ import {HistoryEntry} from "../models/history";
 import {ShowProgressSummary} from "../models/progress";
 import {WatchlistItem} from "../models/watchlist";
 import {FranchiseProgress} from "../models/franchise";
+import {UserGameStatsDoc} from "../models/puzzle";
 
 export const achievementDefinitions: AchievementDefinition[] = [
   {
@@ -34,6 +35,12 @@ export const achievementDefinitions: AchievementDefinition[] = [
     title: "Rewatcher",
     description: "Rewatch a favorite title at least once.",
     category: "viewing",
+  },
+  {
+    id: "daily-puzzler",
+    title: "Daily Puzzler",
+    description: "Win three daily show puzzles.",
+    category: "game",
   },
 ];
 
@@ -88,6 +95,7 @@ const metricFor = (
   id: AchievementId,
   history: HistoryEntry[],
   franchiseProgress: FranchiseProgress[],
+  gameStats?: UserGameStatsDoc | null,
 ): {current: number; target: number} => {
   switch (id) {
     case "detective":
@@ -100,6 +108,8 @@ const metricFor = (
       return {current: completedFranchiseCount(franchiseProgress), target: 1};
     case "rewatcher":
       return {current: rewatchCount(history), target: 1};
+    case "daily-puzzler":
+      return {current: gameStats?.gamesWon ?? 0, target: 3};
   }
 };
 
@@ -108,9 +118,10 @@ export const evaluateAchievements = (input: {
   watchlistItems: WatchlistItem[];
   progressItems: ShowProgressSummary[];
   franchiseProgress: FranchiseProgress[];
+  gameStats?: UserGameStatsDoc | null;
 }): AchievementProgress[] =>
   achievementDefinitions.map((definition) => {
-    const metric = metricFor(definition.id, input.history, input.franchiseProgress);
+    const metric = metricFor(definition.id, input.history, input.franchiseProgress, input.gameStats);
     const unlocked = metric.current >= metric.target;
     return {
       ...definition,

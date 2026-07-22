@@ -38,6 +38,13 @@ export const isAppCheckEnforceAuthWrites = () => booleanFromEnv("APP_CHECK_ENFOR
 /** Phase 4: require App Check on public read routes when true (middleware ready, not mounted). */
 export const isAppCheckEnforcePublicReads = () => booleanFromEnv("APP_CHECK_ENFORCE_PUBLIC_READS");
 
+/** Comma-separated emails allowed to use puzzle admin APIs. */
+export const puzzleAdminEmails = () =>
+  (process.env.PUZZLE_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+
 /**
  * Opt-in smoke bypass for production-smoke.mjs (Auth REST, no web SDK).
  * Requires SMOKE_BYPASS_APP_CHECK=true and a non-empty SMOKE_BYPASS_APP_CHECK_SECRET.

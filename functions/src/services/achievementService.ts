@@ -6,6 +6,7 @@ import {buildFranchiseProgress} from "./franchiseLogic";
 import {historyService} from "./historyService";
 import {progressService} from "./progressService";
 import {settingsService} from "./settingsService";
+import {puzzleService} from "./puzzleService";
 import {watchlistService} from "./watchlistService";
 
 class AchievementService {
@@ -20,11 +21,12 @@ class AchievementService {
       };
     }
 
-    const [history, watchlistItems, progressItems, {catalogs}] = await Promise.all([
+    const [history, watchlistItems, progressItems, {catalogs}, gameStats] = await Promise.all([
       fetchAllPages((pagination) => historyService.list(userId, pagination)),
       fetchAllPages((pagination) => watchlistService.list(userId, pagination)),
       fetchAllPages((pagination) => progressService.list(userId, pagination)),
       franchiseCatalogLoader.listPublished(),
+      puzzleService.getStats(userId),
     ]);
 
     const franchiseProgress = catalogs.map((catalog) =>
@@ -43,6 +45,7 @@ class AchievementService {
       watchlistItems,
       progressItems,
       franchiseProgress,
+      gameStats,
     });
 
     return {

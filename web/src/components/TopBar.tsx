@@ -3,6 +3,7 @@ import {
   BarChart3,
   Bookmark,
   Clapperboard,
+  Gamepad2,
   History,
   Home,
   LogIn,
@@ -85,6 +86,14 @@ export const TopBar = ({activeView}: TopBarProps) => {
       testId: "nav-franchises",
       label: copy.franchises,
       icon: <Clapperboard size={18} aria-hidden="true" />,
+      secondary: true,
+    },
+    {
+      view: "play",
+      to: paths.dailyPuzzle,
+      testId: "nav-daily-puzzle",
+      label: copy.play,
+      icon: <Gamepad2 size={18} aria-hidden="true" />,
       secondary: true,
     },
     {

@@ -16,6 +16,7 @@ import {meRouter} from "./meRoutes";
 import {discoveryRouter} from "./discoveryRoutes";
 import {progressRouter} from "./progressRoutes";
 import {watchlistRouter} from "./watchlistRoutes";
+import {puzzleRouter} from "./puzzleRoutes";
 
 export const app = express();
 
@@ -70,6 +71,7 @@ app.use("/", watchlistRouter);
 app.use("/", progressRouter);
 app.use("/", meExportRouter);
 app.use("/", meRouter);
+app.use("/", puzzleRouter);
 
 const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   if (error instanceof HttpError) {
