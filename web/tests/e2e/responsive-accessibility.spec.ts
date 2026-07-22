@@ -38,11 +38,11 @@ test("signed-in shell keeps critical controls accessible on desktop and mobile",
 
     // Featured Continue Watching can appear on Home; full grid remains on Watchlist.
     await expect(page.getByTestId(`continue-card-${showId}`)).toBeVisible();
-    await expect(page.getByTestId(`continue-resume-${showId}`)).toBeVisible();
+    await expect(page.getByTestId(`continue-watched-${showId}`)).toBeVisible();
 
     await page.getByTestId("nav-watchlist").click();
     await expect(page.getByTestId("watchlist-header")).toBeVisible();
-    await expect(page.getByTestId(`continue-watched-${showId}`)).toHaveAccessibleName("Watched");
+    await expect(page.getByTestId(`continue-watched-${showId}`)).toHaveAccessibleName("Mark watched");
     await expect(page.getByLabel("Watchlist status for Critical Flow Show")).toBeVisible();
 
     if (viewport.width < 768) {

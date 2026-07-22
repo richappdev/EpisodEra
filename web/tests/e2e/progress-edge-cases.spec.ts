@@ -10,7 +10,7 @@ test("continue watching resolves the first unwatched gap and sends a canonical e
   await page.goto("/watchlist");
 
   await expect(page.getByTestId(`continue-card-${showId}`)).toBeVisible();
-  await expect(page.getByTestId(`continue-next-${showId}`)).toHaveText("S1 E2");
+  await expect(page.getByTestId(`continue-next-${showId}`)).toHaveText("S1 · E2 — The Gap");
 
   await page.getByTestId(`continue-watched-${showId}`).click();
 

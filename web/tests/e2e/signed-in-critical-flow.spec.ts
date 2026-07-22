@@ -31,12 +31,12 @@ test("signed-in user can complete the core watchlist and episode progress flow",
   await page.getByTestId("nav-watchlist").click();
   await expect(page.getByTestId(`watchlist-item-${showId}`)).toContainText("Critical Flow Show");
   await expect(page.getByTestId(`continue-card-${showId}`)).toBeVisible();
-  await expect(page.getByTestId(`continue-next-${showId}`)).toHaveText("S1 E2");
-  await expect(page.getByTestId(`continue-watched-${showId}`)).toHaveAccessibleName("Watched");
+  await expect(page.getByTestId(`continue-next-${showId}`)).toHaveText("S1 · E2 — The Gap");
+  await expect(page.getByTestId(`continue-watched-${showId}`)).toHaveAccessibleName("Mark watched");
 
   await page.getByTestId("nav-trending").click();
   await expect(page.getByTestId(`continue-card-${showId}`)).toBeVisible();
-  await expect(page.getByTestId(`continue-resume-${showId}`)).toBeVisible();
+  await expect(page.getByTestId(`continue-watched-${showId}`)).toBeVisible();
   await expect(page.getByTestId("continue-see-all")).toBeVisible();
 
   await page.getByTestId("nav-profile").click();
