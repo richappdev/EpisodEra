@@ -133,6 +133,7 @@ class PuzzleService {
     const nowIso = new Date().toISOString();
 
     const result = await getFirestore().runTransaction(async (transaction) => {
+      // Firestore requires all reads before any writes in a transaction.
       const existing = await transaction.get(attemptRef);
       const current: PuzzleAttemptDoc = existing.exists
         ? (existing.data() as PuzzleAttemptDoc)
@@ -165,6 +166,9 @@ class PuzzleService {
       const hint = correct ? null : hintForAttempt(privatePuzzle.hints, attemptCount);
       const correctChoice = publicPuzzle.choices.find((item) => item.choiceId === privatePuzzle.correctChoiceId);
 
+      const statsRef = completed && input.uid ? this.statsCollection().doc(input.uid) : null;
+      const statsSnap = statsRef ? await transaction.get(statsRef) : null;
+
       const nextAttempt: PuzzleAttemptDoc = {
         ...current,
         selectedChoiceIds,
@@ -176,10 +180,8 @@ class PuzzleService {
       };
       transaction.set(attemptRef, nextAttempt);
 
-      if (completed && input.uid) {
-        const statsRef = this.statsCollection().doc(input.uid);
-        const statsSnap = await transaction.get(statsRef);
-        const stats = statsSnap.exists
+      if (statsRef) {
+        const stats = statsSnap?.exists
           ? (statsSnap.data() as UserGameStatsDoc)
           : emptyUserGameStats();
         const updated = computeStreakUpdate({
