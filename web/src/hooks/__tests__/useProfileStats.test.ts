@@ -42,7 +42,7 @@ describe("useProfileStats", () => {
 
   it("loads stats, history, and year recap in parallel", async () => {
     vi.mocked(api.meStats).mockResolvedValue(stats);
-    vi.mocked(api.meHistory).mockResolvedValue(paginated([historyEntry], {totalCount: 1}));
+    vi.mocked(api.meHistory).mockResolvedValue(paginated([historyEntry]));
     vi.mocked(api.meRecap).mockResolvedValue(yearRecap);
 
     const {result} = renderHook(() => useProfileStats(mockUser));
@@ -62,8 +62,8 @@ describe("useProfileStats", () => {
     vi.mocked(api.meStats).mockResolvedValue(stats);
     vi.mocked(api.meRecap).mockResolvedValue(yearRecap);
     vi.mocked(api.meHistory)
-      .mockResolvedValueOnce(paginated([historyEntry], {hasMore: true, totalCount: 2}))
-      .mockResolvedValueOnce(paginated([secondHistoryEntry], {page: 2, hasMore: false, totalCount: 2}))
+      .mockResolvedValueOnce(paginated([historyEntry], {hasMore: true, nextPageToken: "hist-2"}))
+      .mockResolvedValueOnce(paginated([secondHistoryEntry], {hasMore: false}))
       .mockRejectedValueOnce(new Error("History unavailable"));
 
     const {result} = renderHook(() => useProfileStats(mockUser));
@@ -76,6 +76,7 @@ describe("useProfileStats", () => {
     });
 
     await waitFor(() => expect(result.current.historyItems).toHaveLength(2));
+    expect(api.meHistory).toHaveBeenNthCalledWith(2, {pageSize: 25, pageToken: "hist-2"});
 
     await act(async () => {
       await result.current.reloadHistory();
@@ -133,7 +134,7 @@ describe("useProfileStats", () => {
   it("updates watchedAt and deletes history entries", async () => {
     const updated = {...historyEntry, watchedAt: "2026-07-01T00:00:00.000Z"};
     vi.mocked(api.meStats).mockResolvedValue(stats);
-    vi.mocked(api.meHistory).mockResolvedValue(paginated([historyEntry], {totalCount: 1}));
+    vi.mocked(api.meHistory).mockResolvedValue(paginated([historyEntry]));
     vi.mocked(api.meRecap).mockResolvedValue(yearRecap);
     vi.mocked(api.updateHistoryEntry).mockResolvedValue(updated);
     vi.mocked(api.deleteHistoryEntry).mockResolvedValue(null);

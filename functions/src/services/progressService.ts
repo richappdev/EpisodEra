@@ -1,4 +1,4 @@
-import {FieldValue, Timestamp, getFirestore} from "firebase-admin/firestore";
+import {DocumentReference, DocumentSnapshot, FieldValue, Timestamp, Transaction, getFirestore} from "firebase-admin/firestore";
 import {HttpError} from "../lib/httpError";
 import {listPaginated, PaginatedResult, PaginationQuery} from "../lib/pagination";
 import {
@@ -22,6 +22,7 @@ import {
 import {tmdbService} from "./tmdbService";
 import {mapInChunks, needsImageUrl, normalizeImageUrl, preferImageUrl} from "./watchlistPosterLogic";
 import {watchlistService} from "./watchlistService";
+import {derivedCacheService} from "./derivedCacheService";
 
 interface ProgressDocument {
   tmdbId: number;
@@ -33,6 +34,7 @@ interface ProgressDocument {
   currentSeason: number | null;
   currentEpisode: number | null;
   nextEpisode?: ProgressEpisodePointer | null;
+  watchedEpisodeKeys?: string[];
   updatedAt?: Timestamp;
 }
 
@@ -191,12 +193,56 @@ class ProgressService {
       return null;
     }
 
+    const data = progressSnapshot.data() as ProgressDocument;
+    const episodes = await this.loadEpisodeDocuments(progressRef, data.watchedEpisodeKeys);
+
+    return this.mapProgress(showId, data, episodes);
+  }
+
+  private async loadEpisodeDocuments(
+    progressRef: DocumentReference,
+    watchedEpisodeKeys: string[] | undefined,
+  ): Promise<EpisodeProgress[]> {
+    if (Array.isArray(watchedEpisodeKeys)) {
+      if (watchedEpisodeKeys.length === 0) {
+        return [];
+      }
+      const firestore = getFirestore();
+      const episodes: EpisodeProgress[] = [];
+      for (let index = 0; index < watchedEpisodeKeys.length; index += 100) {
+        const chunk = watchedEpisodeKeys.slice(index, index + 100);
+        const snapshots = await firestore.getAll(
+          ...chunk.map((episodeKey) => progressRef.collection("episodes").doc(episodeKey)),
+        );
+        for (const snapshot of snapshots) {
+          if (snapshot.exists) {
+            episodes.push(mapEpisodeDocument(snapshot.id, snapshot.data() as EpisodeProgressDocument));
+          }
+        }
+      }
+      return episodes;
+    }
+
     const episodesSnapshot = await progressRef.collection("episodes").get();
-    const episodes = episodesSnapshot.docs.map((doc) =>
+    return episodesSnapshot.docs.map((doc) =>
       mapEpisodeDocument(doc.id, doc.data() as EpisodeProgressDocument),
     );
+  }
 
-    return this.mapProgress(showId, progressSnapshot.data() as ProgressDocument, episodes);
+  private async resolveWatchedEpisodeKeys(
+    transaction: Transaction,
+    progressRef: DocumentReference,
+    existingProgressSnapshot: DocumentSnapshot,
+  ): Promise<Set<string>> {
+    const data = existingProgressSnapshot.exists
+      ? (existingProgressSnapshot.data() as ProgressDocument)
+      : undefined;
+    if (Array.isArray(data?.watchedEpisodeKeys)) {
+      return new Set(data.watchedEpisodeKeys);
+    }
+
+    const existingEpisodesSnapshot = await transaction.get(progressRef.collection("episodes"));
+    return new Set(existingEpisodesSnapshot.docs.map((doc) => doc.id));
   }
 
   async markWatched(userId: string, showId: string, tmdbId: number, input: MarkEpisodeWatchedInput): Promise<ShowProgress> {
@@ -241,12 +287,25 @@ class ProgressService {
 
     await getFirestore().runTransaction(async (transaction) => {
       const existingProgressSnapshot = await transaction.get(progressRef);
-      const existingEpisodesSnapshot = await transaction.get(progressRef.collection("episodes"));
-      const finalEpisodeKeys = new Set(existingEpisodesSnapshot.docs.map((doc) => doc.id));
-      const existingEpisodesByKey = new Map(existingEpisodesSnapshot.docs.map((doc) => [doc.id, doc]));
+      const finalEpisodeKeys = await this.resolveWatchedEpisodeKeys(
+        transaction,
+        progressRef,
+        existingProgressSnapshot,
+      );
       const existingPoster = existingProgressSnapshot.exists
         ? (existingProgressSnapshot.data() as ProgressDocument | undefined)?.poster
         : null;
+
+      const requestedRefs = requested.map((episode) =>
+        progressRef.collection("episodes").doc(episode.episodeKey),
+      );
+      const requestedSnapshots =
+        requestedRefs.length > 0 ? await Promise.all(requestedRefs.map((ref) => transaction.get(ref))) : [];
+      const existingEpisodesByKey = new Map(
+        requestedSnapshots
+          .filter((snapshot) => snapshot.exists)
+          .map((snapshot) => [snapshot.id, snapshot] as const),
+      );
 
       for (const episode of requested) {
         const episodeRef = progressRef.collection("episodes").doc(episode.episodeKey);
@@ -300,7 +359,8 @@ class ProgressService {
         }
       }
 
-      const finalEpisodes = [...finalEpisodeKeys]
+      const watchedEpisodeKeys = [...finalEpisodeKeys].sort();
+      const finalEpisodes = watchedEpisodeKeys
         .map((episodeKey) => canonical.episodesByKey.get(episodeKey))
         .filter((episode): episode is ProgressEpisodePointer => episode !== undefined)
         .sort(compareEpisodeCoordinates);
@@ -319,6 +379,7 @@ class ProgressService {
           currentSeason: highestWatchedEpisode?.seasonNumber ?? null,
           currentEpisode: highestWatchedEpisode?.episodeNumber ?? null,
           nextEpisode,
+          watchedEpisodeKeys,
           updatedAt: FieldValue.serverTimestamp(),
         },
         {merge: true},
@@ -331,6 +392,7 @@ class ProgressService {
     }
 
     await watchlistService.syncTvStatusFromProgress(userId, tmdbId, progress);
+    await derivedCacheService.invalidateUserLibraryCaches(userId);
     return progress;
   }
 
@@ -380,12 +442,25 @@ class ProgressService {
 
     await getFirestore().runTransaction(async (transaction) => {
       const existingProgressSnapshot = await transaction.get(progressRef);
-      const existingEpisodesSnapshot = await transaction.get(progressRef.collection("episodes"));
-      const finalEpisodeKeys = new Set(existingEpisodesSnapshot.docs.map((doc) => doc.id));
-      const existingEpisodesByKey = new Map(existingEpisodesSnapshot.docs.map((doc) => [doc.id, doc]));
+      const finalEpisodeKeys = await this.resolveWatchedEpisodeKeys(
+        transaction,
+        progressRef,
+        existingProgressSnapshot,
+      );
       const existingPoster = existingProgressSnapshot.exists
         ? (existingProgressSnapshot.data() as ProgressDocument | undefined)?.poster
         : null;
+
+      const requestedRefs = requested.map(({metadata}) =>
+        progressRef.collection("episodes").doc(metadata.episodeKey),
+      );
+      const requestedSnapshots =
+        requestedRefs.length > 0 ? await Promise.all(requestedRefs.map((ref) => transaction.get(ref))) : [];
+      const existingEpisodesByKey = new Map(
+        requestedSnapshots
+          .filter((snapshot) => snapshot.exists)
+          .map((snapshot) => [snapshot.id, snapshot] as const),
+      );
 
       for (const {metadata: episode, watchedAt: incomingWatchedAt} of requested) {
         const episodeRef = progressRef.collection("episodes").doc(episode.episodeKey);
@@ -457,7 +532,8 @@ class ProgressService {
         });
       }
 
-      const finalEpisodes = [...finalEpisodeKeys]
+      const watchedEpisodeKeys = [...finalEpisodeKeys].sort();
+      const finalEpisodes = watchedEpisodeKeys
         .map((episodeKey) => canonical.episodesByKey.get(episodeKey))
         .filter((episode): episode is ProgressEpisodePointer => episode !== undefined)
         .sort(compareEpisodeCoordinates);
@@ -476,6 +552,7 @@ class ProgressService {
           currentSeason: highestWatchedEpisode?.seasonNumber ?? null,
           currentEpisode: highestWatchedEpisode?.episodeNumber ?? null,
           nextEpisode,
+          watchedEpisodeKeys,
           updatedAt: FieldValue.serverTimestamp(),
         },
         {merge: true},
@@ -487,6 +564,7 @@ class ProgressService {
       await watchlistService.syncTvStatusFromProgress(userId, tmdbId, progress);
     }
 
+    await derivedCacheService.invalidateUserLibraryCaches(userId);
     return {imported, skipped, failedKeys};
   }
 

@@ -13,6 +13,9 @@ users/{userId}/progress/{showId}
 users/{userId}/progress/{showId}/episodes/{episodeKey}
 users/{userId}/history/{historyId}
 users/{userId}/settings/profile
+users/{userId}/derived/stats
+users/{userId}/derived/yearRecap_{year}
+users/{userId}/derived/achievements
 users/{userId}/ratings/{mediaType_id}
 users/{userId}/friends/{friendUserId}
 users/{userId}/imports/{importId}
@@ -115,11 +118,12 @@ Shape:
     "episodeNumber": 3,
     "episodeTitle": "In Perpetuity"
   },
+  "watchedEpisodeKeys": ["s01e01", "s01e02"],
   "updatedAt": "<server timestamp>"
 }
 ```
 
-`progressPercent` is rounded to two decimal places by the backend. `poster` is optional; missing posters are backfilled from TMDb on `GET /progress` and persisted without changing `updatedAt`.
+`progressPercent` is rounded to two decimal places by the backend. `poster` is optional; missing posters are backfilled from TMDb on `GET /progress` and persisted without changing `updatedAt`. `watchedEpisodeKeys` is maintained by Cloud Functions on mark/unwatch/import so writes do not need to re-scan the entire `episodes` subcollection. Older documents without the field are backfilled lazily on the next write.
 
 ## users/{userId}/progress/{showId}/episodes/{episodeKey}
 
@@ -335,7 +339,7 @@ The current MVP does not store a complete per-user puzzle-history list. Puzzle i
 
 ## Not stored in Firestore
 
-- Achievements, challenges, year recap, discovery suggestions: computed in Cloud Functions (franchise progress overlays use the remote/bundled catalogs above)
+- Achievements, challenges, year recap, discovery suggestions: computed in Cloud Functions (franchise progress overlays use the remote/bundled catalogs above). Stats, year recap, and achievements responses are cached under `users/{uid}/derived/*` with a short TTL and invalidated when history/progress/watchlist change.
 - Personal data export (`GET /me/export`): assembled on demand from history, progress, and watchlist — see [ExportFormat.md](./ExportFormat.md)
 - Append-only `watchEvents`: planned (Data Schema Phase 2), not shipped
 
@@ -349,6 +353,7 @@ The current `firestore.rules` policy is intentionally narrow:
 - Users can read/write only their own `history` documents.
 - Users can read/write only their own `settings` documents.
 - Users can read/delete their own `friends` documents; client create/update is denied.
+- `users/{uid}/derived/**` client read/write is denied (Cloud Functions only).
 - Users can read their own `imports` tree; client writes are denied (Cloud Functions only).
 - `mediaMappings/**` client read/write is denied (Cloud Functions only).
 - `franchises/**` client read/write is denied (Cloud Functions only).
@@ -370,9 +375,20 @@ Java is required by the Firebase Emulator Suite.
 
 ## Indexes
 
-No composite indexes are required yet. Add indexes when screens need cross-field sorting or filtering such as:
+No composite indexes are required yet for default list cursors (`orderBy` field + `__name__`). Add indexes when screens need cross-field sorting or filtering such as:
 
 - Watchlist by `status` and `updatedAt`.
-- History by `watchedAt`.
 - Ratings by `rating` and `updatedAt`.
 - Additional franchise filters beyond the current in-memory `published` + `sortOrder` sort (catalogs are small today).
+
+Friend feed uses a single-field range on `history.watchedAt` (last 30 days).
+
+## Cost / ops checklist
+
+Live database (2026-07-22): Standard Native `(default)` in `asia-east1`, free tier enabled.
+
+- Monitor Firestore usage in Firebase Console → Firestore → Usage.
+- Set a GCP billing budget alert before leaving the free tier.
+- Enable delete protection on `(default)` once the project is past experiments (`firestore:databases:update --delete-protection`).
+- Prefer cursor pagination (`pageToken`) and avoid full-collection scans in new features.
+- Spoiler checks should use deterministic history doc IDs (`existsMany`), not full history dumps.

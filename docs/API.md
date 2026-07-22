@@ -340,13 +340,13 @@ watched
 ### List Watchlist
 
 ```http
-GET /watchlist?page={page}&pageSize={pageSize}
+GET /watchlist?pageSize={pageSize}&pageToken={pageToken}
 ```
 
 Query parameters:
 
-- `page` — optional positive integer, default `1`
 - `pageSize` — optional positive integer, default `25`, maximum `100`
+- `pageToken` — optional opaque cursor from a previous response `nextPageToken`
 
 Items with a missing `poster` or `backdrop` are backfilled from TMDb on read and persisted to Firestore (without changing `updatedAt`). Failed TMDb lookups leave the existing null/blank values unchanged.
 
@@ -367,9 +367,8 @@ Response:
       "updatedAt": "2026-07-10T04:00:00.000Z"
     }
   ],
-  "page": 1,
   "pageSize": 25,
-  "totalCount": 12,
+  "nextPageToken": null,
   "hasMore": false
 }
 ```
@@ -435,15 +434,15 @@ users/{uid}/progress/{showId}/episodes/{episodeKey}
 ### List Show Progress
 
 ```http
-GET /progress?page={page}&pageSize={pageSize}
+GET /progress?pageSize={pageSize}&pageToken={pageToken}
 ```
 
 Lists summary-only show progress documents for the signed-in user, sorted by most recently updated. This endpoint does not read each show's `episodes` subcollection. Items with a missing `poster` are backfilled from TMDb on read and persisted to Firestore (without changing `updatedAt`). Failed TMDb lookups leave the existing null/blank values unchanged.
 
 Query parameters:
 
-- `page` — optional positive integer, default `1`
 - `pageSize` — optional positive integer, default `25`, maximum `100`
+- `pageToken` — optional opaque cursor from a previous response `nextPageToken`
 
 Response:
 
@@ -469,9 +468,8 @@ Response:
       "updatedAt": "2026-07-10T07:00:00.000Z"
     }
   ],
-  "page": 1,
   "pageSize": 25,
-  "totalCount": 5,
+  "nextPageToken": null,
   "hasMore": false
 }
 ```
@@ -755,13 +753,13 @@ Settings also accept:
 History endpoints require authentication and return watched movie and episode events for the signed-in user, ordered by `watchedAt` descending.
 
 ```http
-GET /me/history?page={page}&pageSize={pageSize}
+GET /me/history?pageSize={pageSize}&pageToken={pageToken}
 ```
 
 Query parameters:
 
-- `page` — optional positive integer, default `1`
 - `pageSize` — optional positive integer, default `25`, maximum `100`
+- `pageToken` — optional opaque cursor from a previous response `nextPageToken`
 
 Response:
 
@@ -780,9 +778,8 @@ Response:
       "updatedAt": "2026-07-10T07:00:00.000Z"
     }
   ],
-  "page": 1,
   "pageSize": 25,
-  "totalCount": 18,
+  "nextPageToken": null,
   "hasMore": false
 }
 ```

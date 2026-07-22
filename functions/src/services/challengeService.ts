@@ -1,4 +1,4 @@
-import {fetchAllPages} from "../lib/pagination";
+import {listAllDocuments} from "../lib/pagination";
 import {ChallengeProgress} from "../models/social";
 import {franchiseCatalogLoader} from "./franchiseCatalogLoader";
 import {buildFranchiseProgress} from "./franchiseLogic";
@@ -12,9 +12,9 @@ import {watchlistService} from "./watchlistService";
 class ChallengeService {
   private async completedFranchiseCount(userId: string) {
     const [history, watchlistItems, progressItems, settings, {catalogs}] = await Promise.all([
-      fetchAllPages((pagination) => historyService.list(userId, pagination)),
-      fetchAllPages((pagination) => watchlistService.list(userId, pagination)),
-      fetchAllPages((pagination) => progressService.list(userId, pagination)),
+      listAllDocuments((pagination) => historyService.list(userId, pagination)),
+      listAllDocuments((pagination) => watchlistService.list(userId, pagination)),
+      listAllDocuments((pagination) => progressService.list(userId, pagination)),
       settingsService.get(userId),
       franchiseCatalogLoader.listPublished(),
     ]);
@@ -34,7 +34,7 @@ class ChallengeService {
   }
 
   async list(userId: string, friendUserId?: string): Promise<{items: ChallengeProgress[]}> {
-    const history = await fetchAllPages((pagination) => historyService.list(userId, pagination));
+    const history = await listAllDocuments((pagination) => historyService.list(userId, pagination));
     const completedFranchises = await this.completedFranchiseCount(userId);
 
     if (!friendUserId) {
@@ -51,7 +51,7 @@ class ChallengeService {
     }
 
     const [friendHistory, friendCompletedFranchises] = await Promise.all([
-      fetchAllPages((pagination) => historyService.list(friendUserId, pagination)),
+      listAllDocuments((pagination) => historyService.list(friendUserId, pagination)),
       this.completedFranchiseCount(friendUserId),
     ]);
 

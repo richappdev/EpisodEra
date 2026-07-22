@@ -1,6 +1,6 @@
 import {FieldValue, Timestamp, getFirestore} from "firebase-admin/firestore";
 import {HttpError} from "../lib/httpError";
-import {fetchAllPages} from "../lib/pagination";
+import {listAllDocuments} from "../lib/pagination";
 import {UserProfile} from "../models/profile";
 import {
   ActivityFeedItem,
@@ -9,8 +9,8 @@ import {
   FriendSummary,
   FriendsResponse,
 } from "../models/social";
-import {generateFriendCode, genreOverlapScore, shouldHideSpoiler, topGenreNames} from "./socialLogic";
-import {historyService} from "./historyService";
+import {generateFriendCode, genreOverlapScore, shouldHideSpoilerByHistoryId, topGenreNames} from "./socialLogic";
+import {historyIdForCoords, historyService} from "./historyService";
 import {profileService} from "./profileService";
 import {settingsService} from "./settingsService";
 
@@ -179,50 +179,120 @@ class FriendService {
   }
 
   async feed(userId: string): Promise<{items: ActivityFeedItem[]}> {
-    const [settings, friendIds, viewerHistory] = await Promise.all([
+    const FEED_WINDOW_DAYS = 30;
+    const MAX_FRIENDS = 20;
+    const MAX_PER_FRIEND = 10;
+    const MAX_FEED_ITEMS = 40;
+
+    const [settings, friendIds] = await Promise.all([
       settingsService.get(userId),
       this.acceptedFriendIds(userId),
-      fetchAllPages((pagination) => historyService.list(userId, pagination)),
     ]);
 
-    const items: ActivityFeedItem[] = [];
-    for (const friendUserId of friendIds.slice(0, 20)) {
-      const friendSettings = await settingsService.get(friendUserId);
-      if (!friendSettings.shareActivityWithFriends) {
-        continue;
-      }
-      const [friendProfile, friendHistory] = await Promise.all([
-        profileService.get(friendUserId),
-        historyService.list(friendUserId, {page: 1, pageSize: 10}),
-      ]);
-      const displayName = this.displayNameFor(friendProfile, "Friend");
-      for (const entry of friendHistory.items) {
-        const spoilerHidden = shouldHideSpoiler({
-          hideSpoilersUntilWatched: settings.hideSpoilersUntilWatched,
-          mediaType: entry.mediaType,
-          tmdbId: entry.tmdbId,
-          seasonNumber: entry.seasonNumber,
-          episodeNumber: entry.episodeNumber,
-          viewerHistory,
-        });
-        items.push({
-          feedId: `${friendUserId}_${entry.historyId}`,
-          friendUserId,
-          friendDisplayName: displayName,
-          tmdbId: entry.tmdbId,
-          mediaType: entry.mediaType,
-          title: entry.title,
-          seasonNumber: entry.seasonNumber,
-          episodeNumber: entry.episodeNumber,
-          episodeTitle: spoilerHidden ? null : entry.episodeTitle,
-          watchedAt: entry.watchedAt,
-          spoilerHidden,
-        });
+    const limitedFriendIds = friendIds.slice(0, MAX_FRIENDS);
+    if (limitedFriendIds.length === 0) {
+      return {items: []};
+    }
+
+    const firestore = getFirestore();
+    const settingsRefs = limitedFriendIds.map((friendUserId) =>
+      firestore.collection("users").doc(friendUserId).collection("settings").doc("profile"),
+    );
+    const profileRefs = limitedFriendIds.map((friendUserId) => firestore.collection("users").doc(friendUserId));
+    const [friendSettingsSnaps, friendProfileSnaps] = await Promise.all([
+      firestore.getAll(...settingsRefs),
+      firestore.getAll(...profileRefs),
+    ]);
+
+    const since = new Date(Date.now() - FEED_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+    const sharingFriendIds: string[] = [];
+    for (let index = 0; index < limitedFriendIds.length; index += 1) {
+      const settingsData = friendSettingsSnaps[index]?.exists
+        ? (friendSettingsSnaps[index].data() as {shareActivityWithFriends?: boolean})
+        : {};
+      if (settingsData.shareActivityWithFriends ?? false) {
+        sharingFriendIds.push(limitedFriendIds[index]);
       }
     }
 
-    items.sort((left, right) => Date.parse(right.watchedAt ?? "") - Date.parse(left.watchedAt ?? ""));
-    return {items: items.slice(0, 40)};
+    const friendHistories = await Promise.all(
+      sharingFriendIds.map((friendUserId) =>
+        historyService.listRecent(friendUserId, {since, limit: MAX_PER_FRIEND}),
+      ),
+    );
+
+    const candidateEntries: Array<{
+      friendUserId: string;
+      displayName: string;
+      entry: (typeof friendHistories)[number][number];
+    }> = [];
+
+    for (let index = 0; index < sharingFriendIds.length; index += 1) {
+      const friendUserId = sharingFriendIds[index];
+      const profileIndex = limitedFriendIds.indexOf(friendUserId);
+      const profileSnap = friendProfileSnaps[profileIndex];
+      const profile = profileSnap?.exists
+        ? ({
+            firstName: profileSnap.get("firstName") ?? "",
+            lastName: profileSnap.get("lastName") ?? "",
+            email: profileSnap.get("email") ?? null,
+            displayName: profileSnap.get("displayName") ?? null,
+          } as UserProfile)
+        : null;
+      const displayName = this.displayNameFor(profile, "Friend");
+      for (const entry of friendHistories[index]) {
+        candidateEntries.push({friendUserId, displayName, entry});
+      }
+    }
+
+    candidateEntries.sort(
+      (left, right) => Date.parse(right.entry.watchedAt ?? "") - Date.parse(left.entry.watchedAt ?? ""),
+    );
+    const topEntries = candidateEntries.slice(0, MAX_FEED_ITEMS);
+
+    const viewerHistoryIds = topEntries
+      .map(({entry}) =>
+        historyIdForCoords({
+          mediaType: entry.mediaType,
+          tmdbId: entry.tmdbId,
+          seasonNumber: entry.seasonNumber,
+          episodeNumber: entry.episodeNumber,
+        }),
+      )
+      .filter((value): value is string => Boolean(value));
+
+    const watchedHistoryIds = settings.hideSpoilersUntilWatched
+      ? await historyService.existsMany(userId, viewerHistoryIds)
+      : new Set<string>();
+
+    const items: ActivityFeedItem[] = topEntries.map(({friendUserId, displayName, entry}) => {
+      const historyId = historyIdForCoords({
+        mediaType: entry.mediaType,
+        tmdbId: entry.tmdbId,
+        seasonNumber: entry.seasonNumber,
+        episodeNumber: entry.episodeNumber,
+      });
+      const spoilerHidden = shouldHideSpoilerByHistoryId({
+        hideSpoilersUntilWatched: settings.hideSpoilersUntilWatched,
+        historyId,
+        watchedHistoryIds,
+      });
+      return {
+        feedId: `${friendUserId}_${entry.historyId}`,
+        friendUserId,
+        friendDisplayName: displayName,
+        tmdbId: entry.tmdbId,
+        mediaType: entry.mediaType,
+        title: entry.title,
+        seasonNumber: entry.seasonNumber,
+        episodeNumber: entry.episodeNumber,
+        episodeTitle: spoilerHidden ? null : entry.episodeTitle,
+        watchedAt: entry.watchedAt,
+        spoilerHidden,
+      };
+    });
+
+    return {items};
   }
 
   async compatibility(userId: string, friendUserId: string): Promise<CompatibilityResult> {
@@ -232,8 +302,8 @@ class FriendService {
     }
 
     const [yourHistory, theirHistory, friendProfile] = await Promise.all([
-      fetchAllPages((pagination) => historyService.list(userId, pagination)),
-      fetchAllPages((pagination) => historyService.list(friendUserId, pagination)),
+      listAllDocuments((pagination) => historyService.list(userId, pagination)),
+      listAllDocuments((pagination) => historyService.list(friendUserId, pagination)),
       profileService.get(friendUserId),
     ]);
 

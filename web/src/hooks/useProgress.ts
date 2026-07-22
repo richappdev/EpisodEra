@@ -7,15 +7,15 @@ import {ShowProgressSummary} from "../types/progress";
 import {toErrorMessage} from "./errorMessage";
 
 const loadAllProgress = async () => {
-  let page = 1;
   const items: ShowProgressSummary[] = [];
+  let pageToken: string | undefined;
   let hasMore = true;
 
   while (hasMore) {
-    const response = await api.listProgress({page, pageSize: maxPageSize});
+    const response = await api.listProgress({pageSize: maxPageSize, pageToken});
     items.push(...response.items);
-    hasMore = response.hasMore;
-    page += 1;
+    pageToken = response.nextPageToken ?? undefined;
+    hasMore = Boolean(response.nextPageToken);
   }
 
   return items;

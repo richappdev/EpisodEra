@@ -1,14 +1,15 @@
 export interface PaginatedResponse<T> {
   items: T[];
-  page: number;
   pageSize: number;
-  totalCount: number;
+  nextPageToken: string | null;
   hasMore: boolean;
 }
 
 export interface PaginationParams {
+  /** TMDb / discovery page number (1-based). */
   page?: number;
   pageSize?: number;
+  pageToken?: string;
 }
 
 export const defaultPageSize = 25;
@@ -21,6 +22,9 @@ export const withPagination = (path: string, pagination?: PaginationParams) => {
   }
   if (pagination?.pageSize) {
     params.set("pageSize", String(pagination.pageSize));
+  }
+  if (pagination?.pageToken) {
+    params.set("pageToken", pagination.pageToken);
   }
 
   const query = params.toString();

@@ -79,6 +79,7 @@ const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     return;
   }
 
+  console.error("Unhandled API error", error);
   res.status(500).json({error: {code: "internal", message: "Internal server error."}});
 };
 

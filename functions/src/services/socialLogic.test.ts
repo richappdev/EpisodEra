@@ -6,6 +6,7 @@ import {
   generateFriendCode,
   genreOverlapScore,
   shouldHideSpoiler,
+  shouldHideSpoilerByHistoryId,
   topGenreNames,
 } from "./socialLogic";
 
@@ -58,6 +59,22 @@ describe("socialLogic", () => {
         viewerHistory,
       }),
       false,
+    );
+    assert.equal(
+      shouldHideSpoilerByHistoryId({
+        hideSpoilersUntilWatched: true,
+        historyId: "tv_1_s01e01",
+        watchedHistoryIds: new Set(["tv_1_s01e01"]),
+      }),
+      false,
+    );
+    assert.equal(
+      shouldHideSpoilerByHistoryId({
+        hideSpoilersUntilWatched: true,
+        historyId: "tv_1_s01e02",
+        watchedHistoryIds: new Set(["tv_1_s01e01"]),
+      }),
+      true,
     );
   });
 

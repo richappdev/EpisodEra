@@ -577,9 +577,8 @@ const paged = (results: Array<Record<string, unknown>>) => ({
 
 const listPage = <T,>(items: T[]) => ({
   items,
-  page: 1,
   pageSize: 25,
-  totalCount: items.length,
+  nextPageToken: null,
   hasMore: false,
 });
 
