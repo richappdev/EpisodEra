@@ -31,6 +31,8 @@ SUPABASE_WRITE_PRIMARY=true
 
 Progress mutations use `mark_episodes_watched` RPC. Profiles/settings/derived write Supabase first.
 
+**Status:** enable `SUPABASE_WRITE_PRIMARY` in prod when library reads look good; do **not** set `FIRESTORE_WRITES_DISABLED` until outbox stays clean for a soak window.
+
 ## Step C — stop Firestore persistence
 
 Only after soak is green and outbox is drained:
