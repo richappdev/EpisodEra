@@ -38,6 +38,78 @@ export const isAppCheckEnforceAuthWrites = () => booleanFromEnv("APP_CHECK_ENFOR
 /** Phase 4: require App Check on public read routes when true (middleware ready, not mounted). */
 export const isAppCheckEnforcePublicReads = () => booleanFromEnv("APP_CHECK_ENFORCE_PUBLIC_READS");
 
+/**
+ * Phase 4–6: after Firestore primary write succeeds, also write to Supabase (shadow).
+ * Requires SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY. Failures go to migration outbox.
+ */
+export const isSupabaseShadowWrites = () => booleanFromEnv("SUPABASE_SHADOW_WRITES");
+
+/**
+ * Phase 5+: read profiles from Supabase when true.
+ * Default false — Firestore remains read primary during shadow mode.
+ */
+export const isSupabaseReadProfiles = () =>
+  booleanFromEnv("SUPABASE_READ_PROFILES") || isSupabaseReadPrimary();
+
+/**
+ * Phase 5+: read user settings from Supabase when true.
+ * Falls back to Firestore if no row exists.
+ */
+export const isSupabaseReadSettings = () =>
+  booleanFromEnv("SUPABASE_READ_SETTINGS") || isSupabaseReadPrimary();
+
+/**
+ * Phase 6+: read watchlist + likes from Supabase when true.
+ * Falls back to Firestore when Supabase has no rows for the user.
+ */
+export const isSupabaseReadWatchlist = () =>
+  booleanFromEnv("SUPABASE_READ_WATCHLIST") || isSupabaseReadPrimary();
+
+/**
+ * Phase 7+: read progress (+ watched episodes) from Supabase when true.
+ */
+export const isSupabaseReadProgress = () =>
+  booleanFromEnv("SUPABASE_READ_PROGRESS") || isSupabaseReadPrimary();
+
+/**
+ * Phase 7+: read watch history from Supabase when true.
+ */
+export const isSupabaseReadHistory = () =>
+  booleanFromEnv("SUPABASE_READ_HISTORY") || isSupabaseReadPrimary();
+
+/**
+ * Phase 8+: read friendships from Supabase when true.
+ */
+export const isSupabaseReadFriends = () =>
+  booleanFromEnv("SUPABASE_READ_FRIENDS") || isSupabaseReadPrimary();
+
+/**
+ * Phase 8+: read derived cache (stats/yearRecap/achievements) from Supabase when true.
+ */
+export const isSupabaseReadDerived = () =>
+  booleanFromEnv("SUPABASE_READ_DERIVED") || isSupabaseReadPrimary();
+
+/**
+ * Phase 10 prep: when true, mutation routes should refuse Firestore writes
+ * after Supabase has become primary (see Phase10Retirement.md).
+ */
+export const isFirestoreWritesDisabled = () => booleanFromEnv("FIRESTORE_WRITES_DISABLED");
+
+/**
+ * Phase 10 prep: treat Supabase as read primary for library domains when true.
+ * Default false until soak completes. Enables all domain read flags above.
+ */
+export const isSupabaseReadPrimary = () => booleanFromEnv("SUPABASE_READ_PRIMARY");
+
+/**
+ * When true, library mutations write Supabase first (Model A primary).
+ * Pair with FIRESTORE_WRITES_DISABLED=true once soak is green to stop Firestore persistence.
+ */
+export const isSupabaseWritePrimary = () => booleanFromEnv("SUPABASE_WRITE_PRIMARY");
+
+/** Persist to Firestore unless retirement flag is on. */
+export const shouldPersistFirestore = () => !isFirestoreWritesDisabled();
+
 /** Comma-separated emails allowed to use puzzle admin APIs. */
 export const puzzleAdminEmails = () =>
   (process.env.PUZZLE_ADMIN_EMAILS ?? "")

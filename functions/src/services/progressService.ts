@@ -146,8 +146,33 @@ class ProgressService {
   }
 
   async list(userId: string, pagination: PaginationQuery): Promise<PaginatedResult<ShowProgressSummary>> {
-    const baseQuery = this.collection(userId).orderBy("updatedAt", "desc");
+    const {isSupabaseReadProgress} = await import("../config/env");
+    const {getSupabaseEnvOrNull, supabaseRest} = await import("../db/supabaseClient");
+    if (isSupabaseReadProgress()) {
+      const env = getSupabaseEnvOrNull();
+      if (env) {
+        const {decodeSupabaseOffsetToken, paginateRows} = await import("../lib/supabasePagination");
+        const offset = decodeSupabaseOffsetToken(pagination.pageToken);
+        const limit = pagination.pageSize + 1;
+        const rows = (await supabaseRest(
+          env,
+          `show_progress?firebase_uid=eq.${encodeURIComponent(userId)}` +
+            `&select=*&order=updated_at.desc,show_tmdb_id.asc` +
+            `&offset=${offset}&limit=${limit}`,
+          {method: "GET", prefer: "return=representation"},
+        )) as Array<Record<string, unknown>> | null;
+        const list = Array.isArray(rows) ? rows : [];
+        if (offset > 0 || list.length > 0) {
+          return paginateRows(
+            list.map((row) => this.mapProgressSummaryFromSupabase(row)),
+            pagination,
+            offset,
+          );
+        }
+      }
+    }
 
+    const baseQuery = this.collection(userId).orderBy("updatedAt", "desc");
     return listPaginated(baseQuery, pagination, (doc) =>
       this.mapProgressSummary(doc.id, doc.data() as ProgressDocument),
     );
@@ -185,7 +210,37 @@ class ProgressService {
     return items.map((item) => byId.get(item.showId) ?? item);
   }
 
-  async get(userId: string, showId: string): Promise<ShowProgress | null> {
+  async get(userId: string, showId: string, options?: {forceSupabase?: boolean}): Promise<ShowProgress | null> {
+    const {isSupabaseReadProgress} = await import("../config/env");
+    const {getSupabaseEnvOrNull, supabaseRest} = await import("../db/supabaseClient");
+    if (options?.forceSupabase || isSupabaseReadProgress()) {
+      const env = getSupabaseEnvOrNull();
+      if (env) {
+        const tmdbId = Number(showId);
+        const rows = (await supabaseRest(
+          env,
+          `show_progress?firebase_uid=eq.${encodeURIComponent(userId)}&show_tmdb_id=eq.${tmdbId}&select=*`,
+          {method: "GET", prefer: "return=representation"},
+        )) as Array<Record<string, unknown>> | null;
+        const row = Array.isArray(rows) && rows[0] ? rows[0] : null;
+        if (row) {
+          const episodeRows = (await supabaseRest(
+            env,
+            `watched_episodes?firebase_uid=eq.${encodeURIComponent(userId)}` +
+              `&show_tmdb_id=eq.${tmdbId}&select=*&order=season_number.asc,episode_number.asc`,
+            {method: "GET", prefer: "return=representation"},
+          )) as Array<Record<string, unknown>> | null;
+          const episodes = (Array.isArray(episodeRows) ? episodeRows : []).map((episode) =>
+            this.mapEpisodeFromSupabase(episode),
+          );
+          return this.mapProgressFromSupabase(row, episodes);
+        }
+        if (options?.forceSupabase) {
+          return null;
+        }
+      }
+    }
+
     const progressRef = this.collection(userId).doc(showId);
     const progressSnapshot = await progressRef.get();
 
@@ -270,6 +325,12 @@ class ProgressService {
     tmdbId: number,
     input: BatchEpisodeProgressInput,
   ): Promise<ShowProgress> {
+    const {isSupabaseWritePrimary, shouldPersistFirestore} = await import("../config/env");
+    const {getSupabaseEnvOrNull} = await import("../db/supabaseClient");
+    if (isSupabaseWritePrimary() && getSupabaseEnvOrNull()) {
+      return this.updateEpisodesSupabasePrimary(userId, showId, tmdbId, input, shouldPersistFirestore());
+    }
+
     const canonical = await this.loadCanonicalMetadata(tmdbId);
     const requested = input.episodes.map((episode) => {
       const episodeKey = episodeKeyFor(episode.seasonNumber, episode.episodeNumber);
@@ -393,6 +454,20 @@ class ProgressService {
 
     await watchlistService.syncTvStatusFromProgress(userId, tmdbId, progress);
     await derivedCacheService.invalidateUserLibraryCaches(userId);
+
+    if (!this.suppressShadowOnce) {
+      const {shadowWrite} = await import("../migration/shadow");
+      const {upsertShowProgressShadow} = await import("../migration/supabaseWriters");
+      await shadowWrite({
+        domain: "progress",
+        operation: "updateEpisodes",
+        firebaseUid: userId,
+        operationId: `progress:update:${userId}:${showId}:${Date.now()}`,
+        payload: {showId, tmdbId, watchedEpisodeCount: progress.watchedEpisodeCount},
+        secondary: () => upsertShowProgressShadow(userId, progress),
+      });
+    }
+
     return progress;
   }
 
@@ -562,6 +637,16 @@ class ProgressService {
     const progress = await this.get(userId, showId);
     if (progress) {
       await watchlistService.syncTvStatusFromProgress(userId, tmdbId, progress);
+      const {shadowWrite} = await import("../migration/shadow");
+      const {upsertShowProgressShadow} = await import("../migration/supabaseWriters");
+      await shadowWrite({
+        domain: "progress",
+        operation: "importWatchedEpisodes",
+        firebaseUid: userId,
+        operationId: `progress:import:${userId}:${showId}:${Date.now()}`,
+        payload: {showId, tmdbId, imported, skipped},
+        secondary: () => upsertShowProgressShadow(userId, progress),
+      });
     }
 
     await derivedCacheService.invalidateUserLibraryCaches(userId);
@@ -609,6 +694,231 @@ class ProgressService {
       nextEpisode: data.nextEpisode ?? null,
       updatedAt: timestampToJson(data.updatedAt),
     };
+  }
+
+  private mapProgressSummaryFromSupabase(row: Record<string, unknown>): ShowProgressSummary {
+    const tmdbId = Number(row.show_tmdb_id);
+    const nextSeason = row.next_season_number == null ? null : Number(row.next_season_number);
+    const nextEpisodeNumber = row.next_episode_number == null ? null : Number(row.next_episode_number);
+    return {
+      showId: String(tmdbId),
+      tmdbId,
+      title: String(row.title ?? ""),
+      poster: normalizeImageUrl((row.poster_path as string | null) ?? null),
+      totalEpisodes: Number(row.total_episodes ?? 0),
+      watchedEpisodeCount: Number(row.watched_episode_count ?? 0),
+      progressPercent: Number(row.progress_percent ?? 0),
+      currentSeason: row.current_season == null ? null : Number(row.current_season),
+      currentEpisode: row.current_episode == null ? null : Number(row.current_episode),
+      nextEpisode:
+        nextSeason != null && nextEpisodeNumber != null
+          ? {
+              episodeKey: episodeKeyFor(nextSeason, nextEpisodeNumber),
+              seasonNumber: nextSeason,
+              episodeNumber: nextEpisodeNumber,
+              episodeTitle: String(row.next_episode_title ?? ""),
+            }
+          : null,
+      updatedAt: typeof row.updated_at === "string" ? row.updated_at : null,
+    };
+  }
+
+  private mapEpisodeFromSupabase(row: Record<string, unknown>): EpisodeProgress {
+    const seasonNumber = Number(row.season_number);
+    const episodeNumber = Number(row.episode_number);
+    return {
+      episodeKey: String(row.episode_key ?? episodeKeyFor(seasonNumber, episodeNumber)),
+      seasonNumber,
+      episodeNumber,
+      episodeTitle: String(row.episode_title ?? ""),
+      watched: true,
+      watchedAt: typeof row.watched_at === "string" ? row.watched_at : null,
+      updatedAt: typeof row.updated_at === "string" ? row.updated_at : null,
+    };
+  }
+
+  private mapProgressFromSupabase(
+    row: Record<string, unknown>,
+    episodes: EpisodeProgress[],
+  ): ShowProgress {
+    return {
+      ...this.mapProgressSummaryFromSupabase(row),
+      episodes: [...episodes].sort(compareEpisodeCoordinates),
+    };
+  }
+
+  private async updateEpisodesSupabasePrimary(
+    userId: string,
+    showId: string,
+    tmdbId: number,
+    input: BatchEpisodeProgressInput,
+    persistFirestore: boolean,
+  ): Promise<ShowProgress> {
+    const canonical = await this.loadCanonicalMetadata(tmdbId);
+    const requested = input.episodes.map((episode) => {
+      const episodeKey = episodeKeyFor(episode.seasonNumber, episode.episodeNumber);
+      const metadata = canonical.episodesByKey.get(episodeKey);
+      if (!metadata) {
+        throw new HttpError(404, "Episode was not found for this show.", "episode_not_found");
+      }
+      return metadata;
+    });
+
+    const {
+      markEpisodesWatchedPrimary,
+      patchShowProgressNextEpisode,
+    } = await import("../migration/supabaseWriters");
+
+    await markEpisodesWatchedPrimary({
+      firebaseUid: userId,
+      showTmdbId: tmdbId,
+      title: canonical.tvDetail.title,
+      posterPath: normalizeImageUrl(canonical.tvDetail.images.poster),
+      totalEpisodes: canonical.totalEpisodes,
+      episodes: requested.map((episode) => ({
+        season_number: episode.seasonNumber,
+        episode_number: episode.episodeNumber,
+        episode_title: episode.episodeTitle,
+        watched: input.watched,
+      })),
+    });
+
+    // Rebuild next-episode pointer from current watched set + canonical catalog.
+    const after = await this.get(userId, showId, {forceSupabase: true});
+    const watchedKeys = new Set((after?.episodes ?? []).map((episode) => episode.episodeKey));
+    const nextEpisode = findNextUnwatchedEpisode(canonical.seasons, watchedKeys);
+    await patchShowProgressNextEpisode(
+      userId,
+      tmdbId,
+      nextEpisode
+        ? {
+            seasonNumber: nextEpisode.seasonNumber,
+            episodeNumber: nextEpisode.episodeNumber,
+            episodeTitle: nextEpisode.episodeTitle,
+          }
+        : null,
+    );
+
+    if (persistFirestore) {
+      // Keep Firestore in sync during write-primary soak (no shadow; Supabase already written).
+      this.suppressShadowOnce = true;
+      try {
+        await this.updateEpisodesFirestoreOnly(userId, showId, tmdbId, input, canonical, requested);
+      } finally {
+        this.suppressShadowOnce = false;
+      }
+    }
+
+    const progress = await this.get(userId, showId, {forceSupabase: true});
+    if (!progress) {
+      throw new HttpError(500, "Progress could not be read after update.", "progress_update_failed");
+    }
+    await watchlistService.syncTvStatusFromProgress(userId, tmdbId, progress);
+    await derivedCacheService.invalidateUserLibraryCaches(userId);
+    return progress;
+  }
+
+  private suppressShadowOnce = false;
+
+  private async updateEpisodesFirestoreOnly(
+    userId: string,
+    showId: string,
+    tmdbId: number,
+    input: BatchEpisodeProgressInput,
+    canonical: CanonicalProgressMetadata,
+    requested: ProgressEpisodePointer[],
+  ): Promise<void> {
+    const progressRef = this.collection(userId).doc(showId);
+    const historyCollection = this.historyCollection(userId);
+
+    await getFirestore().runTransaction(async (transaction) => {
+      const existingProgressSnapshot = await transaction.get(progressRef);
+      const finalEpisodeKeys = await this.resolveWatchedEpisodeKeys(
+        transaction,
+        progressRef,
+        existingProgressSnapshot,
+      );
+      const existingPoster = existingProgressSnapshot.exists
+        ? (existingProgressSnapshot.data() as ProgressDocument | undefined)?.poster
+        : null;
+
+      const requestedRefs = requested.map((episode) =>
+        progressRef.collection("episodes").doc(episode.episodeKey),
+      );
+      const requestedSnapshots =
+        requestedRefs.length > 0 ? await Promise.all(requestedRefs.map((ref) => transaction.get(ref))) : [];
+      const existingEpisodesByKey = new Map(
+        requestedSnapshots
+          .filter((snapshot) => snapshot.exists)
+          .map((snapshot) => [snapshot.id, snapshot] as const),
+      );
+
+      for (const episode of requested) {
+        const episodeRef = progressRef.collection("episodes").doc(episode.episodeKey);
+        const historyRef = historyCollection.doc(`tv_${tmdbId}_${episode.episodeKey}`);
+
+        if (input.watched) {
+          const existing = existingEpisodesByKey.get(episode.episodeKey);
+          finalEpisodeKeys.add(episode.episodeKey);
+          transaction.set(
+            episodeRef,
+            {
+              seasonNumber: episode.seasonNumber,
+              episodeNumber: episode.episodeNumber,
+              episodeTitle: episode.episodeTitle,
+              watched: true,
+              watchedAt: existing?.get("watchedAt") ?? FieldValue.serverTimestamp(),
+              updatedAt: FieldValue.serverTimestamp(),
+            },
+            {merge: true},
+          );
+          transaction.set(
+            historyRef,
+            {
+              tmdbId,
+              mediaType: "tv",
+              title: canonical.tvDetail.title,
+              seasonNumber: episode.seasonNumber,
+              episodeNumber: episode.episodeNumber,
+              episodeTitle: episode.episodeTitle,
+              watchedAt: existing?.get("watchedAt") ?? FieldValue.serverTimestamp(),
+              updatedAt: FieldValue.serverTimestamp(),
+            },
+            {merge: true},
+          );
+        } else {
+          finalEpisodeKeys.delete(episode.episodeKey);
+          transaction.delete(episodeRef);
+          transaction.delete(historyRef);
+        }
+      }
+
+      const watchedEpisodeKeys = [...finalEpisodeKeys].sort();
+      const nextEpisode = findNextUnwatchedEpisode(canonical.seasons, new Set(watchedEpisodeKeys));
+      const highestWatchedEpisode = watchedEpisodeKeys
+        .map((key) => canonical.episodesByKey.get(key))
+        .filter((value): value is ProgressEpisodePointer => Boolean(value))
+        .sort(compareEpisodeCoordinates)
+        .at(-1);
+
+      transaction.set(
+        progressRef,
+        {
+          tmdbId,
+          title: canonical.tvDetail.title,
+          poster: preferImageUrl(existingPoster, canonical.tvDetail.images.poster),
+          totalEpisodes: canonical.totalEpisodes,
+          watchedEpisodeCount: watchedEpisodeKeys.length,
+          progressPercent: progressPercentFor(watchedEpisodeKeys.length, canonical.totalEpisodes),
+          currentSeason: highestWatchedEpisode?.seasonNumber ?? null,
+          currentEpisode: highestWatchedEpisode?.episodeNumber ?? null,
+          nextEpisode,
+          watchedEpisodeKeys,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
+    });
   }
 
   private mapProgress(showId: string, data: ProgressDocument, episodes: EpisodeProgress[]): ShowProgress {

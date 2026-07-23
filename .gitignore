@@ -9,6 +9,7 @@ dist/
 !.env.smoke.example
 !.env.production.example
 !functions/.env.episodera.example
+!functions/.env.supabase.example
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
@@ -20,3 +21,15 @@ firepit-log.txt
 *.local
 .codex/
 tv_time/
+docs/supabase/evidence/**
+!docs/supabase/evidence/README.md
+!docs/supabase/evidence/.gitignore
+_deploy-out.txt
+_docker-local-run.txt
+_docker_write_test.txt
+_functions-build-out.txt
+_functions-test-out.txt
+_vitest-admin-out.txt
+web/.codex-live-test.stderr.log
+web/.codex-live-test.stdout.log
+web/e2e-run.log

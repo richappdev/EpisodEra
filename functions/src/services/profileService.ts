@@ -88,7 +88,50 @@ class ProfileService {
     return getFirestore().collection("users").doc(userId);
   }
 
+  private mapSupabaseRow(row: Record<string, unknown>): UserProfile {
+    return {
+      firstName: String(row.first_name ?? ""),
+      lastName: String(row.last_name ?? ""),
+      email: (row.email as string | null) ?? null,
+      displayName: (row.display_name as string | null) ?? null,
+      photoURL: (row.photo_url as string | null) ?? null,
+      bio: (row.bio as string | null) ?? null,
+      country: (row.country as string | null) ?? null,
+      timezone: (row.timezone as string | null) ?? null,
+      friendCode: (row.friend_code as string | null) ?? null,
+      createdAt: (row.created_at as string | null) ?? null,
+      updatedAt: (row.updated_at as string | null) ?? null,
+    };
+  }
+
+  /** Stubs from ensureProfileStubShadow — prefer Firestore until a real profile shadows. */
+  private isProfileStub(row: Record<string, unknown>): boolean {
+    const email = String(row.email ?? "");
+    return (
+      String(row.first_name ?? "") === "User" &&
+      String(row.last_name ?? "") === "Unknown" &&
+      email.endsWith("@users.firebase.local")
+    );
+  }
+
   async get(userId: string): Promise<UserProfile | null> {
+    const {isSupabaseReadProfiles} = await import("../config/env");
+    const {getSupabaseEnvOrNull, supabaseRest} = await import("../db/supabaseClient");
+    if (isSupabaseReadProfiles()) {
+      const env = getSupabaseEnvOrNull();
+      if (env) {
+        const rows = (await supabaseRest(
+          env,
+          `profiles?firebase_uid=eq.${encodeURIComponent(userId)}&select=*`,
+          {method: "GET", prefer: "return=representation"},
+        )) as Array<Record<string, unknown>> | null;
+        const row = Array.isArray(rows) && rows[0] ? rows[0] : null;
+        if (row && !this.isProfileStub(row)) {
+          return this.mapSupabaseRow(row);
+        }
+      }
+    }
+
     const snapshot = await this.doc(userId).get();
     if (!snapshot.exists) {
       return null;
@@ -98,6 +141,7 @@ class ProfileService {
   }
 
   async update(userId: string, email: string | undefined, input: ProfileUpdateInput): Promise<UserProfile> {
+    const {isSupabaseWritePrimary, shouldPersistFirestore} = await import("../config/env");
     const ref = this.doc(userId);
     const snapshot = await ref.get();
     const existing = snapshot.exists ? (snapshot.data() as ProfileDocument) : null;
@@ -113,22 +157,55 @@ class ProfileService {
     }
 
     const nextDisplayName = input.displayName ?? existing?.displayName ?? `${firstName} ${lastName}`.trim();
-    await ref.set(
-      {
-        ...input,
-        firstName,
-        lastName,
-        displayName: nextDisplayName,
-        email: email ?? existing?.email ?? null,
-        updatedAt: FieldValue.serverTimestamp(),
-        ...(snapshot.exists ? {} : {createdAt: FieldValue.serverTimestamp()}),
-      },
-      {merge: true},
-    );
+    const nextEmail = email ?? existing?.email ?? null;
+    const nowIso = new Date().toISOString();
+    const updated: UserProfile = {
+      firstName,
+      lastName,
+      email: nextEmail,
+      displayName: nextDisplayName,
+      photoURL: input.photoURL !== undefined ? input.photoURL : (existing?.photoURL ?? null),
+      bio: input.bio !== undefined ? input.bio : (existing?.bio ?? null),
+      country: input.country !== undefined ? input.country : (existing?.country ?? null),
+      timezone: input.timezone !== undefined ? input.timezone : (existing?.timezone ?? null),
+      friendCode: existing?.friendCode ?? null,
+      createdAt: timestampToJson(existing?.createdAt) ?? nowIso,
+      updatedAt: nowIso,
+    };
 
-    const updated = await this.get(userId);
-    if (!updated) {
-      throw new HttpError(500, "Could not load updated profile.", "profile_update_failed");
+    if (shouldPersistFirestore()) {
+      await ref.set(
+        {
+          ...input,
+          firstName,
+          lastName,
+          displayName: nextDisplayName,
+          email: nextEmail,
+          updatedAt: FieldValue.serverTimestamp(),
+          ...(snapshot.exists ? {} : {createdAt: FieldValue.serverTimestamp()}),
+        },
+        {merge: true},
+      );
+      const after = await ref.get();
+      if (!after.exists) {
+        throw new HttpError(500, "Could not load updated profile.", "profile_update_failed");
+      }
+      Object.assign(updated, this.toProfile(after.data() as ProfileDocument));
+    }
+
+    const {shadowWrite} = await import("../migration/shadow");
+    const {upsertProfileShadow} = await import("../migration/supabaseWriters");
+    if (isSupabaseWritePrimary()) {
+      await upsertProfileShadow(userId, updated);
+    } else {
+      await shadowWrite({
+        domain: "profiles",
+        operation: "upsert",
+        firebaseUid: userId,
+        operationId: `profiles:upsert:${userId}:${Date.now()}`,
+        payload: updated,
+        secondary: () => upsertProfileShadow(userId, updated),
+      });
     }
 
     return updated;
