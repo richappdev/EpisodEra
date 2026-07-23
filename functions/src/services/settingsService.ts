@@ -162,7 +162,18 @@ class SettingsService {
       {merge: true},
     );
 
-    return this.get(userId);
+    const updated = await this.get(userId);
+    const {shadowWrite} = await import("../migration/shadow");
+    const {upsertSettingsShadow} = await import("../migration/supabaseWriters");
+    await shadowWrite({
+      domain: "settings",
+      operation: "upsert",
+      firebaseUid: userId,
+      operationId: `settings:upsert:${userId}:${Date.now()}`,
+      payload: updated,
+      secondary: () => upsertSettingsShadow(userId, updated),
+    });
+    return updated;
   }
 }
 

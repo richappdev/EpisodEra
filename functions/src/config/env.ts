@@ -38,6 +38,18 @@ export const isAppCheckEnforceAuthWrites = () => booleanFromEnv("APP_CHECK_ENFOR
 /** Phase 4: require App Check on public read routes when true (middleware ready, not mounted). */
 export const isAppCheckEnforcePublicReads = () => booleanFromEnv("APP_CHECK_ENFORCE_PUBLIC_READS");
 
+/**
+ * Phase 4–6: after Firestore primary write succeeds, also write to Supabase (shadow).
+ * Requires SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY. Failures go to migration outbox.
+ */
+export const isSupabaseShadowWrites = () => booleanFromEnv("SUPABASE_SHADOW_WRITES");
+
+/**
+ * Phase 5+: read profiles/settings from Supabase when true.
+ * Default false — Firestore remains read primary during shadow mode.
+ */
+export const isSupabaseReadProfiles = () => booleanFromEnv("SUPABASE_READ_PROFILES");
+
 /** Comma-separated emails allowed to use puzzle admin APIs. */
 export const puzzleAdminEmails = () =>
   (process.env.PUZZLE_ADMIN_EMAILS ?? "")

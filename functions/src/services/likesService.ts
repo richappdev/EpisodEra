@@ -168,13 +168,33 @@ class LikesService {
 
     const item = await this.get(userId, itemId);
     await derivedCacheService.invalidateUserLibraryCaches(userId);
+    const {shadowWrite} = await import("../migration/shadow");
+    const {upsertLikeShadow} = await import("../migration/supabaseWriters");
+    await shadowWrite({
+      domain: "likes",
+      operation: "upsert",
+      firebaseUid: userId,
+      operationId: `likes:upsert:${userId}:${itemId}:${Date.now()}`,
+      payload: item,
+      secondary: () => upsertLikeShadow(userId, item),
+    });
     return item;
   }
 
   async remove(userId: string, itemId: string): Promise<void> {
-    parseItemId(itemId);
+    const parsed = parseItemId(itemId);
     await this.collection(userId).doc(itemId).delete();
     await derivedCacheService.invalidateUserLibraryCaches(userId);
+    const {shadowWrite} = await import("../migration/shadow");
+    const {removeLikeShadow} = await import("../migration/supabaseWriters");
+    await shadowWrite({
+      domain: "likes",
+      operation: "remove",
+      firebaseUid: userId,
+      operationId: `likes:remove:${userId}:${itemId}:${Date.now()}`,
+      payload: {itemId, mediaType: parsed.mediaType, tmdbId: parsed.tmdbId},
+      secondary: () => removeLikeShadow(userId, parsed.mediaType, parsed.tmdbId),
+    });
   }
 
   private async get(userId: string, itemId: string): Promise<LikedItem> {

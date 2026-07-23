@@ -229,10 +229,18 @@ class WatchlistService {
 
     const item = await this.get(userId, itemId);
     await derivedCacheService.invalidateUserLibraryCaches(userId);
+    const {shadowWrite} = await import("../migration/shadow");
+    const {upsertWatchlistShadow} = await import("../migration/supabaseWriters");
+    await shadowWrite({
+      domain: "watchlist",
+      operation: "upsert",
+      firebaseUid: userId,
+      operationId: `watchlist:upsert:${userId}:${itemId}:${Date.now()}`,
+      payload: item,
+      secondary: () => upsertWatchlistShadow(userId, item),
+    });
     return item;
   }
-
-  /** Import merge: never downgrade status; keep existing titles when present. */
   async mergeImport(userId: string, input: AddWatchlistItemInput): Promise<WatchlistItem> {
     const itemId = itemIdFor(input.mediaType, input.tmdbId);
     const ref = this.collection(userId).doc(itemId);
@@ -280,6 +288,17 @@ class WatchlistService {
       await derivedCacheService.invalidateUserLibraryCaches(userId);
     }
 
+    const {shadowWrite} = await import("../migration/shadow");
+    const {upsertWatchlistShadow} = await import("../migration/supabaseWriters");
+    await shadowWrite({
+      domain: "watchlist",
+      operation: "mergeImport",
+      firebaseUid: userId,
+      operationId: `watchlist:merge:${userId}:${itemId}:${Date.now()}`,
+      payload: item,
+      secondary: () => upsertWatchlistShadow(userId, item),
+    });
+
     return item;
   }
 
@@ -318,7 +337,18 @@ class WatchlistService {
       await derivedCacheService.invalidateUserLibraryCaches(userId);
     }
 
-    return this.get(userId, itemId);
+    const item = await this.get(userId, itemId);
+    const {shadowWrite} = await import("../migration/shadow");
+    const {upsertWatchlistShadow} = await import("../migration/supabaseWriters");
+    await shadowWrite({
+      domain: "watchlist",
+      operation: "updateStatus",
+      firebaseUid: userId,
+      operationId: `watchlist:status:${userId}:${itemId}:${Date.now()}`,
+      payload: item,
+      secondary: () => upsertWatchlistShadow(userId, item),
+    });
+    return item;
   }
 
   /**
@@ -360,6 +390,17 @@ class WatchlistService {
     } else {
       await derivedCacheService.invalidateUserLibraryCaches(userId);
     }
+
+    const {shadowWrite} = await import("../migration/shadow");
+    const {removeWatchlistShadow} = await import("../migration/supabaseWriters");
+    await shadowWrite({
+      domain: "watchlist",
+      operation: "remove",
+      firebaseUid: userId,
+      operationId: `watchlist:remove:${userId}:${itemId}:${Date.now()}`,
+      payload: {itemId, mediaType: parsed.mediaType, tmdbId: parsed.tmdbId},
+      secondary: () => removeWatchlistShadow(userId, parsed.mediaType, parsed.tmdbId),
+    });
   }
 
   private async get(userId: string, itemId: string): Promise<WatchlistItem> {

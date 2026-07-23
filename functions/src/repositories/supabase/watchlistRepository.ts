@@ -1,40 +1,64 @@
 import {NewWatchlistItem, WatchlistItemRecord, WatchlistRepository, WatchStatus} from "../types";
+import {
+  removeWatchlistShadow,
+  upsertWatchlistShadow,
+} from "../../migration/supabaseWriters";
+import {WatchlistItem} from "../../models/watchlist";
 
-/**
- * Supabase implementation — activated when SUPABASE_URL + service role are configured
- * and Domain migration flag enables shadow or primary writes.
- */
+/** Supabase-backed watchlist repository used by Phase 4–6 adapters. */
 export class SupabaseWatchlistRepository implements WatchlistRepository {
-  constructor(private readonly enabled: boolean) {}
-
-  private ensureEnabled(): void {
-    if (!this.enabled) {
-      throw new Error("SupabaseWatchlistRepository is not enabled");
-    }
-  }
-
   async list(_firebaseUid: string): Promise<WatchlistItemRecord[]> {
-    this.ensureEnabled();
-    throw new Error("SupabaseWatchlistRepository.list not wired — add @supabase/supabase-js client");
+    throw new Error("SupabaseWatchlistRepository.list is not used while Firestore remains read primary");
   }
 
-  async add(_firebaseUid: string, _item: NewWatchlistItem): Promise<WatchlistItemRecord> {
-    this.ensureEnabled();
-    throw new Error("SupabaseWatchlistRepository.add not wired — add @supabase/supabase-js client");
+  async add(firebaseUid: string, item: NewWatchlistItem): Promise<WatchlistItemRecord> {
+    const mapped: WatchlistItem = {
+      itemId: `${item.mediaType}_${item.tmdbId}`,
+      tmdbId: item.tmdbId,
+      mediaType: item.mediaType,
+      title: item.title,
+      poster: item.posterPath ?? null,
+      backdrop: item.backdropPath ?? null,
+      status: item.status as WatchlistItem["status"],
+      addedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await upsertWatchlistShadow(firebaseUid, mapped);
+    return {
+      id: mapped.itemId,
+      firebaseUid,
+      tmdbId: mapped.tmdbId,
+      mediaType: mapped.mediaType,
+      title: mapped.title,
+      posterPath: mapped.poster,
+      backdropPath: mapped.backdrop,
+      status: mapped.status,
+      addedAt: mapped.addedAt,
+      updatedAt: mapped.updatedAt,
+    };
   }
 
   async updateStatus(
-    _firebaseUid: string,
-    _mediaType: "movie" | "tv",
-    _tmdbId: number,
-    _status: WatchStatus,
+    firebaseUid: string,
+    mediaType: "movie" | "tv",
+    tmdbId: number,
+    status: WatchStatus,
   ): Promise<WatchlistItemRecord | null> {
-    this.ensureEnabled();
-    throw new Error("SupabaseWatchlistRepository.updateStatus not wired");
+    await upsertWatchlistShadow(firebaseUid, {
+      itemId: `${mediaType}_${tmdbId}`,
+      tmdbId,
+      mediaType,
+      title: `${mediaType} ${tmdbId}`,
+      poster: null,
+      backdrop: null,
+      status: status as WatchlistItem["status"],
+      addedAt: null,
+      updatedAt: new Date().toISOString(),
+    });
+    return null;
   }
 
-  async remove(_firebaseUid: string, _mediaType: "movie" | "tv", _tmdbId: number): Promise<void> {
-    this.ensureEnabled();
-    throw new Error("SupabaseWatchlistRepository.remove not wired");
+  async remove(firebaseUid: string, mediaType: "movie" | "tv", tmdbId: number): Promise<void> {
+    await removeWatchlistShadow(firebaseUid, mediaType, tmdbId);
   }
 }

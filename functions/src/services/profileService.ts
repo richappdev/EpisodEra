@@ -89,6 +89,35 @@ class ProfileService {
   }
 
   async get(userId: string): Promise<UserProfile | null> {
+    const {isSupabaseReadProfiles} = await import("../config/env");
+    const {getSupabaseEnvOrNull, supabaseRest} = await import("../db/supabaseClient");
+    if (isSupabaseReadProfiles()) {
+      const env = getSupabaseEnvOrNull();
+      if (env) {
+        const rows = (await supabaseRest(
+          env,
+          `profiles?firebase_uid=eq.${encodeURIComponent(userId)}&select=*`,
+          {method: "GET", prefer: "return=representation"},
+        )) as Array<Record<string, unknown>> | null;
+        const row = Array.isArray(rows) && rows[0] ? rows[0] : null;
+        if (row) {
+          return {
+            firstName: String(row.first_name ?? ""),
+            lastName: String(row.last_name ?? ""),
+            email: (row.email as string | null) ?? null,
+            displayName: (row.display_name as string | null) ?? null,
+            photoURL: (row.photo_url as string | null) ?? null,
+            bio: (row.bio as string | null) ?? null,
+            country: (row.country as string | null) ?? null,
+            timezone: (row.timezone as string | null) ?? null,
+            friendCode: (row.friend_code as string | null) ?? null,
+            createdAt: (row.created_at as string | null) ?? null,
+            updatedAt: (row.updated_at as string | null) ?? null,
+          };
+        }
+      }
+    }
+
     const snapshot = await this.doc(userId).get();
     if (!snapshot.exists) {
       return null;
@@ -130,6 +159,17 @@ class ProfileService {
     if (!updated) {
       throw new HttpError(500, "Could not load updated profile.", "profile_update_failed");
     }
+
+    const {shadowWrite} = await import("../migration/shadow");
+    const {upsertProfileShadow} = await import("../migration/supabaseWriters");
+    await shadowWrite({
+      domain: "profiles",
+      operation: "upsert",
+      firebaseUid: userId,
+      operationId: `profiles:upsert:${userId}:${Date.now()}`,
+      payload: updated,
+      secondary: () => upsertProfileShadow(userId, updated),
+    });
 
     return updated;
   }
