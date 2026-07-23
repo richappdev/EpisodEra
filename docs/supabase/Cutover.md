@@ -42,6 +42,8 @@ SUPABASE_WRITE_PRIMARY=true
 FIRESTORE_WRITES_DISABLED=true
 ```
 
+**Status:** enable after write-primary soak. Library mutations then persist to Supabase only (puzzles/discussions/franchises/import staging may still touch Firestore until those domains are migrated).
+
 ## Still on Firestore (not cut over yet)
 
 Puzzles, discussions, franchises catalog, media mappings, import **staging** rows. Auth remains Firebase until Phase 9.
