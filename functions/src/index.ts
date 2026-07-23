@@ -26,3 +26,8 @@ export const publishScheduledPuzzle = onSchedule(
     await puzzleService.publishScheduledPuzzles();
   },
 );
+
+// Blocking Auth claim helpers for Supabase third-party Auth live in ./authClaims.ts.
+// Export them from this file only after Identity Platform is enabled on project episodera:
+//   export {beforecreated, beforesignedin} from "./authClaims";
+

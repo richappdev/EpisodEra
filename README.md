@@ -72,18 +72,25 @@ The project is in MVP hardening. Core web features are implemented, progress-tra
 │   ├── Firestore.md
 │   ├── Navigation.md
 │   ├── ResourceAlignment.md
-│   └── TvTimeImportPhase1Acceptance.md
+│   ├── TvTimeImportPhase1Acceptance.md
+│   └── supabase/          # Firebase → Supabase migration foundation
+├── supabase/              # CLI config + SQL migrations (project xyhhnoxvydshqpypwccr)
+├── scripts/supabase/      # Export, claim backfill, ETL aids
 ├── functions/
 │   ├── src/
 │   │   ├── api/
 │   │   ├── config/
+│   │   ├── db/            # Supabase env helpers (service-role)
 │   │   ├── integrations/
 │   │   ├── middleware/
 │   │   ├── models/
-│   │   └── services/
+│   │   ├── repositories/  # Firestore / Supabase / comparison adapters
+│   │   ├── services/
+│   │   └── standaloneServer.ts
 │   ├── eslint.config.mjs
 │   ├── package.json
 │   └── tsconfig.json
+├── Dockerfile.api         # Cloud Run-oriented API image
 ├── web/
 │   ├── src/
 │   │   ├── api/
