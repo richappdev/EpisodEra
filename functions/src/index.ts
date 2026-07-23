@@ -27,7 +27,9 @@ export const publishScheduledPuzzle = onSchedule(
   },
 );
 
-// Blocking Auth claim helpers for Supabase third-party Auth live in ./authClaims.ts.
-// Export them from this file only after Identity Platform is enabled on project episodera:
+/** Sets role=authenticated for Supabase Firebase third-party Auth (new signups). */
+export {onUserCreatedSetSupabaseRole} from "./authOnCreateClaims";
+
+// Optional Identity Platform blocking functions (synchronous claims) live in ./authClaims.ts:
 //   export {beforecreated, beforesignedin} from "./authClaims";
 
