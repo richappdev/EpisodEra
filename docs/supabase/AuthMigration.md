@@ -2,6 +2,16 @@
 
 Do **not** run until Postgres domains are at parity and soaked.
 
+## Prep from a site export
+
+```bash
+node scripts/supabase/prepare-auth-cutover.mjs --from docs/supabase/evidence/site-export-...
+# optional: write identity_mappings rows (email + firebase_uid only)
+node scripts/supabase/prepare-auth-cutover.mjs --from <dir> --apply-mappings
+```
+
+Writes `auth-cutover/identity-mappings.json`, `.csv`, and `checklist.json` under the dump dir.
+
 ## Steps
 
 1. Export Firebase Auth users (hash parameters preserved).
@@ -12,6 +22,8 @@ Do **not** run until Postgres domains are at parity and soaked.
 6. JIT fallback for failed password migrations.
 7. Verify: signup/login/reset/deletion/revocation/cross-user denial.
 8. Retire Firebase Auth after the migration window.
+
+Official: https://supabase.com/docs/guides/platform/migrating-to-supabase/firebase-auth
 
 ## Rollback
 

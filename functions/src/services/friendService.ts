@@ -144,6 +144,32 @@ class FriendService {
       {merge: true},
     );
     await batch.commit();
+    const {shadowWrite} = await import("../migration/shadow");
+    const {upsertFriendshipShadow} = await import("../migration/supabaseWriters");
+    const selfCode = await this.ensureFriendCode(userId);
+    await shadowWrite({
+      domain: "friendships",
+      operation: "request",
+      firebaseUid: userId,
+      operationId: `friendships:request:${userId}:${targetUserId}:${Date.now()}`,
+      payload: {targetUserId, friendCode},
+      secondary: async () => {
+        await upsertFriendshipShadow(
+          userId,
+          targetUserId,
+          "pending",
+          this.displayNameFor(targetProfile, "Friend"),
+          friendCode,
+        );
+        await upsertFriendshipShadow(
+          targetUserId,
+          userId,
+          "pending",
+          this.displayNameFor(selfProfile, "Friend"),
+          selfCode,
+        );
+      },
+    });
     return this.list(userId);
   }
 
@@ -163,6 +189,16 @@ class FriendService {
         batch.delete(mirrorRef);
       }
       await batch.commit();
+      const {shadowWrite} = await import("../migration/shadow");
+      const {removeFriendshipShadow} = await import("../migration/supabaseWriters");
+      await shadowWrite({
+        domain: "friendships",
+        operation: status,
+        firebaseUid: userId,
+        operationId: `friendships:${status}:${userId}:${friendUserId}:${Date.now()}`,
+        payload: {friendUserId},
+        secondary: () => removeFriendshipShadow(userId, friendUserId),
+      });
       return this.list(userId);
     }
 
@@ -170,6 +206,19 @@ class FriendService {
     batch.set(friendRef, {status: "accepted", updatedAt: FieldValue.serverTimestamp()}, {merge: true});
     batch.set(mirrorRef, {status: "accepted", updatedAt: FieldValue.serverTimestamp()}, {merge: true});
     await batch.commit();
+    const {shadowWrite} = await import("../migration/shadow");
+    const {upsertFriendshipShadow} = await import("../migration/supabaseWriters");
+    await shadowWrite({
+      domain: "friendships",
+      operation: "accept",
+      firebaseUid: userId,
+      operationId: `friendships:accept:${userId}:${friendUserId}:${Date.now()}`,
+      payload: {friendUserId},
+      secondary: async () => {
+        await upsertFriendshipShadow(userId, friendUserId, "accepted", null, null);
+        await upsertFriendshipShadow(friendUserId, userId, "accepted", null, null);
+      },
+    });
     return this.list(userId);
   }
 

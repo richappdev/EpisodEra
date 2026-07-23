@@ -393,6 +393,18 @@ class ProgressService {
 
     await watchlistService.syncTvStatusFromProgress(userId, tmdbId, progress);
     await derivedCacheService.invalidateUserLibraryCaches(userId);
+
+    const {shadowWrite} = await import("../migration/shadow");
+    const {upsertShowProgressShadow} = await import("../migration/supabaseWriters");
+    await shadowWrite({
+      domain: "progress",
+      operation: "updateEpisodes",
+      firebaseUid: userId,
+      operationId: `progress:update:${userId}:${showId}:${Date.now()}`,
+      payload: {showId, tmdbId, watchedEpisodeCount: progress.watchedEpisodeCount},
+      secondary: () => upsertShowProgressShadow(userId, progress),
+    });
+
     return progress;
   }
 
@@ -562,6 +574,16 @@ class ProgressService {
     const progress = await this.get(userId, showId);
     if (progress) {
       await watchlistService.syncTvStatusFromProgress(userId, tmdbId, progress);
+      const {shadowWrite} = await import("../migration/shadow");
+      const {upsertShowProgressShadow} = await import("../migration/supabaseWriters");
+      await shadowWrite({
+        domain: "progress",
+        operation: "importWatchedEpisodes",
+        firebaseUid: userId,
+        operationId: `progress:import:${userId}:${showId}:${Date.now()}`,
+        payload: {showId, tmdbId, imported, skipped},
+        secondary: () => upsertShowProgressShadow(userId, progress),
+      });
     }
 
     await derivedCacheService.invalidateUserLibraryCaches(userId);

@@ -35,4 +35,12 @@ node scripts/supabase/import-supabase-site.mjs --from docs/supabase/evidence/sit
 
 See [SiteExportImport.md](../docs/supabase/SiteExportImport.md).
 
+## Phase 9 Auth cutover prep (do not flip production Auth)
+
+```bash
+node scripts/supabase/prepare-auth-cutover.mjs --from docs/supabase/evidence/site-export-...
+```
+
+See [AuthMigration.md](../docs/supabase/AuthMigration.md).
+
 Do not commit database passwords or service-role keys. Linked credentials stay in `supabase/.temp/` (gitignored).

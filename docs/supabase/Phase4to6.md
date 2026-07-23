@@ -57,6 +57,6 @@ npx supabase db push
 
 ## Not in Phase 4–6
 
-- Progress/history dual-write (Phase 7)
+- Progress/history dual-write → see [Phase7to10.md](./Phase7to10.md)
 - Switching watchlist reads to Supabase
 - Native Supabase Auth (Phase 9)

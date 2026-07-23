@@ -181,6 +181,16 @@ class HistoryService {
     const updated = await ref.get();
     const mapped = mapHistoryDocument(updated.id, updated.data() as HistoryDocument);
     await derivedCacheService.invalidateUserLibraryCaches(userId);
+    const {shadowWrite} = await import("../migration/shadow");
+    const {upsertHistoryShadow} = await import("../migration/supabaseWriters");
+    await shadowWrite({
+      domain: "history",
+      operation: "updateWatchedAt",
+      firebaseUid: userId,
+      operationId: `history:update:${userId}:${historyId}:${Date.now()}`,
+      payload: mapped,
+      secondary: () => upsertHistoryShadow(userId, mapped),
+    });
     return mapped;
   }
 
@@ -188,11 +198,22 @@ class HistoryService {
     const entry = await this.get(userId, historyId);
     await this.collection(userId).doc(historyId).delete();
     await derivedCacheService.invalidateUserLibraryCaches(userId);
+    const {shadowWrite} = await import("../migration/shadow");
+    const {removeHistoryShadow} = await import("../migration/supabaseWriters");
+    await shadowWrite({
+      domain: "history",
+      operation: "delete",
+      firebaseUid: userId,
+      operationId: `history:remove:${userId}:${historyId}:${Date.now()}`,
+      payload: {historyId},
+      secondary: () => removeHistoryShadow(userId, historyId),
+    });
     return entry;
   }
 
   async recordMovie(userId: string, input: MovieHistoryInput): Promise<void> {
-    const ref = this.collection(userId).doc(historyIdForMovie(input.tmdbId));
+    const historyId = historyIdForMovie(input.tmdbId);
+    const ref = this.collection(userId).doc(historyId);
     const existing = await ref.get();
     const isRewatch = existing.exists;
 
@@ -215,15 +236,41 @@ class HistoryService {
       {merge: true},
     );
     await derivedCacheService.invalidateUserLibraryCaches(userId);
+    const snap = await ref.get();
+    if (snap.exists) {
+      const data = snap.data() as HistoryDocument;
+      const {shadowWrite} = await import("../migration/shadow");
+      const {upsertHistoryShadow} = await import("../migration/supabaseWriters");
+      await shadowWrite({
+        domain: "history",
+        operation: "recordMovie",
+        firebaseUid: userId,
+        operationId: `history:upsert:${userId}:${historyId}:${Date.now()}`,
+        payload: {historyId},
+        secondary: () => upsertHistoryShadow(userId, mapHistoryDocument(historyId, data)),
+      });
+    }
   }
 
   async removeMovie(userId: string, tmdbId: number): Promise<void> {
-    await this.collection(userId).doc(historyIdForMovie(tmdbId)).delete();
+    const historyId = historyIdForMovie(tmdbId);
+    await this.collection(userId).doc(historyId).delete();
     await derivedCacheService.invalidateUserLibraryCaches(userId);
+    const {shadowWrite} = await import("../migration/shadow");
+    const {removeHistoryShadow} = await import("../migration/supabaseWriters");
+    await shadowWrite({
+      domain: "history",
+      operation: "removeMovie",
+      firebaseUid: userId,
+      operationId: `history:remove:${userId}:${historyId}:${Date.now()}`,
+      payload: {historyId},
+      secondary: () => removeHistoryShadow(userId, historyId),
+    });
   }
 
   async recordEpisode(userId: string, input: EpisodeHistoryInput): Promise<void> {
-    const ref = this.collection(userId).doc(`tv_${input.tmdbId}_${input.episodeKey}`);
+    const historyId = `tv_${input.tmdbId}_${input.episodeKey}`;
+    const ref = this.collection(userId).doc(historyId);
     const existing = await ref.get();
     const isRewatch = existing.exists;
 
@@ -246,12 +293,35 @@ class HistoryService {
       {merge: true},
     );
     await derivedCacheService.invalidateUserLibraryCaches(userId);
+    const snap = await ref.get();
+    if (snap.exists) {
+      const data = snap.data() as HistoryDocument;
+      const {shadowWrite} = await import("../migration/shadow");
+      const {upsertHistoryShadow} = await import("../migration/supabaseWriters");
+      await shadowWrite({
+        domain: "history",
+        operation: "recordEpisode",
+        firebaseUid: userId,
+        operationId: `history:upsert:${userId}:${historyId}:${Date.now()}`,
+        payload: {historyId},
+        secondary: () => upsertHistoryShadow(userId, mapHistoryDocument(historyId, data)),
+      });
+    }
   }
 
   async removeEpisode(userId: string, tmdbId: number, episodeKey: string): Promise<void> {
-    await this.collection(userId).doc(`tv_${tmdbId}_${episodeKey}`).delete();
+    const historyId = `tv_${tmdbId}_${episodeKey}`;
+    await this.collection(userId).doc(historyId).delete();
     await derivedCacheService.invalidateUserLibraryCaches(userId);
+    const {shadowWrite} = await import("../migration/shadow");
+    const {removeHistoryShadow} = await import("../migration/supabaseWriters");
+    await shadowWrite({
+      domain: "history",
+      operation: "removeEpisode",
+      firebaseUid: userId,
+      operationId: `history:remove:${userId}:${historyId}:${Date.now()}`,
+      payload: {historyId},
+      secondary: () => removeHistoryShadow(userId, historyId),
+    });
   }
-}
-
-export const historyService = new HistoryService();
+}export const historyService = new HistoryService();

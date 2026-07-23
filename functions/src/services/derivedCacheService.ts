@@ -29,15 +29,24 @@ class DerivedCacheService {
   async invalidateUserLibraryCaches(userId: string): Promise<void> {
     const collection = getFirestore().collection("users").doc(userId).collection("derived");
     const snapshot = await collection.get();
-    if (snapshot.empty) {
-      return;
+    if (!snapshot.empty) {
+      const batch = getFirestore().batch();
+      for (const doc of snapshot.docs) {
+        batch.set(doc.ref, {invalidatedAt: FieldValue.serverTimestamp()}, {merge: true});
+      }
+      await batch.commit();
     }
 
-    const batch = getFirestore().batch();
-    for (const doc of snapshot.docs) {
-      batch.set(doc.ref, {invalidatedAt: FieldValue.serverTimestamp()}, {merge: true});
-    }
-    await batch.commit();
+    const {shadowWrite} = await import("../migration/shadow");
+    const {invalidateDerivedCacheShadow} = await import("../migration/supabaseWriters");
+    await shadowWrite({
+      domain: "derived",
+      operation: "invalidate",
+      firebaseUid: userId,
+      operationId: `derived:invalidate:${userId}:${Date.now()}`,
+      payload: {},
+      secondary: () => invalidateDerivedCacheShadow(userId),
+    });
   }
 
   async getStats(userId: string): Promise<UserStats | null> {
@@ -54,6 +63,16 @@ class DerivedCacheService {
       payload,
       computedAt: FieldValue.serverTimestamp(),
       invalidatedAt: null,
+    });
+    const {shadowWrite} = await import("../migration/shadow");
+    const {upsertDerivedCacheShadow} = await import("../migration/supabaseWriters");
+    await shadowWrite({
+      domain: "derived",
+      operation: "setStats",
+      firebaseUid: userId,
+      operationId: `derived:stats:${userId}:${Date.now()}`,
+      payload: {cacheKey: "stats"},
+      secondary: () => upsertDerivedCacheShadow(userId, "stats", payload),
     });
   }
 
@@ -72,6 +91,16 @@ class DerivedCacheService {
       computedAt: FieldValue.serverTimestamp(),
       invalidatedAt: null,
     });
+    const {shadowWrite} = await import("../migration/shadow");
+    const {upsertDerivedCacheShadow} = await import("../migration/supabaseWriters");
+    await shadowWrite({
+      domain: "derived",
+      operation: "setYearRecap",
+      firebaseUid: userId,
+      operationId: `derived:yearRecap:${userId}:${year}:${Date.now()}`,
+      payload: {year},
+      secondary: () => upsertDerivedCacheShadow(userId, `yearRecap_${year}`, payload),
+    });
   }
 
   async getAchievements(userId: string): Promise<AchievementProgress[] | null> {
@@ -89,7 +118,16 @@ class DerivedCacheService {
       computedAt: FieldValue.serverTimestamp(),
       invalidatedAt: null,
     });
+    const {shadowWrite} = await import("../migration/shadow");
+    const {upsertDerivedCacheShadow} = await import("../migration/supabaseWriters");
+    await shadowWrite({
+      domain: "derived",
+      operation: "setAchievements",
+      firebaseUid: userId,
+      operationId: `derived:achievements:${userId}:${Date.now()}`,
+      payload: {cacheKey: "achievements"},
+      secondary: () => upsertDerivedCacheShadow(userId, "achievements", payload),
+    });
   }
 }
-
 export const derivedCacheService = new DerivedCacheService();

@@ -3,6 +3,8 @@ import {UserProfile} from "../models/profile";
 import {UserSettings} from "../models/settings";
 import {WatchlistItem} from "../models/watchlist";
 import {LikedItem} from "../models/likes";
+import {ShowProgress} from "../models/progress";
+import {HistoryEntry} from "../models/history";
 
 const upsert = async (table: string, onConflict: string, rows: unknown[]) => {
   const env = getSupabaseEnvOrNull();
@@ -138,4 +140,212 @@ export async function removeLikeShadow(
     "likes",
     `firebase_uid=eq.${encodeURIComponent(firebaseUid)}&media_type=eq.${mediaType}&tmdb_id=eq.${tmdbId}`,
   );
+}
+
+export async function upsertShowProgressShadow(
+  firebaseUid: string,
+  progress: ShowProgress,
+): Promise<void> {
+  const next = progress.nextEpisode;
+  const watchedKeys = progress.episodes
+    .filter((episode) => episode.watched)
+    .map((episode) => episode.episodeKey);
+
+  await upsert("show_progress", "firebase_uid,show_tmdb_id", [
+    {
+      firebase_uid: firebaseUid,
+      show_tmdb_id: progress.tmdbId,
+      title: progress.title,
+      poster_path: progress.poster,
+      total_episodes: progress.totalEpisodes,
+      watched_episode_count: progress.watchedEpisodeCount,
+      progress_percent: progress.progressPercent,
+      current_season: progress.currentSeason,
+      current_episode: progress.currentEpisode,
+      next_season_number: next?.seasonNumber ?? null,
+      next_episode_number: next?.episodeNumber ?? null,
+      next_episode_title: next?.episodeTitle ?? null,
+      watched_episode_keys: watchedKeys.slice(0, 2000),
+      updated_at: progress.updatedAt ?? new Date().toISOString(),
+    },
+  ]);
+
+  await removeEq(
+    "watched_episodes",
+    `firebase_uid=eq.${encodeURIComponent(firebaseUid)}&show_tmdb_id=eq.${progress.tmdbId}`,
+  );
+  await removeEq(
+    "watch_history",
+    `firebase_uid=eq.${encodeURIComponent(firebaseUid)}&media_type=eq.tv&tmdb_id=eq.${progress.tmdbId}`,
+  );
+
+  const episodeRows = progress.episodes
+    .filter((episode) => episode.watched)
+    .map((episode) => ({
+      firebase_uid: firebaseUid,
+      show_tmdb_id: progress.tmdbId,
+      season_number: episode.seasonNumber,
+      episode_number: episode.episodeNumber,
+      episode_key: episode.episodeKey,
+      episode_title: episode.episodeTitle,
+      watched_at: episode.watchedAt ?? new Date().toISOString(),
+      updated_at: episode.updatedAt ?? new Date().toISOString(),
+      source: null,
+      source_import_id: null,
+    }));
+  if (episodeRows.length > 0) {
+    await upsert(
+      "watched_episodes",
+      "firebase_uid,show_tmdb_id,season_number,episode_number",
+      episodeRows,
+    );
+  }
+
+  const historyRows = episodeRows.map((episode) => ({
+    firebase_uid: firebaseUid,
+    history_key: `tv_${progress.tmdbId}_${episode.episode_key}`,
+    tmdb_id: progress.tmdbId,
+    media_type: "tv",
+    title: progress.title,
+    season_number: episode.season_number,
+    episode_number: episode.episode_number,
+    episode_title: episode.episode_title,
+    watched_at: episode.watched_at,
+    updated_at: episode.updated_at,
+    rewatch_count: 0,
+    genre_names: [],
+    runtime_minutes: null,
+  }));
+  if (historyRows.length > 0) {
+    await upsert("watch_history", "firebase_uid,history_key", historyRows);
+  }
+}
+
+export async function upsertHistoryShadow(firebaseUid: string, entry: HistoryEntry): Promise<void> {
+  await upsert("watch_history", "firebase_uid,history_key", [
+    {
+      firebase_uid: firebaseUid,
+      history_key: entry.historyId,
+      tmdb_id: entry.tmdbId,
+      media_type: entry.mediaType,
+      title: entry.title,
+      season_number: entry.seasonNumber,
+      episode_number: entry.episodeNumber,
+      episode_title: entry.episodeTitle,
+      watched_at: entry.watchedAt ?? new Date().toISOString(),
+      updated_at: entry.updatedAt ?? new Date().toISOString(),
+      rewatch_count: entry.rewatchCount ?? 0,
+      genre_names: entry.genreNames ?? [],
+      runtime_minutes: entry.runtimeMinutes ?? null,
+    },
+  ]);
+}
+
+export async function removeHistoryShadow(firebaseUid: string, historyId: string): Promise<void> {
+  await removeEq(
+    "watch_history",
+    `firebase_uid=eq.${encodeURIComponent(firebaseUid)}&history_key=eq.${encodeURIComponent(historyId)}`,
+  );
+}
+
+export async function upsertFriendshipShadow(
+  firebaseUid: string,
+  friendFirebaseUid: string,
+  status: "pending" | "accepted" | "blocked",
+  displayName: string | null,
+  friendCode: string | null,
+): Promise<void> {
+  await upsert("friendships", "firebase_uid,friend_firebase_uid", [
+    {
+      firebase_uid: firebaseUid,
+      friend_firebase_uid: friendFirebaseUid,
+      status,
+      display_name: displayName,
+      friend_code: friendCode,
+      updated_at: new Date().toISOString(),
+    },
+  ]);
+}
+
+export async function removeFriendshipShadow(
+  firebaseUid: string,
+  friendFirebaseUid: string,
+): Promise<void> {
+  await removeEq(
+    "friendships",
+    `firebase_uid=eq.${encodeURIComponent(firebaseUid)}&friend_firebase_uid=eq.${encodeURIComponent(friendFirebaseUid)}`,
+  );
+  await removeEq(
+    "friendships",
+    `firebase_uid=eq.${encodeURIComponent(friendFirebaseUid)}&friend_firebase_uid=eq.${encodeURIComponent(firebaseUid)}`,
+  );
+}
+
+export async function upsertDerivedCacheShadow(
+  firebaseUid: string,
+  cacheKey: string,
+  payload: unknown,
+): Promise<void> {
+  const env = getSupabaseEnvOrNull();
+  if (!env) {
+    throw new Error("Supabase is not configured");
+  }
+  await supabaseRpc(env, "upsert_derived_cache", {
+    p_firebase_uid: firebaseUid,
+    p_cache_key: cacheKey,
+    p_payload: payload ?? {},
+  });
+}
+
+export async function invalidateDerivedCacheShadow(firebaseUid: string): Promise<void> {
+  const env = getSupabaseEnvOrNull();
+  if (!env) {
+    throw new Error("Supabase is not configured");
+  }
+  await supabaseRpc(env, "invalidate_derived_cache", {
+    p_firebase_uid: firebaseUid,
+  });
+}
+
+/** Import job metadata only — staging rows stay Firestore until cutover. */
+export async function upsertImportShadow(
+  firebaseUid: string,
+  job: {
+    importId: string;
+    provider: string;
+    status: string;
+    sourceHash?: string | null;
+    watchlistStaged?: number;
+    episodesStaged?: number;
+    watchlistImported?: number;
+    episodesImported?: number;
+    episodesSkipped?: number;
+    episodesFailed?: number;
+    errorMessage?: string | null;
+    createdAt?: string | null;
+    updatedAt?: string | null;
+    completedAt?: string | null;
+  },
+): Promise<void> {
+  await upsert("imports", "id", [
+    {
+      id: job.importId,
+      firebase_uid: firebaseUid,
+      provider: job.provider,
+      status: job.status,
+      summary: {
+        sourceHash: job.sourceHash ?? null,
+        watchlistStaged: job.watchlistStaged ?? 0,
+        episodesStaged: job.episodesStaged ?? 0,
+        watchlistImported: job.watchlistImported ?? 0,
+        episodesImported: job.episodesImported ?? 0,
+        episodesSkipped: job.episodesSkipped ?? 0,
+        episodesFailed: job.episodesFailed ?? 0,
+        errorMessage: job.errorMessage ?? null,
+        completedAt: job.completedAt ?? null,
+      },
+      created_at: job.createdAt ?? new Date().toISOString(),
+      updated_at: job.updatedAt ?? new Date().toISOString(),
+    },
+  ]);
 }

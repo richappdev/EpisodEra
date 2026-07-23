@@ -50,6 +50,18 @@ export const isSupabaseShadowWrites = () => booleanFromEnv("SUPABASE_SHADOW_WRIT
  */
 export const isSupabaseReadProfiles = () => booleanFromEnv("SUPABASE_READ_PROFILES");
 
+/**
+ * Phase 10 prep: when true, mutation routes should refuse Firestore writes
+ * after Supabase has become primary (not enforced globally yet — see Phase10Retirement.md).
+ */
+export const isFirestoreWritesDisabled = () => booleanFromEnv("FIRESTORE_WRITES_DISABLED");
+
+/**
+ * Phase 10 prep: treat Supabase as read primary for library domains when true.
+ * Default false until soak completes.
+ */
+export const isSupabaseReadPrimary = () => booleanFromEnv("SUPABASE_READ_PRIMARY");
+
 /** Comma-separated emails allowed to use puzzle admin APIs. */
 export const puzzleAdminEmails = () =>
   (process.env.PUZZLE_ADMIN_EMAILS ?? "")
