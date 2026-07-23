@@ -39,6 +39,8 @@ dependencies {
     implementation(libs.navigation.compose)
     implementation(libs.coil.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)

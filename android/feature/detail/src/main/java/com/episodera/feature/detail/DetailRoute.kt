@@ -13,6 +13,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.episodera.core.model.*
 import com.episodera.core.network.EpisodEraRepository
+import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.launch
@@ -27,8 +28,9 @@ data class DetailUiState(val loading: Boolean = true, val error: String? = null,
         mediaId = id; state = DetailUiState()
         runCatching {
             val detail = repository.detail(type, id)
-            val likes = repository.likes().items
-            val watchlist = repository.watchlist().items
+            val signedIn = FirebaseAuth.getInstance().currentUser != null
+            val likes = if (signedIn) repository.likes().items else emptyList()
+            val watchlist = if (signedIn) repository.watchlist().items else emptyList()
             val discussions = repository.discussions(type, id).items
             DetailUiState(false, detail = detail, liked = likes.any { it.tmdbId == id && it.mediaType == type },
                 likeId = likes.firstOrNull { it.tmdbId == id && it.mediaType == type }?.itemId,

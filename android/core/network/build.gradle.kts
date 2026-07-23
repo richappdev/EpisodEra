@@ -38,4 +38,5 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.appcheck.playintegrity)
     api(libs.datastore.preferences)
+    testImplementation("junit:junit:4.13.2")
 }
