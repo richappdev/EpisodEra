@@ -130,10 +130,7 @@ class SettingsService {
     return getFirestore().collection("users").doc(userId).collection("settings").doc("profile");
   }
 
-  async get(userId: string): Promise<UserSettings> {
-    const snapshot = await this.doc(userId).get();
-    const data = snapshot.exists ? (snapshot.data() as SettingsDocument) : {};
-
+  private fromDocument(data: SettingsDocument): UserSettings {
     return {
       autoMarkPreviousEpisodesWatched: data.autoMarkPreviousEpisodesWatched ?? false,
       language: data.language ?? "en-US",
@@ -153,16 +150,93 @@ class SettingsService {
     };
   }
 
-  async update(userId: string, input: SettingsUpdateInput): Promise<UserSettings> {
-    await this.doc(userId).set(
-      {
-        ...input,
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      {merge: true},
-    );
+  private fromSupabaseRow(row: Record<string, unknown>): UserSettings {
+    const raw = isRecord(row.raw) ? row.raw : {};
+    const language = isSupportedLanguage(raw.language)
+      ? raw.language
+      : isSupportedLanguage(row.locale)
+        ? row.locale
+        : "en-US";
+    return {
+      autoMarkPreviousEpisodesWatched: Boolean(raw.autoMarkPreviousEpisodesWatched ?? false),
+      language,
+      preferredProviderIds: Array.isArray(raw.preferredProviderIds)
+        ? raw.preferredProviderIds.filter((id): id is number => Number.isInteger(id) && id > 0)
+        : [],
+      watchRegion:
+        typeof raw.watchRegion === "string" && /^[A-Za-z]{2}$/.test(raw.watchRegion)
+          ? raw.watchRegion.toUpperCase()
+          : "US",
+      achievementsEnabled: raw.achievementsEnabled !== false,
+      showAchievementsOnProfile: raw.showAchievementsOnProfile !== false,
+      shareActivityWithFriends: Boolean(raw.shareActivityWithFriends),
+      allowFriendRequests: raw.allowFriendRequests !== false,
+      hideSpoilersUntilWatched:
+        raw.hideSpoilersUntilWatched !== undefined
+          ? Boolean(raw.hideSpoilersUntilWatched)
+          : row.spoiler_mode === "until_watched",
+      updatedAt: typeof row.updated_at === "string" ? row.updated_at : null,
+    };
+  }
 
-    return this.get(userId);
+  async get(userId: string): Promise<UserSettings> {
+    const {isSupabaseReadSettings} = await import("../config/env");
+    const {getSupabaseEnvOrNull, supabaseRest} = await import("../db/supabaseClient");
+    if (isSupabaseReadSettings()) {
+      const env = getSupabaseEnvOrNull();
+      if (env) {
+        const rows = (await supabaseRest(
+          env,
+          `user_settings?firebase_uid=eq.${encodeURIComponent(userId)}&select=*`,
+          {method: "GET", prefer: "return=representation"},
+        )) as Array<Record<string, unknown>> | null;
+        const row = Array.isArray(rows) && rows[0] ? rows[0] : null;
+        if (row) {
+          return this.fromSupabaseRow(row);
+        }
+      }
+    }
+
+    const snapshot = await this.doc(userId).get();
+    const data = snapshot.exists ? (snapshot.data() as SettingsDocument) : {};
+    return this.fromDocument(data);
+  }
+
+  async update(userId: string, input: SettingsUpdateInput): Promise<UserSettings> {
+    const {isSupabaseWritePrimary, shouldPersistFirestore} = await import("../config/env");
+    const ref = this.doc(userId);
+    let updated: UserSettings;
+
+    if (shouldPersistFirestore()) {
+      await ref.set(
+        {
+          ...input,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
+      const after = await ref.get();
+      updated = this.fromDocument(after.exists ? (after.data() as SettingsDocument) : {});
+    } else {
+      const current = await this.get(userId);
+      updated = {...current, ...input, updatedAt: new Date().toISOString()};
+    }
+
+    const {shadowWrite} = await import("../migration/shadow");
+    const {upsertSettingsShadow} = await import("../migration/supabaseWriters");
+    if (isSupabaseWritePrimary()) {
+      await upsertSettingsShadow(userId, updated);
+    } else {
+      await shadowWrite({
+        domain: "settings",
+        operation: "upsert",
+        firebaseUid: userId,
+        operationId: `settings:upsert:${userId}:${Date.now()}`,
+        payload: updated,
+        secondary: () => upsertSettingsShadow(userId, updated),
+      });
+    }
+    return updated;
   }
 }
 

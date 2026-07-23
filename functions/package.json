@@ -13,7 +13,9 @@
     "test": "npm run build && node --test \"lib/**/*.test.js\"",
     "test:coverage": "npm run build && node --test --experimental-test-coverage --test-coverage-include=\"lib/**/*.js\" --test-coverage-exclude=\"lib/**/*.test.js\" --test-coverage-exclude=\"lib/**/*.emulator.test.js\" --test-coverage-lines=55 --test-coverage-functions=55 --test-coverage-branches=45 \"lib/**/*.test.js\"",
     "test:emulator": "npm run build && firebase emulators:exec --only firestore \"node --test 'lib/**/*.emulator.test.js'\"",
-    "seed:franchises": "npm run build && node ../scripts/seed-franchises.mjs"
+    "seed:franchises": "npm run build && node ../scripts/seed-franchises.mjs",
+    "export:firebase-site": "node ../scripts/supabase/export-firebase-site.mjs",
+    "import:supabase-site": "node ../scripts/supabase/import-supabase-site.mjs"
   },
   "dependencies": {
     "cors": "^2.8.5",

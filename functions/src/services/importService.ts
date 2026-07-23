@@ -213,6 +213,26 @@ class ImportService {
     return showsDeleted + episodesDeleted;
   }
 
+  /** Re-read job after Firestore write and shadow metadata to Supabase (staging stays Firestore). */
+  private async shadowImportJob(
+    userId: string,
+    importId: string,
+    operation: string,
+  ): Promise<ImportJobSummary> {
+    const summary = await this.get(userId, importId);
+    const {shadowWrite} = await import("../migration/shadow");
+    const {upsertImportShadow} = await import("../migration/supabaseWriters");
+    await shadowWrite({
+      domain: "imports",
+      operation,
+      firebaseUid: userId,
+      operationId: `imports:${operation}:${userId}:${importId}:${Date.now()}`,
+      payload: summary,
+      secondary: () => upsertImportShadow(userId, summary),
+    });
+    return summary;
+  }
+
   async create(userId: string, provider: ImportProvider, sourceHash: string | null): Promise<ImportJobSummary> {
     if (sourceHash) {
       const existing = await this.collection(userId).where("sourceHash", "==", sourceHash).limit(5).get();
@@ -245,7 +265,18 @@ class ImportService {
       stagingDocsDeleted: 0,
     };
     await ref.set(data);
-    return this.mapImport(importId, data);
+    const summary = this.mapImport(importId, data);
+    const {shadowWrite} = await import("../migration/shadow");
+    const {upsertImportShadow} = await import("../migration/supabaseWriters");
+    await shadowWrite({
+      domain: "imports",
+      operation: "create",
+      firebaseUid: userId,
+      operationId: `imports:create:${userId}:${importId}`,
+      payload: summary,
+      secondary: () => upsertImportShadow(userId, summary),
+    });
+    return summary;
   }
 
   async get(userId: string, importId: string): Promise<ImportJobSummary> {
@@ -292,7 +323,7 @@ class ImportService {
       {merge: true},
     );
     await batch.commit();
-    return this.get(userId, importId);
+    return this.shadowImportJob(userId, importId, "stageWatchlist");
   }
 
   async stageEpisodes(userId: string, importId: string, episodes: ImportEpisodeInput[]): Promise<ImportJobSummary> {
@@ -332,7 +363,7 @@ class ImportService {
       {merge: true},
     );
     await batch.commit();
-    return this.get(userId, importId);
+    return this.shadowImportJob(userId, importId, "stageEpisodes");
   }
 
   async commit(userId: string, importId: string): Promise<ImportJobSummary> {
@@ -358,7 +389,7 @@ class ImportService {
       },
       {merge: true},
     );
-    return this.get(userId, importId);
+    return this.shadowImportJob(userId, importId, "commit");
   }
 
   async run(userId: string, importId: string, maxEpisodeWrites = maxRunEpisodeWrites): Promise<ImportRunResult> {
@@ -491,7 +522,7 @@ class ImportService {
       );
     }
 
-    const summary = await this.get(userId, importId);
+    const summary = await this.shadowImportJob(userId, importId, done ? "completed" : "run");
     const remainingEstimate = done
       ? 0
       : Math.max(0, summary.episodesStaged - summary.episodesImported - summary.episodesSkipped - summary.episodesFailed);

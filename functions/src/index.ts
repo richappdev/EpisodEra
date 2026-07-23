@@ -26,3 +26,10 @@ export const publishScheduledPuzzle = onSchedule(
     await puzzleService.publishScheduledPuzzles();
   },
 );
+
+/** Sets role=authenticated for Supabase Firebase third-party Auth (new signups). */
+export {onUserCreatedSetSupabaseRole} from "./authOnCreateClaims";
+
+// Optional Identity Platform blocking functions (synchronous claims) live in ./authClaims.ts:
+//   export {beforecreated, beforesignedin} from "./authClaims";
+
