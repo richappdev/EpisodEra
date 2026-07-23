@@ -21,6 +21,23 @@ test("parseAddLikedItemInput accepts a valid movie like payload", () => {
   });
 });
 
+test("parseAddLikedItemInput normalizes optional images", () => {
+  assert.deepEqual(
+    parseAddLikedItemInput({
+      tmdbId: "95396",
+      mediaType: "tv",
+      title: " Severance ",
+    }),
+    {
+      tmdbId: 95396,
+      mediaType: "tv",
+      title: "Severance",
+      poster: null,
+      backdrop: null,
+    },
+  );
+});
+
 test("parseAddLikedItemInput rejects invalid payloads", () => {
   assert.throws(
     () => parseAddLikedItemInput(null),
@@ -36,6 +53,14 @@ test("parseAddLikedItemInput rejects invalid payloads", () => {
   );
   assert.throws(
     () => parseAddLikedItemInput({tmdbId: 1, mediaType: "tv", title: "   "}),
+    (error: unknown) => error instanceof HttpError && error.code === "invalid_likes_payload",
+  );
+  assert.throws(
+    () => parseAddLikedItemInput({tmdbId: 1, mediaType: "tv", title: "Show", poster: 1}),
+    (error: unknown) => error instanceof HttpError && error.code === "invalid_likes_payload",
+  );
+  assert.throws(
+    () => parseAddLikedItemInput({tmdbId: 1, mediaType: "tv", title: "Show", backdrop: false}),
     (error: unknown) => error instanceof HttpError && error.code === "invalid_likes_payload",
   );
 });
