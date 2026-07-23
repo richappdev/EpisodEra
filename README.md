@@ -1,10 +1,10 @@
 # Episodera
 
-Episodera is a movie and TV tracking app for discovering titles, saving a watchlist, tracking episode progress, and reviewing profile stats. The current MVP is a React/Vite web app backed by Firebase Auth, Firestore, Firebase Functions, and TMDb metadata.
+Episodera is a movie and TV tracking app for discovering titles, saving a watchlist, tracking episode progress, and reviewing profile stats. Clients share one Firebase backend (Auth, Firestore, Cloud Functions) and TMDb metadata: a React/Vite web app and a Kotlin/Jetpack Compose Android app under [`android/`](android/).
 
 ## Current Status
 
-The project is in MVP hardening. Core web features are implemented, progress-tracking reliability fixes are in place, and GitHub Actions runs Java-backed Firestore emulator tests (`npm run test:emulator`) on hosted CI. The remaining work is dependency upgrade planning, deeper accessibility validation, repeat hosted production-smoke evidence for future release candidates, and production-readiness decisions.
+The project is in MVP hardening. Core web features are implemented, progress-tracking reliability fixes are in place, and GitHub Actions runs Java-backed Firestore emulator tests (`npm run test:emulator`) on hosted CI. A native Android client with near web feature parity (except the admin puzzle studio) lives in [`android/`](android/); see [`docs/Android.md`](docs/Android.md). Remaining work includes dependency upgrade planning, deeper web accessibility validation, hosted production-smoke evidence for release candidates, Android Play Store packaging / App Check release setup, and production-readiness decisions.
 
 ## Features
 
@@ -41,8 +41,9 @@ The project is in MVP hardening. Core web features are implemented, progress-tra
   - tracked show count
 - Recent watched history timeline for movies and episodes.
 - Owner-scoped Firestore security rules for watchlist, progress, and history.
-- Firebase Analytics and Performance Monitoring for the web app.
-- GitHub Actions CI for backend build, backend lint, backend unit tests with coverage enforcement, Java-backed Firestore emulator tests, frontend build, frontend component coverage enforcement, and Playwright critical-flow, progress edge-case, and responsive/accessibility smoke coverage.
+- Firebase Analytics and Performance Monitoring for the web app; Crashlytics, Analytics, and Performance on Android.
+- Native Android client (`android/`): email/password auth, discovery/search/detail, watchlist and episode progress, likes, timeline, profile/stats, settings (export/delete/import staging), daily puzzle, franchises, social, deep links — setup in [`docs/Android.md`](docs/Android.md). Admin puzzle studio remains web-only.
+- GitHub Actions CI for backend build, backend lint, backend unit tests with coverage enforcement, Java-backed Firestore emulator tests, frontend build, frontend component coverage enforcement, Playwright critical-flow / progress / accessibility smoke, and Android assemble/unit tests (`.github/workflows/android.yml`).
 - GitHub Actions `Production Smoke` workflow for manual-dispatch or scheduled deployed signed-in validation using protected repository secrets.
 - Account deletion manually validated on 2026-07-13 against the deployed app (`DELETE /me/account`, Auth removal, Firestore cleanup) using a throwaway account.
 - URL routing and shareable deep links with React Router (`/`, `/home`, `/search`, `/movie/:id`, `/tv/:id`, `/tv/:id/season/:seasonNumber`, `/watchlist`, `/continue-watching`, `/timeline`, `/franchises`, `/franchises/:slug`, `/list/:listId`, `/play`, `/play/daily-puzzle`, `/admin/puzzles`, `/social`, `/profile`, `/settings`, `/privacy`, `/login`, `/signup`). Canonical route map: `web/src/routes/paths.ts` and `docs/Navigation.md`.
@@ -237,6 +238,18 @@ Copy `web/.env.smoke.example` to `web/.env.smoke`, replace the placeholder value
 
 Hosted smoke: configure repository secrets `EPISODERA_FIREBASE_API_KEY`, `EPISODERA_SMOKE_EMAIL`, and `EPISODERA_SMOKE_PASSWORD`, then run the `Production Smoke` workflow from GitHub Actions. See `docs/Deployment.md` for evidence retention and optional environment approval gates.
 
+Android:
+
+Open the Gradle project at [`android/`](android/) in Android Studio (JDK 17+). Details: [`docs/Android.md`](docs/Android.md).
+
+```bash
+cd android
+./gradlew :app:assembleDebug
+./gradlew :core:model:testDebugUnitTest
+```
+
+On Windows use `gradlew.bat`. Debug builds use the App Check debug provider (register the Logcat token in Firebase Console). Release builds use Play Integrity.
+
 ## Deployment
 
 Set the Firebase project:
@@ -295,8 +308,9 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 - Rate limiting is implemented with per-Functions-instance in-memory buckets for public reads and authenticated writes. App Check Phase 2 monitor mode verifies `X-Firebase-AppCheck` on the API; Phase 3 enforcement on `requireAuth` routes is gated by `APP_CHECK_ENFORCE_AUTH_WRITES` (**code default off**; production currently sets this to `true` — confirm with smoke App Check negative check). Public-read enforcement remains Phase 4. See `docs/AppCheck.md`.
 - Dependency audit findings are documented in `docs/DependencyAudit.md`; fixes require semver-major upgrades for Firebase Functions packages and Vite tooling.
 - Production beta readiness still needs runtime validation and an explicit dependency-risk decision.
-- Firebase Crashlytics is enabled on the Android client (`android/`); web remains without Crashlytics.
-- Native Android client lives in [`android/`](android/) — see [`docs/Android.md`](docs/Android.md). iOS is not implemented yet.
+- Web has no Crashlytics; Android collects Crashlytics in non-debug builds.
+- Android is not yet published to Play Store (signing, App Links SHA-256 in `assetlinks.json`, Play Integrity registration, store listing). See the release checklist in [`docs/Android.md`](docs/Android.md).
+- iOS is not implemented yet.
 
 ## Documentation
 
