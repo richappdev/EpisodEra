@@ -20,13 +20,14 @@ import javax.inject.Inject
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 
+@OptIn(FlowPreview::class)
 @HiltViewModel class SearchViewModel @Inject constructor(private val repository: EpisodEraRepository) : ViewModel() {
     private val query = MutableStateFlow("")
     var text by mutableStateOf(""); private set
     var results by mutableStateOf<List<MediaSummary>>(emptyList()); private set
     var loading by mutableStateOf(false); private set
     var error by mutableStateOf<String?>(null); private set
-    @OptIn(FlowPreview::class) init { query.debounce(350).filter { it.length >= 2 }.onEach { search(it) }.launchIn(viewModelScope) }
+    init { query.debounce(350).filter { it.length >= 2 }.onEach { search(it) }.launchIn(viewModelScope) }
     fun setQuery(value: String) { text = value; if (value.length < 2) results = emptyList(); query.value = value }
     private suspend fun search(value: String) { loading = true; error = null; runCatching { repository.search(value) }
         .onSuccess { results = it.tv.results + it.movies.results }.onFailure { error = it.message ?: "Search failed" }; loading = false }

@@ -27,7 +27,7 @@ android {
 dependencies {
     implementation(project(":core:model"))
 
-    implementation(libs.retrofit)
+    api(libs.retrofit)
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
@@ -37,5 +37,5 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.appcheck.playintegrity)
-    implementation(libs.datastore.preferences)
+    api(libs.datastore.preferences)
 }

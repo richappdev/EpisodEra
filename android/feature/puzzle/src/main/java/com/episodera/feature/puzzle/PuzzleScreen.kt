@@ -44,10 +44,11 @@ class PuzzleViewModel @Inject constructor(
     private fun load() = viewModelScope.launch {
         runCatching { repository.puzzleToday() }.onSuccess { puzzle ->
             puzzleId = puzzle.puzzleId
+            val attempt = puzzle.attempt
             _uiState.value = PuzzleUiState(puzzle.imageUrl, puzzle.choices.map { PuzzleChoice(it.choiceId, it.title) },
-                puzzle.attempt?.attemptCount ?: 0, puzzle.maxAttempts,
-                puzzle.attempt?.hints?.lastOrNull()?.value,
-                puzzle.attempt?.answer?.let { if (puzzle.attempt.completed) it.title else null }, loading = false)
+                attempt?.attemptCount ?: 0, puzzle.maxAttempts,
+                attempt?.hints?.lastOrNull()?.value,
+                attempt?.answer?.let { if (attempt.completed) it.title else null }, loading = false)
             runCatching { repository.puzzleStats() }.onSuccess { stats ->
                 _uiState.value = _uiState.value.copy(signedInStats = "${stats.gamesWon}/${stats.gamesPlayed} wins · ${stats.currentStreak} day streak")
             }
