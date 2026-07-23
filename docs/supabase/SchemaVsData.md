@@ -35,5 +35,21 @@ Scripts:
 | `export-firebase-auth.mjs` | Auth user export aid |
 | `export-firestore-sample.mjs` | Representative docs for parity fixtures |
 | `backfill-firebase-role-claim.mjs` | `role: authenticated` for Supabase bridge |
+| `backfill-profiles.mjs` | Firestore profiles + settings → Postgres |
+
+## Profiles + settings backfill
+
+```bash
+# Preview mapping (no Supabase writes)
+node scripts/supabase/backfill-profiles.mjs --dry-run --limit 5
+
+# One user
+node scripts/supabase/backfill-profiles.mjs --uid <FIREBASE_UID>
+
+# Full backfill (idempotent upserts)
+node scripts/supabase/backfill-profiles.mjs
+```
+
+Requires `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` (see `functions/.env.supabase.example`), Firebase Admin credentials, and migration `20260723130001_upsert_identity_mapping_rpc.sql` applied (`npx supabase db push`).
 
 Raw dumps belong under `docs/supabase/evidence/` (gitignored).
