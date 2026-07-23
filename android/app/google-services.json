@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "388894496033",
+    "project_id": "episodera",
+    "storage_bucket": "episodera.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:388894496033:android:0ede2203c067dd17931a60",
+        "android_client_info": {
+          "package_name": "com.episodera.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAN6XG4dprp25G_X3p73RBTl3FkV_nbMnQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -51,10 +51,11 @@ The project is in MVP hardening. Core web features are implemented, progress-tra
 ## Tech Stack
 
 - Frontend: React 18, Vite, TypeScript, React Router, Firebase Web SDK
+- Android: Kotlin, Jetpack Compose, Hilt, Retrofit (see [`android/`](android/) and [`docs/Android.md`](docs/Android.md))
 - Backend: Firebase Cloud Functions, Express, TypeScript
 - Auth: Firebase Authentication
 - Database: Firestore
-- Monitoring: Firebase Analytics, Firebase Performance Monitoring, Analytics exception events for web errors
+- Monitoring: Firebase Analytics, Firebase Performance Monitoring, Analytics exception events for web errors; Crashlytics on Android
 - Metadata provider: TMDb API
 - CI: GitHub Actions
 
@@ -62,8 +63,16 @@ The project is in MVP hardening. Core web features are implemented, progress-tra
 
 ```text
 .
+├── android/
+│   ├── app/
+│   ├── core/
+│   │   ├── design/
+│   │   ├── model/
+│   │   └── network/
+│   └── feature/
 ├── docs/
 │   ├── API.md
+│   ├── Android.md
 │   ├── Architecture.md
 │   ├── Authentication.md
 │   ├── CodingStandard.md
@@ -286,11 +295,12 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 - Rate limiting is implemented with per-Functions-instance in-memory buckets for public reads and authenticated writes. App Check Phase 2 monitor mode verifies `X-Firebase-AppCheck` on the API; Phase 3 enforcement on `requireAuth` routes is gated by `APP_CHECK_ENFORCE_AUTH_WRITES` (**code default off**; production currently sets this to `true` — confirm with smoke App Check negative check). Public-read enforcement remains Phase 4. See `docs/AppCheck.md`.
 - Dependency audit findings are documented in `docs/DependencyAudit.md`; fixes require semver-major upgrades for Firebase Functions packages and Vite tooling.
 - Production beta readiness still needs runtime validation and an explicit dependency-risk decision.
-- Firebase Crashlytics is not available for the current web-only client; add it when native Apple, Android, Flutter, or Unity clients exist.
-- Mobile apps are not implemented yet; the current MVP client is web-first.
+- Firebase Crashlytics is enabled on the Android client (`android/`); web remains without Crashlytics.
+- Native Android client lives in [`android/`](android/) — see [`docs/Android.md`](docs/Android.md). iOS is not implemented yet.
 
 ## Documentation
 
+- `docs/Android.md` covers the Kotlin/Compose client setup, App Check, and release checklist.
 - `docs/Architecture.md` explains the system structure.
 - `docs/API.md` defines backend contracts.
 - `docs/Firestore.md` defines Firestore documents and ownership rules.
