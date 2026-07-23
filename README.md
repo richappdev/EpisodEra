@@ -53,10 +53,28 @@ The project is in MVP hardening. Core web features are implemented, progress-tra
 - Frontend: React 18, Vite, TypeScript, React Router, Firebase Web SDK
 - Backend: Firebase Cloud Functions, Express, TypeScript
 - Auth: Firebase Authentication
-- Database: Firestore
+- Database: Supabase Postgres (library domains) with optional Firestore mirror; Firebase Auth still primary
 - Monitoring: Firebase Analytics, Firebase Performance Monitoring, Analytics exception events for web errors
 - Metadata provider: TMDb API
 - CI: GitHub Actions
+
+## Supabase / Firestore cutover flags
+
+Library domains (profile, settings, watchlist/likes, progress, history, friends, derived cache) can run with **Supabase as primary** and Firestore as an optional mirror. Configure in `functions/.env.episodera`, then redeploy Functions (`firebase deploy --only functions:api`).
+
+| Mode | Flags | Behavior |
+| --- | --- | --- |
+| Firestore primary, Supabase shadow | `SUPABASE_SHADOW_WRITES=true`, write-primary **off** | Write Firestore first → shadow Supabase |
+| Supabase primary, Firestore mirror | `SUPABASE_WRITE_PRIMARY=true`, `FIRESTORE_WRITES_DISABLED` unset/false | Write Supabase first → still write Firestore |
+| Supabase only | `SUPABASE_WRITE_PRIMARY=true` + `FIRESTORE_WRITES_DISABLED=true` | Write Supabase only |
+
+Reads use `SUPABASE_READ_*` / `SUPABASE_READ_PRIMARY` (Firestore fallback when empty/stub).
+
+To turn the Firestore write mirror back on while keeping Supabase primary: set `SUPABASE_WRITE_PRIMARY=true` and remove or set `FIRESTORE_WRITES_DISABLED=false`, then redeploy.
+
+**Caveats:** mirror/write-primary is wired for cut-over library domains. Puzzles, discussions, franchises, media mappings, and import staging still use Firestore. Auth remains Firebase until Phase 9.
+
+Full cutover steps: [`docs/supabase/Cutover.md`](docs/supabase/Cutover.md). Migration docs: [`docs/supabase/`](docs/supabase/).
 
 ## Repository Layout
 
@@ -309,4 +327,5 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 - `docs/CodingStandard.md` records implementation conventions.
 - `docs/DependencyAudit.md` records current audit findings and upgrade plan.
 - `docs/Deployment.md` covers deployment and CI.
+- `docs/supabase/` covers the Firebase → Supabase migration; start with `docs/supabase/Cutover.md` for primary/mirror flags.
 - `docs/ResourceAlignment.md` records GitHub, Notion, Figma, and Canva source-of-truth rules.
