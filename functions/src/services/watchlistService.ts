@@ -161,9 +161,50 @@ class WatchlistService {
     return getFirestore().collection("users").doc(userId).collection("watchlist");
   }
 
-  async list(userId: string, pagination: PaginationQuery): Promise<PaginatedResult<WatchlistItem>> {
-    const baseQuery = this.collection(userId).orderBy("updatedAt", "desc");
+  private mapSupabaseRow(row: Record<string, unknown>): WatchlistItem {
+    const mediaType = row.media_type === "movie" || row.media_type === "tv" ? row.media_type : "tv";
+    const tmdbId = Number(row.tmdb_id);
+    const status = normalizeStatusForMediaType(
+      mediaType,
+      isWatchlistStatus(row.status) ? row.status : defaultStatusFor(mediaType),
+    );
+    return {
+      itemId: itemIdFor(mediaType, tmdbId),
+      tmdbId,
+      mediaType,
+      title: String(row.title ?? ""),
+      poster: normalizeImageUrl((row.poster_path as string | null) ?? null),
+      backdrop: normalizeImageUrl((row.backdrop_path as string | null) ?? null),
+      status,
+      addedAt: typeof row.added_at === "string" ? row.added_at : null,
+      updatedAt: typeof row.updated_at === "string" ? row.updated_at : null,
+    };
+  }
 
+  async list(userId: string, pagination: PaginationQuery): Promise<PaginatedResult<WatchlistItem>> {
+    const {isSupabaseReadWatchlist} = await import("../config/env");
+    const {getSupabaseEnvOrNull, supabaseRest} = await import("../db/supabaseClient");
+    if (isSupabaseReadWatchlist()) {
+      const env = getSupabaseEnvOrNull();
+      if (env) {
+        const {decodeSupabaseOffsetToken, paginateRows} = await import("../lib/supabasePagination");
+        const offset = decodeSupabaseOffsetToken(pagination.pageToken);
+        const limit = pagination.pageSize + 1;
+        const rows = (await supabaseRest(
+          env,
+          `watchlist_items?firebase_uid=eq.${encodeURIComponent(userId)}` +
+            `&select=*&order=updated_at.desc,media_type.asc,tmdb_id.asc` +
+            `&offset=${offset}&limit=${limit}`,
+          {method: "GET", prefer: "return=representation"},
+        )) as Array<Record<string, unknown>> | null;
+        const list = Array.isArray(rows) ? rows : [];
+        if (offset > 0 || list.length > 0) {
+          return paginateRows(list.map((row) => this.mapSupabaseRow(row)), pagination, offset);
+        }
+      }
+    }
+
+    const baseQuery = this.collection(userId).orderBy("updatedAt", "desc");
     return listPaginated(baseQuery, pagination, (doc) =>
       mapDocument(doc.id, doc.data() as WatchlistDocument),
     );
@@ -195,7 +236,19 @@ class WatchlistService {
           backdrop: merged.backdrop,
         });
 
-        return {...item, poster: merged.poster, backdrop: merged.backdrop};
+        const next = {...item, poster: merged.poster, backdrop: merged.backdrop};
+        const {shadowWrite} = await import("../migration/shadow");
+        const {upsertWatchlistShadow} = await import("../migration/supabaseWriters");
+        await shadowWrite({
+          domain: "watchlist",
+          operation: "backfillImages",
+          firebaseUid: userId,
+          operationId: `watchlist:images:${userId}:${item.itemId}:${Date.now()}`,
+          payload: next,
+          secondary: () => upsertWatchlistShadow(userId, next),
+        });
+
+        return next;
       } catch {
         return item;
       }

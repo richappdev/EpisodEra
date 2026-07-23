@@ -45,10 +45,22 @@ export const isAppCheckEnforcePublicReads = () => booleanFromEnv("APP_CHECK_ENFO
 export const isSupabaseShadowWrites = () => booleanFromEnv("SUPABASE_SHADOW_WRITES");
 
 /**
- * Phase 5+: read profiles/settings from Supabase when true.
+ * Phase 5+: read profiles from Supabase when true.
  * Default false — Firestore remains read primary during shadow mode.
  */
 export const isSupabaseReadProfiles = () => booleanFromEnv("SUPABASE_READ_PROFILES");
+
+/**
+ * Phase 5+: read user settings from Supabase when true.
+ * Falls back to Firestore if no row exists.
+ */
+export const isSupabaseReadSettings = () => booleanFromEnv("SUPABASE_READ_SETTINGS");
+
+/**
+ * Phase 6+: read watchlist + likes from Supabase when true.
+ * Falls back to Firestore when Supabase has no rows for the user.
+ */
+export const isSupabaseReadWatchlist = () => booleanFromEnv("SUPABASE_READ_WATCHLIST");
 
 /**
  * Phase 10 prep: when true, mutation routes should refuse Firestore writes

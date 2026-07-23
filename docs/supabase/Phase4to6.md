@@ -39,8 +39,10 @@ Covered operations: watchlist add / status / remove / import-merge; likes add / 
 SUPABASE_URL=https://xyhhnoxvydshqpypwccr.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=...
 SUPABASE_SHADOW_WRITES=true
-# Step 3 — profile reads from Supabase (Firestore fallback if missing/stub):
+# Step 3 — domain reads from Supabase (Firestore fallback if missing/stub):
 SUPABASE_READ_PROFILES=true
+SUPABASE_READ_SETTINGS=true
+SUPABASE_READ_WATCHLIST=true
 ```
 
 Also apply migration `20260723150001_record_migration_sync_failure.sql`:
@@ -57,6 +59,5 @@ npx supabase db push
 
 ## Not in Phase 4–6
 
-- Progress/history dual-write → see [Phase7to10.md](./Phase7to10.md)
-- Switching watchlist reads to Supabase
+- Progress/history dual-write / reads → see [Phase7to10.md](./Phase7to10.md)
 - Native Supabase Auth (Phase 9)

@@ -100,9 +100,44 @@ class LikesService {
     return getFirestore().collection("users").doc(userId).collection("likes");
   }
 
-  async list(userId: string, pagination: PaginationQuery): Promise<PaginatedResult<LikedItem>> {
-    const baseQuery = this.collection(userId).orderBy("likedAt", "desc");
+  private mapSupabaseRow(row: Record<string, unknown>): LikedItem {
+    const mediaType = row.media_type === "movie" || row.media_type === "tv" ? row.media_type : "tv";
+    const tmdbId = Number(row.tmdb_id);
+    return {
+      itemId: itemIdFor(mediaType, tmdbId),
+      tmdbId,
+      mediaType,
+      title: String(row.title ?? ""),
+      poster: normalizeImageUrl((row.poster_path as string | null) ?? null),
+      backdrop: null,
+      likedAt: typeof row.liked_at === "string" ? row.liked_at : null,
+    };
+  }
 
+  async list(userId: string, pagination: PaginationQuery): Promise<PaginatedResult<LikedItem>> {
+    const {isSupabaseReadWatchlist} = await import("../config/env");
+    const {getSupabaseEnvOrNull, supabaseRest} = await import("../db/supabaseClient");
+    if (isSupabaseReadWatchlist()) {
+      const env = getSupabaseEnvOrNull();
+      if (env) {
+        const {decodeSupabaseOffsetToken, paginateRows} = await import("../lib/supabasePagination");
+        const offset = decodeSupabaseOffsetToken(pagination.pageToken);
+        const limit = pagination.pageSize + 1;
+        const rows = (await supabaseRest(
+          env,
+          `likes?firebase_uid=eq.${encodeURIComponent(userId)}` +
+            `&select=*&order=liked_at.desc,media_type.asc,tmdb_id.asc` +
+            `&offset=${offset}&limit=${limit}`,
+          {method: "GET", prefer: "return=representation"},
+        )) as Array<Record<string, unknown>> | null;
+        const list = Array.isArray(rows) ? rows : [];
+        if (offset > 0 || list.length > 0) {
+          return paginateRows(list.map((row) => this.mapSupabaseRow(row)), pagination, offset);
+        }
+      }
+    }
+
+    const baseQuery = this.collection(userId).orderBy("likedAt", "desc");
     return listPaginated(baseQuery, pagination, (doc) =>
       mapDocument(doc.id, doc.data() as LikedDocument),
     );
@@ -134,7 +169,19 @@ class LikesService {
           backdrop: merged.backdrop,
         });
 
-        return {...item, poster: merged.poster, backdrop: merged.backdrop};
+        const next = {...item, poster: merged.poster, backdrop: merged.backdrop};
+        const {shadowWrite} = await import("../migration/shadow");
+        const {upsertLikeShadow} = await import("../migration/supabaseWriters");
+        await shadowWrite({
+          domain: "likes",
+          operation: "backfillImages",
+          firebaseUid: userId,
+          operationId: `likes:images:${userId}:${item.itemId}:${Date.now()}`,
+          payload: next,
+          secondary: () => upsertLikeShadow(userId, next),
+        });
+
+        return next;
       } catch {
         return item;
       }
