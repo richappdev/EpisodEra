@@ -15,11 +15,17 @@ describe("recommendationLogic", () => {
     assert.equal(isDiscoveryMood("relaxing"), true);
     assert.equal(isDiscoveryMood("unknown"), false);
     assert.deepEqual(parseProviderIds("8, 337,8"), [8, 337]);
+    assert.deepEqual(parseProviderIds(null), []);
+    assert.deepEqual(parseProviderIds(["8", "invalid", "0"]), [8]);
     assert.equal(moodDefinitions["quick-watch"].maxRuntimeMinutes, 30);
   });
 
   it("filters runtime, providers, and duplicates", () => {
     assert.equal(filterByRuntime([{runtimeMinutes: 25}, {runtimeMinutes: 90}], 30).length, 1);
+    const unfiltered = [{runtimeMinutes: 90}];
+    assert.equal(filterByRuntime(unfiltered, null), unfiltered);
+    assert.equal(titleMatchesProviders([8], []), true);
+    assert.equal(titleMatchesProviders(undefined, [337]), true);
     assert.equal(titleMatchesProviders([8], [337]), false);
     assert.equal(titleMatchesProviders([8, 337], [337]), true);
     assert.equal(
