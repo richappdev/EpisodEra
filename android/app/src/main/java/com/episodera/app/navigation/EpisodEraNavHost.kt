@@ -18,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -81,6 +82,19 @@ private data class BottomItem(
 
 @Composable
 fun EpisodEraApp() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag(EPISODERA_APP_TEST_TAG),
+    ) {
+        EpisodEraAppContent()
+    }
+}
+
+const val EPISODERA_APP_TEST_TAG = "episodera_app"
+
+@Composable
+private fun EpisodEraAppContent() {
     val siteAccess: SiteAccessViewModel = hiltViewModel()
     val blocked by siteAccess.blocked.collectAsStateWithLifecycle()
     if (blocked) {
