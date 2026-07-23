@@ -40,6 +40,42 @@ export async function upsertIdentityMapping(firebaseUid: string, email: string |
   });
 }
 
+/**
+ * Insert a minimal profiles row if missing. Uses ignore-duplicates so existing
+ * profiles are never overwritten (progress/history FKs require a parent row).
+ */
+export async function ensureProfileStubShadow(
+  firebaseUid: string,
+  email: string | null = null,
+): Promise<void> {
+  const env = getSupabaseEnvOrNull();
+  if (!env) {
+    throw new Error("Supabase is not configured");
+  }
+  const now = new Date().toISOString();
+  await supabaseRest(env, "profiles?on_conflict=firebase_uid", {
+    method: "POST",
+    body: [
+      {
+        firebase_uid: firebaseUid,
+        first_name: "User",
+        last_name: "Unknown",
+        display_name: null,
+        email: email || `${firebaseUid}@users.firebase.local`,
+        photo_url: null,
+        bio: null,
+        country: null,
+        timezone: null,
+        friend_code: null,
+        created_at: now,
+        updated_at: now,
+      },
+    ],
+    prefer: "resolution=ignore-duplicates,return=minimal",
+  });
+  await upsertIdentityMapping(firebaseUid, email);
+}
+
 export async function upsertProfileShadow(firebaseUid: string, profile: UserProfile): Promise<void> {
   await upsert("profiles", "firebase_uid", [
     {
@@ -67,6 +103,7 @@ export async function upsertProfileShadow(firebaseUid: string, profile: UserProf
 }
 
 export async function upsertSettingsShadow(firebaseUid: string, settings: UserSettings): Promise<void> {
+  await ensureProfileStubShadow(firebaseUid);
   await upsert("user_settings", "firebase_uid", [
     {
       firebase_uid: firebaseUid,
@@ -91,6 +128,7 @@ export async function upsertSettingsShadow(firebaseUid: string, settings: UserSe
 }
 
 export async function upsertWatchlistShadow(firebaseUid: string, item: WatchlistItem): Promise<void> {
+  await ensureProfileStubShadow(firebaseUid);
   await upsert("watchlist_items", "firebase_uid,media_type,tmdb_id", [
     {
       firebase_uid: firebaseUid,
@@ -118,6 +156,7 @@ export async function removeWatchlistShadow(
 }
 
 export async function upsertLikeShadow(firebaseUid: string, item: LikedItem): Promise<void> {
+  await ensureProfileStubShadow(firebaseUid);
   await upsert("likes", "firebase_uid,media_type,tmdb_id", [
     {
       firebase_uid: firebaseUid,
@@ -146,6 +185,7 @@ export async function upsertShowProgressShadow(
   firebaseUid: string,
   progress: ShowProgress,
 ): Promise<void> {
+  await ensureProfileStubShadow(firebaseUid);
   const next = progress.nextEpisode;
   const watchedKeys = progress.episodes
     .filter((episode) => episode.watched)
@@ -222,6 +262,7 @@ export async function upsertShowProgressShadow(
 }
 
 export async function upsertHistoryShadow(firebaseUid: string, entry: HistoryEntry): Promise<void> {
+  await ensureProfileStubShadow(firebaseUid);
   await upsert("watch_history", "firebase_uid,history_key", [
     {
       firebase_uid: firebaseUid,
@@ -255,6 +296,8 @@ export async function upsertFriendshipShadow(
   displayName: string | null,
   friendCode: string | null,
 ): Promise<void> {
+  await ensureProfileStubShadow(firebaseUid);
+  await ensureProfileStubShadow(friendFirebaseUid);
   await upsert("friendships", "firebase_uid,friend_firebase_uid", [
     {
       firebase_uid: firebaseUid,
@@ -327,6 +370,7 @@ export async function upsertImportShadow(
     completedAt?: string | null;
   },
 ): Promise<void> {
+  await ensureProfileStubShadow(firebaseUid);
   await upsert("imports", "id", [
     {
       id: job.importId,
