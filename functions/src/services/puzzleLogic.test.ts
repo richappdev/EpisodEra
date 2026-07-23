@@ -3,6 +3,7 @@ import test from "node:test";
 import {emptyUserGameStats} from "../models/puzzle";
 import {
   buildOpaqueImageUrls,
+  calendarDateInTimeZone,
   computeStreakUpdate,
   hintForAttempt,
   nextUtcMidnightIso,
@@ -13,6 +14,13 @@ import {
 test("utcPuzzleDate and nextUtcMidnightIso", () => {
   assert.equal(utcPuzzleDate(new Date("2026-07-21T23:59:00.000Z")), "2026-07-21");
   assert.equal(nextUtcMidnightIso("2026-07-21"), "2026-07-22T00:00:00.000Z");
+});
+
+test("calendarDateInTimeZone uses Asia/Taipei calendar day", () => {
+  // 06:00 Taipei on Jul 23 == 22:00 UTC on Jul 22
+  assert.equal(calendarDateInTimeZone(new Date("2026-07-22T22:00:00.000Z"), "Asia/Taipei"), "2026-07-23");
+  // Still Jul 22 in Taipei just before midnight
+  assert.equal(calendarDateInTimeZone(new Date("2026-07-22T15:59:00.000Z"), "Asia/Taipei"), "2026-07-22");
 });
 
 test("hintForAttempt returns matching hint", () => {

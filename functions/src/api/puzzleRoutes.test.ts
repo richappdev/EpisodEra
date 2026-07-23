@@ -7,6 +7,7 @@ import {AuthenticatedRequest} from "../middleware/auth";
 import {HttpError} from "../lib/httpError";
 import {DailyPuzzleResponse} from "../models/puzzle";
 import {puzzleRouter} from "./puzzleRoutes";
+import {autoPuzzleService} from "../services/autoPuzzleService";
 import {puzzleService} from "../services/puzzleService";
 
 interface JsonPayload {
@@ -183,6 +184,35 @@ test("GET /admin/puzzles/:puzzleId rejects invalid ids", async () => {
     assert.equal(response.status, 400);
     assert.equal(response.payload.error?.code, "invalid_puzzle_id");
   } finally {
+    if (previousAllowlist === undefined) {
+      delete process.env.PUZZLE_ADMIN_EMAILS;
+    } else {
+      process.env.PUZZLE_ADMIN_EMAILS = previousAllowlist;
+    }
+  }
+});
+
+test("POST /admin/puzzles/ensure-today returns ensure result", async () => {
+  const previousAllowlist = process.env.PUZZLE_ADMIN_EMAILS;
+  process.env.PUZZLE_ADMIN_EMAILS = "admin@example.com";
+  const original = autoPuzzleService.ensureTodayPuzzle;
+  autoPuzzleService.ensureTodayPuzzle = async () => ({
+    created: false,
+    puzzleDate: "2026-07-23",
+    reason: "exists",
+  });
+
+  try {
+    const response = await request(createTestApp({adminEmail: "admin@example.com"}), "/admin/puzzles/ensure-today", {
+      method: "POST",
+      body: {},
+    });
+    assert.equal(response.status, 200);
+    assert.equal(response.payload.created, false);
+    assert.equal(response.payload.puzzleDate, "2026-07-23");
+    assert.equal(response.payload.reason, "exists");
+  } finally {
+    autoPuzzleService.ensureTodayPuzzle = original;
     if (previousAllowlist === undefined) {
       delete process.env.PUZZLE_ADMIN_EMAILS;
     } else {

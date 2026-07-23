@@ -2,6 +2,7 @@ import {initializeApp} from "firebase-admin/app";
 import {onRequest} from "firebase-functions/v2/https";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import {app} from "./api/app";
+import {autoPuzzleService} from "./services/autoPuzzleService";
 import {puzzleService} from "./services/puzzleService";
 
 initializeApp();
@@ -27,9 +28,22 @@ export const publishScheduledPuzzle = onSchedule(
   },
 );
 
+/** Backfills today's (Asia/Taipei) puzzle when none was authored by an admin. */
+export const autoCreateDailyPuzzle = onSchedule(
+  {
+    schedule: "0 6 * * *",
+    timeZone: "Asia/Taipei",
+    region: "us-central1",
+    secrets: ["TMDB_API_KEY"],
+    timeoutSeconds: 120,
+  },
+  async () => {
+    await autoPuzzleService.ensureTodayPuzzle();
+  },
+);
+
 /** Sets role=authenticated for Supabase Firebase third-party Auth (new signups). */
 export {onUserCreatedSetSupabaseRole} from "./authOnCreateClaims";
 
 // Optional Identity Platform blocking functions (synchronous claims) live in ./authClaims.ts:
 //   export {beforecreated, beforesignedin} from "./authClaims";
-

@@ -7,6 +7,23 @@ export const utcPuzzleDate = (now = new Date()): string => {
   return `${year}-${month}-${day}`;
 };
 
+/** Calendar YYYY-MM-DD in an IANA time zone (e.g. Asia/Taipei). */
+export const calendarDateInTimeZone = (now: Date, timeZone: string): string => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  if (!year || !month || !day) {
+    throw new Error(`Unable to format calendar date for time zone ${timeZone}`);
+  }
+  return `${year}-${month}-${day}`;
+};
+
 export const nextUtcMidnightIso = (puzzleDate: string): string => {
   const [year, month, day] = puzzleDate.split("-").map(Number);
   const next = new Date(Date.UTC(year, month - 1, day + 1, 0, 0, 0));

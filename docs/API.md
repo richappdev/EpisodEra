@@ -719,9 +719,17 @@ X-Episodera-Player-Id: <required-when-signed-out>
 {"choiceId":"a"}
 ```
 
-Admin studio routes require Firebase Auth plus an email listed in `PUZZLE_ADMIN_EMAILS`. Scheduled puzzles publish via `POST /admin/puzzles/publish-scheduled` or the `publishScheduledPuzzle` Cloud Scheduler function (01:00 UTC).
+Admin studio routes require Firebase Auth plus an email listed in `PUZZLE_ADMIN_EMAILS`. Scheduled puzzles publish via `POST /admin/puzzles/publish-scheduled` or the `publishScheduledPuzzle` Cloud Scheduler function (00:01 UTC).
 
-`GET /admin/puzzles/:puzzleId` returns the combined public/private editorial detail for an existing `YYYY-MM-DD` puzzle so the studio can load and update it. This endpoint is present in the current working tree and should be treated as pending until that change is committed.
+If no admin-authored puzzle exists for the Asia/Taipei calendar date, `autoCreateDailyPuzzle` (Cloud Scheduler `0 6 * * *`, `Asia/Taipei`) creates a published puzzle from a random trending show. Admins can trigger the same backfill with:
+
+```http
+POST /admin/puzzles/ensure-today
+```
+
+Response shape: `{created: true, puzzleDate, puzzleId}` or `{created: false, puzzleDate, reason: "exists" | "exhausted"}`.
+
+`GET /admin/puzzles/:puzzleId` returns the combined public/private editorial detail for an existing `YYYY-MM-DD` puzzle so the studio can load and update it.
 
 ## Franchises and Smart Discovery
 

@@ -334,6 +334,7 @@ Daily Puzzle data is written and read through Cloud Functions; direct client rea
 - `puzzleAttempts/{playerId__puzzleId}` stores selected choices, attempt count, completion, and win state for authenticated or anonymous players.
 - `userGameStats/{userId}` stores signed-in aggregate play/win counts, streaks, and wins by attempt.
 - `gameConfig/dailyPuzzle` stores scheduler publication-check metadata.
+- Schedulers: `publishScheduledPuzzle` (00:01 UTC) publishes due `scheduled` docs; `autoCreateDailyPuzzle` (06:00 Asia/Taipei) backfills a published puzzle for the Taipei calendar date when `puzzlePrivate/{date}` is missing (never overwrites admin drafts).
 
 The current MVP does not store a complete per-user puzzle-history list. Puzzle images use opaque TMDb URLs; a processed Firebase Storage asset pipeline remains optional follow-up work.
 

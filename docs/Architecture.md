@@ -72,6 +72,15 @@ firebase functions:secrets:set TMDB_API_KEY
 
 For local development, copy `.env.example` to `.env` and provide a TMDb API key before starting emulators.
 
+## Scheduled jobs
+
+| Function | Schedule | Time zone | Role |
+|---|---|---|---|
+| `publishScheduledPuzzle` | `1 0 * * *` | UTC | Publish due `scheduled` daily puzzles |
+| `autoCreateDailyPuzzle` | `0 6 * * *` | Asia/Taipei | Create a published puzzle for the Taipei calendar date when none exists |
+
+`autoCreateDailyPuzzle` requires `TMDB_API_KEY`. Player `GET /puzzles/today` still resolves “today” via UTC `puzzleDate`.
+
 ## API Design
 
 The initial API is read-only:

@@ -4,7 +4,8 @@ import {HttpError} from "../lib/httpError";
 import {AuthenticatedRequest, requireAuth} from "../middleware/auth";
 import {requireAppCheck} from "../middleware/appCheck";
 import {UpsertPuzzleInput} from "../models/puzzle";
-import {buildOpaqueImageUrls, rankDistractors} from "../services/puzzleLogic";
+import {autoPuzzleService, suggestDistractorsForShow} from "../services/autoPuzzleService";
+import {buildOpaqueImageUrls} from "../services/puzzleLogic";
 import {puzzleService} from "../services/puzzleService";
 import {tmdbService} from "../services/tmdbService";
 
@@ -124,6 +125,20 @@ puzzleRouter.post(
   },
 );
 
+puzzleRouter.post(
+  "/admin/puzzles/ensure-today",
+  requireAuth,
+  requireAppCheck,
+  requirePuzzleAdmin,
+  async (_req, res, next) => {
+    try {
+      res.json(await autoPuzzleService.ensureTodayPuzzle());
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
 puzzleRouter.get(
   "/admin/puzzles/search-tv",
   requireAuth,
@@ -192,39 +207,7 @@ puzzleRouter.post(
       if (!Number.isFinite(showId)) {
         throw new HttpError(400, "showId is required.", "invalid_show");
       }
-      const detail = await tmdbService.tvDetail(showId, "en-US");
-      const year = detail.releaseDate ? Number(detail.releaseDate.slice(0, 4)) : null;
-      const search = await tmdbService.search(detail.title.split(":")[0] ?? detail.title, 1, "en-US");
-      const trending = await tmdbService.trendingTv(1, "en-US");
-      const candidates = [...search.tv.results, ...trending.results]
-        .filter((item, index, arr) => arr.findIndex((entry) => entry.id === item.id) === index)
-        .map((item) => ({
-          id: item.id,
-          title: item.title,
-          genreIds: [],
-          releaseYear: item.releaseDate ? Number(item.releaseDate.slice(0, 4)) : null,
-          popularity: item.popularity,
-          originCountry: null,
-          networkOrProvider: null,
-        }));
-
-      const ranked = rankDistractors(
-        {
-          id: detail.id,
-          title: detail.title,
-          genreIds: detail.genres?.map((genre) => genre.id) ?? [],
-          releaseYear: year,
-          popularity: detail.popularity,
-          originCountry: null,
-        },
-        candidates,
-        3,
-      );
-
-      res.json({
-        answer: {id: detail.id, title: detail.title},
-        distractors: ranked.map((item) => ({id: item.id, title: item.title})),
-      });
+      res.json(await suggestDistractorsForShow(showId));
     } catch (error) {
       next(error);
     }
