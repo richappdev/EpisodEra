@@ -35,6 +35,18 @@ node scripts/supabase/import-supabase-site.mjs --from docs/supabase/evidence/sit
 
 See [SiteExportImport.md](../docs/supabase/SiteExportImport.md).
 
+## Reverse sync (Supabase → Firestore catch-up)
+
+When Firestore mirror was off (`FIRESTORE_WRITES_DISABLED=true`), catch up library docs:
+
+```bash
+node scripts/supabase/sync-supabase-to-firestore.mjs --dry-run --limit 5
+node scripts/supabase/sync-supabase-to-firestore.mjs --uid <FIREBASE_UID>
+node scripts/supabase/sync-supabase-to-firestore.mjs
+```
+
+Requires Firebase Admin credentials + `functions/.env.supabase`. Covers profiles, settings, watchlist, likes, progress/episodes, history, friendships, and common derived cache keys. Does not sync puzzles/discussions/franchises/import staging.
+
 ## Phase 9 Auth cutover prep (do not flip production Auth)
 
 ```bash

@@ -44,6 +44,15 @@ FIRESTORE_WRITES_DISABLED=true
 
 **Status:** enable after write-primary soak. Library mutations then persist to Supabase only (puzzles/discussions/franchises/import staging may still touch Firestore until those domains are migrated).
 
+To catch up Firestore after a period with mirror off:
+
+```bash
+node scripts/supabase/sync-supabase-to-firestore.mjs --dry-run
+node scripts/supabase/sync-supabase-to-firestore.mjs
+```
+
+Then set `FIRESTORE_WRITES_DISABLED=false` (keep `SUPABASE_WRITE_PRIMARY=true`) and redeploy so new writes mirror again.
+
 ## Still on Firestore (not cut over yet)
 
 Puzzles, discussions, franchises catalog, media mappings, import **staging** rows. Auth remains Firebase until Phase 9.

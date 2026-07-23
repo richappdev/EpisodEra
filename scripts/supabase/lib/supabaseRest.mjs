@@ -77,10 +77,10 @@ export async function supabaseRest({url, serviceRoleKey}, pathname, options = {}
   }
 }
 
-export async function supabaseRpc(env, fnName, args) {
+export async function supabaseRpc(env, fnName, args, prefer = "return=minimal") {
   return supabaseRest(env, `rpc/${fnName}`, {
     method: "POST",
     body: args,
-    prefer: "return=minimal",
+    prefer,
   });
 }

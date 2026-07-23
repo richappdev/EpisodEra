@@ -72,6 +72,13 @@ Reads use `SUPABASE_READ_*` / `SUPABASE_READ_PRIMARY` (Firestore fallback when e
 
 To turn the Firestore write mirror back on while keeping Supabase primary: set `SUPABASE_WRITE_PRIMARY=true` and remove or set `FIRESTORE_WRITES_DISABLED=false`, then redeploy.
 
+If Firestore fell behind while mirror was off, catch up library domains with:
+
+```bash
+node scripts/supabase/sync-supabase-to-firestore.mjs --dry-run
+node scripts/supabase/sync-supabase-to-firestore.mjs
+```
+
 **Caveats:** mirror/write-primary is wired for cut-over library domains. Puzzles, discussions, franchises, media mappings, and import staging still use Firestore. Auth remains Firebase until Phase 9.
 
 Full cutover steps: [`docs/supabase/Cutover.md`](docs/supabase/Cutover.md). Migration docs: [`docs/supabase/`](docs/supabase/).
