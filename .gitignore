@@ -21,7 +21,9 @@ firepit-log.txt
 *.local
 .codex/
 tv_time/
-docs/supabase/evidence/
+docs/supabase/evidence/**
+!docs/supabase/evidence/README.md
+!docs/supabase/evidence/.gitignore
 _deploy-out.txt
 _docker-local-run.txt
 _docker_write_test.txt
