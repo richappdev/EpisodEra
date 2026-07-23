@@ -39,8 +39,8 @@ Covered operations: watchlist add / status / remove / import-merge; likes add / 
 SUPABASE_URL=https://xyhhnoxvydshqpypwccr.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=...
 SUPABASE_SHADOW_WRITES=true
-# optional later:
-# SUPABASE_READ_PROFILES=true
+# Step 3 — profile reads from Supabase (Firestore fallback if missing/stub):
+SUPABASE_READ_PROFILES=true
 ```
 
 Also apply migration `20260723150001_record_migration_sync_failure.sql`:
