@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useState} from "react";
 import {Link, useNavigate} from "react-router-dom";
-import {Gamepad2, Share2} from "lucide-react";
+import {Clapperboard, Gamepad2, Share2} from "lucide-react";
 import {api} from "../api/client";
 import {useAppContext} from "../AppContext";
 import {useAuth} from "../auth/AuthContext";
@@ -59,6 +59,7 @@ export const DailyPuzzlePage = () => {
   const [stats, setStats] = useState<UserGameStats | null>(null);
   const [watchlistBusy, setWatchlistBusy] = useState(false);
   const [watchlistMessage, setWatchlistMessage] = useState<string | null>(null);
+  const [isPuzzleAdmin, setIsPuzzleAdmin] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -101,6 +102,31 @@ export const DailyPuzzlePage = () => {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!user) {
+      setIsPuzzleAdmin(false);
+      return;
+    }
+
+    let cancelled = false;
+    void api
+      .getPuzzleAdminAccess()
+      .then((response) => {
+        if (!cancelled) {
+          setIsPuzzleAdmin(response.isPuzzleAdmin);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setIsPuzzleAdmin(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.uid, user?.email]);
 
   const attemptCount = selectedChoiceIds.length;
   const maxAttempts = puzzle?.maxAttempts ?? 3;
@@ -255,6 +281,13 @@ export const DailyPuzzlePage = () => {
           <span className="media-kind">Daily puzzle</span>
           <h2>Which show is this?</h2>
           <p>One scene, four titles, three attempts. Progressive hints after each miss.</p>
+          {isPuzzleAdmin && (
+            <p className="daily-puzzle-admin-link">
+              <Link className="text-button" data-testid="open-puzzle-studio" to={paths.adminPuzzles}>
+                <Clapperboard size={16} aria-hidden="true" /> Manage puzzles
+              </Link>
+            </p>
+          )}
         </div>
         <Gamepad2 aria-hidden="true" size={36} />
       </section>

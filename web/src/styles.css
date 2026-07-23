@@ -3158,6 +3158,16 @@ html[data-chrome="landing"] body {
   color: var(--color-text, #e8edf4);
 }
 
+.daily-puzzle-admin-link {
+  margin: 10px 0 0;
+}
+
+.daily-puzzle-admin-link .text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .daily-puzzle-attempts {
   display: flex;
   align-items: center;

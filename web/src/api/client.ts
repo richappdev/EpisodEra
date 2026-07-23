@@ -281,6 +281,7 @@ export const api = {
       headers: playerHeaders(playerId),
     }),
   getPuzzleStats: () => request<UserGameStats>("/puzzles/stats"),
+  getPuzzleAdminAccess: () => request<{isPuzzleAdmin: boolean}>("/puzzles/admin-access"),
   adminListPuzzles: () =>
     request<{
       items: Array<{

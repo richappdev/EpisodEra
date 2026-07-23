@@ -190,3 +190,26 @@ test("GET /admin/puzzles/:puzzleId rejects invalid ids", async () => {
     }
   }
 });
+
+test("GET /puzzles/admin-access reports allowlisted admins", async () => {
+  const previousAllowlist = process.env.PUZZLE_ADMIN_EMAILS;
+  process.env.PUZZLE_ADMIN_EMAILS = "admin@example.com";
+  try {
+    const adminResponse = await request(createTestApp({adminEmail: "admin@example.com"}), "/puzzles/admin-access");
+    assert.equal(adminResponse.status, 200);
+    assert.equal(adminResponse.payload.isPuzzleAdmin, true);
+
+    const viewerResponse = await request(createTestApp({adminEmail: "viewer@example.com"}), "/puzzles/admin-access");
+    assert.equal(viewerResponse.status, 200);
+    assert.equal(viewerResponse.payload.isPuzzleAdmin, false);
+
+    const anonResponse = await request(createTestApp(), "/puzzles/admin-access");
+    assert.equal(anonResponse.status, 401);
+  } finally {
+    if (previousAllowlist === undefined) {
+      delete process.env.PUZZLE_ADMIN_EMAILS;
+    } else {
+      process.env.PUZZLE_ADMIN_EMAILS = previousAllowlist;
+    }
+  }
+});

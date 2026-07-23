@@ -21,6 +21,7 @@ vi.mock("../../api/client", () => ({
     getDailyPuzzle: vi.fn(),
     submitPuzzleGuess: vi.fn(),
     getPuzzleStats: vi.fn(),
+    getPuzzleAdminAccess: vi.fn(),
     detail: vi.fn(),
   },
 }));
@@ -102,6 +103,7 @@ describe("DailyPuzzlePage", () => {
       openAuth: vi.fn(),
     } as never);
     vi.mocked(api.getPuzzleStats).mockResolvedValue(stats);
+    vi.mocked(api.getPuzzleAdminAccess).mockResolvedValue({isPuzzleAdmin: false});
     Object.assign(navigator, {
       clipboard: {writeText: vi.fn().mockResolvedValue(undefined)},
       share: undefined,
@@ -121,8 +123,23 @@ describe("DailyPuzzlePage", () => {
     await waitFor(() => expect(screen.getByRole("button", {name: "Breaking Bad"})).toBeInTheDocument());
     expect(api.getDailyPuzzle).toHaveBeenCalledWith("player-test");
     await waitFor(() => expect(screen.getByLabelText("Your puzzle stats")).toHaveTextContent("1"));
+    expect(screen.queryByTestId("open-puzzle-studio")).not.toBeInTheDocument();
   });
 
+  it("shows a Manage puzzles link for puzzle admins", async () => {
+    vi.mocked(api.getDailyPuzzle).mockResolvedValue(basePuzzle);
+    vi.mocked(api.getPuzzleAdminAccess).mockResolvedValue({isPuzzleAdmin: true});
+
+    render(
+      <MemoryRouter>
+        <DailyPuzzlePage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId("open-puzzle-studio")).toBeInTheDocument());
+    expect(screen.getByTestId("open-puzzle-studio")).toHaveAttribute("href", "/admin/puzzles");
+    expect(screen.getByTestId("open-puzzle-studio")).toHaveTextContent(/Manage puzzles/i);
+  });
   it("falls back to the sample puzzle when the API fails", async () => {
     vi.mocked(api.getDailyPuzzle).mockRejectedValue(new Error("offline"));
 

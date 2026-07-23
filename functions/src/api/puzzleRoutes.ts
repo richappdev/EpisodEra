@@ -74,6 +74,12 @@ puzzleRouter.get("/puzzles/stats", requireAuth, requireAppCheck, async (req: Aut
   }
 });
 
+puzzleRouter.get("/puzzles/admin-access", requireAuth, requireAppCheck, (req: AuthenticatedRequest, res) => {
+  const allowlist = puzzleAdminEmails();
+  const email = req.user?.email?.toLowerCase();
+  res.json({isPuzzleAdmin: Boolean(email && allowlist.includes(email))});
+});
+
 puzzleRouter.get(
   "/admin/puzzles",
   requireAuth,
