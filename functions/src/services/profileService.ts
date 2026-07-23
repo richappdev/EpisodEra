@@ -141,6 +141,7 @@ class ProfileService {
   }
 
   async update(userId: string, email: string | undefined, input: ProfileUpdateInput): Promise<UserProfile> {
+    const {isSupabaseWritePrimary, shouldPersistFirestore} = await import("../config/env");
     const ref = this.doc(userId);
     const snapshot = await ref.get();
     const existing = snapshot.exists ? (snapshot.data() as ProfileDocument) : null;
@@ -157,36 +158,55 @@ class ProfileService {
 
     const nextDisplayName = input.displayName ?? existing?.displayName ?? `${firstName} ${lastName}`.trim();
     const nextEmail = email ?? existing?.email ?? null;
-    await ref.set(
-      {
-        ...input,
-        firstName,
-        lastName,
-        displayName: nextDisplayName,
-        email: nextEmail,
-        updatedAt: FieldValue.serverTimestamp(),
-        ...(snapshot.exists ? {} : {createdAt: FieldValue.serverTimestamp()}),
-      },
-      {merge: true},
-    );
+    const nowIso = new Date().toISOString();
+    const updated: UserProfile = {
+      firstName,
+      lastName,
+      email: nextEmail,
+      displayName: nextDisplayName,
+      photoURL: input.photoURL !== undefined ? input.photoURL : (existing?.photoURL ?? null),
+      bio: input.bio !== undefined ? input.bio : (existing?.bio ?? null),
+      country: input.country !== undefined ? input.country : (existing?.country ?? null),
+      timezone: input.timezone !== undefined ? input.timezone : (existing?.timezone ?? null),
+      friendCode: existing?.friendCode ?? null,
+      createdAt: timestampToJson(existing?.createdAt) ?? nowIso,
+      updatedAt: nowIso,
+    };
 
-    // Always build from Firestore after write — get() may read Supabase before shadow lands.
-    const after = await ref.get();
-    if (!after.exists) {
-      throw new HttpError(500, "Could not load updated profile.", "profile_update_failed");
+    if (shouldPersistFirestore()) {
+      await ref.set(
+        {
+          ...input,
+          firstName,
+          lastName,
+          displayName: nextDisplayName,
+          email: nextEmail,
+          updatedAt: FieldValue.serverTimestamp(),
+          ...(snapshot.exists ? {} : {createdAt: FieldValue.serverTimestamp()}),
+        },
+        {merge: true},
+      );
+      const after = await ref.get();
+      if (!after.exists) {
+        throw new HttpError(500, "Could not load updated profile.", "profile_update_failed");
+      }
+      Object.assign(updated, this.toProfile(after.data() as ProfileDocument));
     }
-    const updated = this.toProfile(after.data() as ProfileDocument);
 
     const {shadowWrite} = await import("../migration/shadow");
     const {upsertProfileShadow} = await import("../migration/supabaseWriters");
-    await shadowWrite({
-      domain: "profiles",
-      operation: "upsert",
-      firebaseUid: userId,
-      operationId: `profiles:upsert:${userId}:${Date.now()}`,
-      payload: updated,
-      secondary: () => upsertProfileShadow(userId, updated),
-    });
+    if (isSupabaseWritePrimary()) {
+      await upsertProfileShadow(userId, updated);
+    } else {
+      await shadowWrite({
+        domain: "profiles",
+        operation: "upsert",
+        firebaseUid: userId,
+        operationId: `profiles:upsert:${userId}:${Date.now()}`,
+        payload: updated,
+        secondary: () => upsertProfileShadow(userId, updated),
+      });
+    }
 
     return updated;
   }

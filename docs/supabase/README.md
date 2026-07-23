@@ -15,6 +15,7 @@ Branch: `feature/supabase-foundation`
 | [RuntimePortability.md](./RuntimePortability.md) | Cloud Run API image |
 | [Phase4to6.md](./Phase4to6.md) | Repository adapters + watchlist/likes shadow writes |
 | [Phase7to10.md](./Phase7to10.md) | Progress/history/social shadow + Auth/retirement prep |
+| [Cutover.md](./Cutover.md) | Flags to make Supabase the database of record |
 | [Phase10Retirement.md](./Phase10Retirement.md) | Retirement flag order (do not flip early) |
 | [SiteExportImport.md](./SiteExportImport.md) | Firebase dump → Supabase restore |
 | [DefinitionOfDone.md](./DefinitionOfDone.md) | Per-domain checklist |

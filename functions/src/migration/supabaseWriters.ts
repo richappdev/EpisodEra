@@ -292,7 +292,7 @@ export async function removeHistoryShadow(firebaseUid: string, historyId: string
 export async function upsertFriendshipShadow(
   firebaseUid: string,
   friendFirebaseUid: string,
-  status: "pending" | "accepted" | "blocked",
+  status: "pending" | "pending_outgoing" | "pending_incoming" | "accepted" | "blocked",
   displayName: string | null,
   friendCode: string | null,
 ): Promise<void> {
@@ -348,6 +348,99 @@ export async function invalidateDerivedCacheShadow(firebaseUid: string): Promise
   await supabaseRpc(env, "invalidate_derived_cache", {
     p_firebase_uid: firebaseUid,
   });
+}
+
+export async function getDerivedCacheShadow(
+  firebaseUid: string,
+  cacheKey: string,
+): Promise<{payload: unknown; computedAt: string; invalidatedAt: string | null} | null> {
+  const env = getSupabaseEnvOrNull();
+  if (!env) {
+    return null;
+  }
+  const row = (await supabaseRpc(
+    env,
+    "get_derived_cache",
+    {p_firebase_uid: firebaseUid, p_cache_key: cacheKey},
+    "return=representation",
+  )) as Record<string, unknown> | null;
+  if (!row || typeof row !== "object") {
+    return null;
+  }
+  return {
+    payload: row.payload,
+    computedAt: String(row.computed_at ?? ""),
+    invalidatedAt: row.invalidated_at == null ? null : String(row.invalidated_at),
+  };
+}
+
+export async function markEpisodesWatchedPrimary(input: {
+  firebaseUid: string;
+  showTmdbId: number;
+  title: string;
+  posterPath: string | null;
+  totalEpisodes: number;
+  episodes: Array<{
+    season_number: number;
+    episode_number: number;
+    episode_title: string;
+    watched: boolean;
+    watched_at?: string | null;
+    source?: string | null;
+    source_import_id?: string | null;
+  }>;
+  genreNames?: string[];
+  preserveEarliestWatchedAt?: boolean;
+}): Promise<Record<string, unknown>> {
+  const env = getSupabaseEnvOrNull();
+  if (!env) {
+    throw new Error("Supabase is not configured");
+  }
+  await ensureProfileStubShadow(input.firebaseUid);
+  const row = await supabaseRpc(
+    env,
+    "mark_episodes_watched",
+    {
+      p_firebase_uid: input.firebaseUid,
+      p_show_tmdb_id: input.showTmdbId,
+      p_title: input.title,
+      p_poster_path: input.posterPath,
+      p_total_episodes: input.totalEpisodes,
+      p_episodes: input.episodes,
+      p_genre_names: input.genreNames ?? [],
+      p_preserve_earliest_watched_at: Boolean(input.preserveEarliestWatchedAt),
+    },
+    "return=representation",
+  );
+  if (!row || typeof row !== "object") {
+    throw new Error("mark_episodes_watched returned no row");
+  }
+  return row as Record<string, unknown>;
+}
+
+export async function patchShowProgressNextEpisode(
+  firebaseUid: string,
+  showTmdbId: number,
+  next: {seasonNumber: number; episodeNumber: number; episodeTitle: string} | null,
+): Promise<void> {
+  const env = getSupabaseEnvOrNull();
+  if (!env) {
+    throw new Error("Supabase is not configured");
+  }
+  await supabaseRest(
+    env,
+    `show_progress?firebase_uid=eq.${encodeURIComponent(firebaseUid)}&show_tmdb_id=eq.${showTmdbId}`,
+    {
+      method: "PATCH",
+      body: {
+        next_season_number: next?.seasonNumber ?? null,
+        next_episode_number: next?.episodeNumber ?? null,
+        next_episode_title: next?.episodeTitle ?? null,
+        updated_at: new Date().toISOString(),
+      },
+      prefer: "return=minimal",
+    },
+  );
 }
 
 /** Import job metadata only — staging rows stay Firestore until cutover. */

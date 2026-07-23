@@ -47,7 +47,25 @@ class FriendService {
   }
 
   async findUserIdByFriendCode(friendCode: string): Promise<string | null> {
-    const snapshot = await this.users().where("friendCode", "==", friendCode.toUpperCase()).limit(1).get();
+    const code = friendCode.toUpperCase();
+    const {isSupabaseReadProfiles, isSupabaseReadFriends} = await import("../config/env");
+    const {getSupabaseEnvOrNull, supabaseRest} = await import("../db/supabaseClient");
+    if (isSupabaseReadProfiles() || isSupabaseReadFriends()) {
+      const env = getSupabaseEnvOrNull();
+      if (env) {
+        const rows = (await supabaseRest(
+          env,
+          `profiles?friend_code=eq.${encodeURIComponent(code)}&select=firebase_uid&limit=1`,
+          {method: "GET", prefer: "return=representation"},
+        )) as Array<Record<string, unknown>> | null;
+        const uid = Array.isArray(rows) && rows[0] ? rows[0].firebase_uid : null;
+        if (typeof uid === "string" && uid) {
+          return uid;
+        }
+      }
+    }
+
+    const snapshot = await this.users().where("friendCode", "==", code).limit(1).get();
     if (snapshot.empty) {
       return null;
     }
@@ -66,13 +84,53 @@ class FriendService {
     );
   }
 
+  private mapFriendStatus(value: unknown): FriendStatus {
+    if (value === "pending_outgoing" || value === "pending_incoming" || value === "accepted") {
+      return value;
+    }
+    if (value === "pending") {
+      return "pending_outgoing";
+    }
+    return "accepted";
+  }
+
   async list(userId: string): Promise<FriendsResponse> {
-    const [settings, friendCode, snapshot] = await Promise.all([
+    const {isSupabaseReadFriends} = await import("../config/env");
+    const {getSupabaseEnvOrNull, supabaseRest} = await import("../db/supabaseClient");
+
+    const [settings, friendCode] = await Promise.all([
       settingsService.get(userId),
       this.ensureFriendCode(userId),
-      this.friends(userId).orderBy("updatedAt", "desc").get(),
     ]);
 
+    if (isSupabaseReadFriends()) {
+      const env = getSupabaseEnvOrNull();
+      if (env) {
+        const rows = (await supabaseRest(
+          env,
+          `friendships?firebase_uid=eq.${encodeURIComponent(userId)}` +
+            `&select=*&order=updated_at.desc`,
+          {method: "GET", prefer: "return=representation"},
+        )) as Array<Record<string, unknown>> | null;
+        if (Array.isArray(rows) && rows.length > 0) {
+          const items: FriendSummary[] = rows.map((row) => ({
+            userId: String(row.friend_firebase_uid ?? ""),
+            friendCode: (row.friend_code as string | null) ?? null,
+            displayName: String(row.display_name ?? "Friend"),
+            status: this.mapFriendStatus(row.status),
+            updatedAt: typeof row.updated_at === "string" ? row.updated_at : null,
+          }));
+          return {
+            friendCode,
+            allowFriendRequests: settings.allowFriendRequests,
+            shareActivityWithFriends: settings.shareActivityWithFriends,
+            items,
+          };
+        }
+      }
+    }
+
+    const snapshot = await this.friends(userId).orderBy("updatedAt", "desc").get();
     const items: FriendSummary[] = snapshot.docs.map((doc) => {
       const data = doc.data() as FriendDocument;
       return {
@@ -157,14 +215,14 @@ class FriendService {
         await upsertFriendshipShadow(
           userId,
           targetUserId,
-          "pending",
+          "pending_outgoing",
           this.displayNameFor(targetProfile, "Friend"),
           friendCode,
         );
         await upsertFriendshipShadow(
           targetUserId,
           userId,
-          "pending",
+          "pending_incoming",
           this.displayNameFor(selfProfile, "Friend"),
           selfCode,
         );

@@ -203,28 +203,39 @@ class SettingsService {
   }
 
   async update(userId: string, input: SettingsUpdateInput): Promise<UserSettings> {
+    const {isSupabaseWritePrimary, shouldPersistFirestore} = await import("../config/env");
     const ref = this.doc(userId);
-    await ref.set(
-      {
-        ...input,
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      {merge: true},
-    );
+    let updated: UserSettings;
 
-    const after = await ref.get();
-    const updated = this.fromDocument(after.exists ? (after.data() as SettingsDocument) : {});
+    if (shouldPersistFirestore()) {
+      await ref.set(
+        {
+          ...input,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
+      const after = await ref.get();
+      updated = this.fromDocument(after.exists ? (after.data() as SettingsDocument) : {});
+    } else {
+      const current = await this.get(userId);
+      updated = {...current, ...input, updatedAt: new Date().toISOString()};
+    }
 
     const {shadowWrite} = await import("../migration/shadow");
     const {upsertSettingsShadow} = await import("../migration/supabaseWriters");
-    await shadowWrite({
-      domain: "settings",
-      operation: "upsert",
-      firebaseUid: userId,
-      operationId: `settings:upsert:${userId}:${Date.now()}`,
-      payload: updated,
-      secondary: () => upsertSettingsShadow(userId, updated),
-    });
+    if (isSupabaseWritePrimary()) {
+      await upsertSettingsShadow(userId, updated);
+    } else {
+      await shadowWrite({
+        domain: "settings",
+        operation: "upsert",
+        firebaseUid: userId,
+        operationId: `settings:upsert:${userId}:${Date.now()}`,
+        payload: updated,
+        secondary: () => upsertSettingsShadow(userId, updated),
+      });
+    }
     return updated;
   }
 }

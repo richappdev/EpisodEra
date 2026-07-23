@@ -53,10 +53,11 @@ export async function supabaseRpc(
   env: SupabaseEnv,
   fnName: string,
   args: Record<string, unknown>,
+  prefer = "return=minimal",
 ): Promise<unknown> {
   return supabaseRest(env, `rpc/${fnName}`, {
     method: "POST",
     body: args,
-    prefer: "return=minimal",
+    prefer,
   });
 }
