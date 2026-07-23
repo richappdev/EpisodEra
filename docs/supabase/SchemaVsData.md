@@ -37,7 +37,11 @@ Scripts:
 | `backfill-firebase-role-claim.mjs` | `role: authenticated` for Supabase bridge |
 | `prove-firebase-jwt.mjs` | Auth bridge JWT proof against `firebase_uid_probe` |
 | `backfill-profiles.mjs` | Firestore profiles + settings → Postgres |
+| `export-firebase-site.mjs` | Full Firebase site dump (Auth metadata + user trees) |
+| `import-supabase-site.mjs` | Restore dump into Supabase Postgres |
 | `backfill-watchlist-likes.mjs` | Firestore watchlist + likes → Postgres |
+
+See [SiteExportImport.md](./SiteExportImport.md) for the dump → restore cutover flow.
 
 ## Profiles + settings backfill
 

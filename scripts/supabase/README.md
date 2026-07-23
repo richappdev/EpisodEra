@@ -25,4 +25,14 @@ node scripts/supabase/backfill-watchlist-likes.mjs --dry-run --limit 5
 node scripts/supabase/backfill-watchlist-likes.mjs
 ```
 
+## Full site export / restore
+
+```bash
+node scripts/supabase/export-firebase-site.mjs
+node scripts/supabase/import-supabase-site.mjs --from docs/supabase/evidence/site-export-... --dry-run
+node scripts/supabase/import-supabase-site.mjs --from docs/supabase/evidence/site-export-...
+```
+
+See [SiteExportImport.md](../docs/supabase/SiteExportImport.md).
+
 Do not commit database passwords or service-role keys. Linked credentials stay in `supabase/.temp/` (gitignored).

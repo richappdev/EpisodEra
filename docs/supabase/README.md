@@ -13,6 +13,7 @@ Branch: `feature/supabase-foundation`
 | [FirebaseAuthBridge.md](./FirebaseAuthBridge.md) | Third-party Auth + claims |
 | [AuthMigration.md](./AuthMigration.md) | Phase 9 native Auth (last) |
 | [RuntimePortability.md](./RuntimePortability.md) | Cloud Run API image |
+| [SiteExportImport.md](./SiteExportImport.md) | Firebase dump → Supabase restore |
 | [DefinitionOfDone.md](./DefinitionOfDone.md) | Per-domain checklist |
 
 SQL source of truth: `supabase/migrations/`.  
