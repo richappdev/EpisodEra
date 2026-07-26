@@ -140,6 +140,35 @@ describe("DailyPuzzlePage", () => {
     expect(screen.getByTestId("open-puzzle-studio")).toHaveAttribute("href", "/admin/puzzles");
     expect(screen.getByTestId("open-puzzle-studio")).toHaveTextContent(/Manage puzzles/i);
   });
+
+  it("hides the Manage puzzles link when admin access lookup fails", async () => {
+    vi.mocked(api.getDailyPuzzle).mockResolvedValue(basePuzzle);
+    vi.mocked(api.getPuzzleAdminAccess).mockRejectedValue(new Error("forbidden"));
+
+    render(
+      <MemoryRouter>
+        <DailyPuzzlePage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(screen.getByRole("button", {name: "Breaking Bad"})).toBeInTheDocument());
+    expect(screen.queryByTestId("open-puzzle-studio")).not.toBeInTheDocument();
+  });
+
+  it("does not request admin access when signed out", async () => {
+    mockAuth.user = null as never;
+    vi.mocked(api.getDailyPuzzle).mockResolvedValue(basePuzzle);
+
+    render(
+      <MemoryRouter>
+        <DailyPuzzlePage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(screen.getByRole("button", {name: "Breaking Bad"})).toBeInTheDocument());
+    expect(api.getPuzzleAdminAccess).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("open-puzzle-studio")).not.toBeInTheDocument();
+  });
   it("falls back to the sample puzzle when the API fails", async () => {
     vi.mocked(api.getDailyPuzzle).mockRejectedValue(new Error("offline"));
 
