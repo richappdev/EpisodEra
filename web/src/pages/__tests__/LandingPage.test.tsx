@@ -45,5 +45,38 @@ describe("LandingPage", () => {
     expect(screen.getByRole("heading", {level: 1})).toBeVisible();
     await waitFor(() => expect(api.trendingShows).toHaveBeenCalledWith("en-US", {page: 1}));
     expect(screen.getAllByRole("link", {name: "Join Episodera"}).length).toBeGreaterThan(0);
+    await waitFor(() => expect(document.querySelectorAll(".landing-poster")).toHaveLength(1));
+  });
+
+  it("keeps the hero usable when trending lookups fail", async () => {
+    vi.mocked(api.trendingShows).mockRejectedValue(new Error("offline"));
+
+    render(
+      <MemoryRouter>
+        <LandingPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(api.trendingShows).toHaveBeenCalled());
+    expect(screen.getByRole("heading", {level: 1})).toBeVisible();
+    expect(document.querySelectorAll(".landing-poster")).toHaveLength(0);
+  });
+
+  it("ignores trending items that have no poster image", async () => {
+    vi.mocked(api.trendingShows).mockResolvedValue({
+      page: 1,
+      totalPages: 1,
+      totalResults: 1,
+      results: [tvDetail],
+    });
+
+    render(
+      <MemoryRouter>
+        <LandingPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(api.trendingShows).toHaveBeenCalled());
+    expect(document.querySelectorAll(".landing-poster")).toHaveLength(0);
   });
 });

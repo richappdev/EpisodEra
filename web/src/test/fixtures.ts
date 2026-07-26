@@ -4,7 +4,8 @@ import {ShowProgress, ShowProgressSummary} from "../types/progress";
 import {UserStats, YearRecap} from "../types/stats";
 import {WatchlistItem} from "../types/watchlist";
 
-export const now = "2026-07-12T00:00:00.000Z";
+/** Keep within the 14-day continue-watching window against wall-clock `new Date()`. */
+export const now = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
 export const tvDetail: MediaDetail = {
   id: 1001,
