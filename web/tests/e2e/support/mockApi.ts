@@ -1,7 +1,8 @@
 import {type Page, type Route} from "@playwright/test";
 
 export const showId = 1001;
-export const now = "2026-07-12T00:00:00.000Z";
+/** Keep within the 14-day continue-watching window against wall-clock `new Date()`. */
+export const now = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
 export const showSummary = {
   id: showId,
