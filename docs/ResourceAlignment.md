@@ -111,7 +111,7 @@ The implementation must remain the final authority for whether each capability i
 The highest-priority remaining work is:
 
 1. **Beta hardening and ops** — quota, TMDb compliance, observability/rollback, WCAG, deps/staging; curated puzzle inventory; Supabase cutover soak; Android packaging when prioritized
-2. Repeat hosted `Production Smoke` on each release candidate and retain workflow evidence (latest post-P0 PASS: `ac6ba27` — [run 29730749454](https://github.com/richappdev/EpisodEra/actions/runs/29730749454); prior: `5a9ecf9`, `0518525`, `c97b0c3`)
+2. **RC Production Smoke (required after each Functions/Hosting deploy)** — run `npm run smoke:rc` (or `node scripts/trigger-production-smoke.mjs`) and paste the workflow URL into Notion Engineering Release Log. Latest post-P0 PASS: `ac6ba27` — [run 29730749454](https://github.com/richappdev/EpisodEra/actions/runs/29730749454); prior: `5a9ecf9`, `0518525`, `c97b0c3`
 3. Staging Firebase environment separation and staging-specific smoke validation (optional)
 4. Broader WCAG-focused accessibility audit beyond current Playwright smoke assertions
 5. Real-auth deployed E2E cases (signup, token refresh/expiry, deleted-account session, sign-out during write)

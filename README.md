@@ -44,7 +44,7 @@ The project is in MVP hardening. Core web features are implemented, progress-tra
 - Firebase Analytics and Performance Monitoring for the web app; Crashlytics, Analytics, and Performance on Android.
 - Native Android client (`android/`): email/password auth, discovery/search/detail, watchlist and episode progress, likes, timeline, profile/stats, settings (export/delete/import staging), daily puzzle, franchises, social, deep links — setup in [`docs/Android.md`](docs/Android.md). Admin puzzle studio remains web-only.
 - GitHub Actions CI for backend build, backend lint, backend unit tests with coverage enforcement, Java-backed Firestore emulator tests, frontend build, frontend component coverage enforcement, Playwright critical-flow / progress / accessibility smoke, and Android assemble/unit tests (`.github/workflows/android.yml`).
-- GitHub Actions `Production Smoke` workflow for manual-dispatch or scheduled deployed signed-in validation using protected repository secrets.
+- GitHub Actions `Production Smoke` workflow for RC dispatch (`npm run smoke:rc`), manual dispatch, weekly schedule, and `repository_dispatch` using protected repository secrets.
 - Account deletion manually validated on 2026-07-13 against the deployed app (`DELETE /me/account`, Auth removal, Firestore cleanup) using a throwaway account.
 - URL routing and shareable deep links with React Router (`/`, `/home`, `/search`, `/movie/:id`, `/tv/:id`, `/tv/:id/season/:seasonNumber`, `/watchlist`, `/continue-watching`, `/timeline`, `/franchises`, `/franchises/:slug`, `/list/:listId`, `/play`, `/play/daily-puzzle`, `/admin/puzzles`, `/social`, `/profile`, `/settings`, `/privacy`, `/login`, `/signup`). Canonical route map: `web/src/routes/paths.ts` and `docs/Navigation.md`.
 - Project documentation for architecture, API contracts, Firestore schema, auth, navigation, deployment, coding standards, and dependency audit posture.
@@ -257,6 +257,7 @@ npm run test:coverage
 npm run test:e2e
 npm run smoke:prod
 npm run smoke:prod:local
+npm run smoke:rc
 npm run preview
 ```
 
@@ -268,7 +269,7 @@ npm run preview
 
 Copy `web/.env.smoke.example` to `web/.env.smoke`, replace the placeholder values, then run `npm run smoke:prod:local`.
 
-Hosted smoke: configure repository secrets `EPISODERA_FIREBASE_API_KEY`, `EPISODERA_SMOKE_EMAIL`, and `EPISODERA_SMOKE_PASSWORD`, then run the `Production Smoke` workflow from GitHub Actions. See `docs/Deployment.md` for evidence retention and optional environment approval gates.
+After each release-candidate deploy, trigger hosted smoke with `npm run smoke:rc` (requires `gh auth login`) and paste the workflow URL into Notion Engineering Release Log. Use `npm run smoke:rc -- --watch` to block until the run finishes. See `docs/Deployment.md`.
 
 Android:
 
@@ -335,7 +336,7 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 - TMDb detail, season, and trending responses use an in-memory TTL cache inside the Functions runtime. A persistent shared cache is still a possible future optimization.
 - TMDb images and metadata must retain visible app attribution, including the official TMDB logo and: "This product uses TMDB and the TMDB APIs but is not endorsed, certified, or otherwise approved by TMDB."
 - Backend and frontend coverage enforcement is now configured for the current automated test surfaces. Playwright covers the signed-in critical flow, responsive/accessibility smoke, previous-episode gap resolution, season batch writes, failed/offline progress-write recovery, duplicate-action prevention during pending writes, and concurrent browser progress consistency. Broader full-app frontend coverage and deeper accessibility automation are still pending.
-- Deployed production smoke is available locally (`npm run smoke:prod:local`) and in GitHub Actions (`Production Smoke` workflow). Hosted runs require protected repository secrets and recorded workflow evidence for release candidates.
+- Deployed production smoke is available locally (`npm run smoke:prod:local`) and in GitHub Actions (`Production Smoke` workflow via `npm run smoke:rc`). Hosted RC runs require protected repository secrets and recorded workflow evidence in the Notion Engineering Release Log.
 - Production deployment must configure `CORS_ORIGINS` for the Firebase Hosting, staging, and production domains.
 - Rate limiting is implemented with per-Functions-instance in-memory buckets for public reads and authenticated writes. App Check Phase 2 monitor mode verifies `X-Firebase-AppCheck` on the API; Phase 3 enforcement on `requireAuth` routes is gated by `APP_CHECK_ENFORCE_AUTH_WRITES` (**code default off**; production currently sets this to `true` — confirm with smoke App Check negative check). Public-read enforcement remains Phase 4. See `docs/AppCheck.md`.
 - Dependency audit findings are documented in `docs/DependencyAudit.md`; fixes require semver-major upgrades for Firebase Functions packages and Vite tooling.

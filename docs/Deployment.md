@@ -160,7 +160,33 @@ Backend coverage uses Node's built-in test coverage thresholds. Frontend compone
 
 ## Production smoke validation
 
-After deployment, run the opt-in signed-in smoke test with a dedicated automation account:
+### Release-candidate requirement (B)
+
+After every Functions and/or Hosting deploy that is a release candidate, run hosted Production Smoke on the deployed tip and record the workflow URL in Notion Engineering Release Log.
+
+```bash
+# From repo root (requires `gh auth login`)
+node scripts/trigger-production-smoke.mjs
+# Or from web/:
+cd web && npm run smoke:rc
+
+# Block until the hosted run finishes:
+npm run smoke:rc -- --watch
+```
+
+RC checklist:
+
+1. Deploy Functions (+ Hosting / Firestore if needed) from the RC tip.
+2. Trigger smoke with `npm run smoke:rc` (or Actions → Production Smoke → Run workflow).
+3. Confirm the run SHA matches the deployed tip (or document the deploy SHA explicitly).
+4. Confirm App Check enforce + import path (`stagingClearedAt`) lines unless skipped with reason.
+5. Paste the run URL + PASS/FAIL into Notion Engineering Release Log.
+
+Weekly scheduled smoke is a regression probe only. It does **not** replace per-RC smoke after deploy.
+
+### Local / direct smoke
+
+For a laptop run against production (or pre-flight), use a dedicated automation account:
 
 ```plain text
 cd web
@@ -180,7 +206,7 @@ EPISODERA_PROD_API_BASE_URL=https://api-m74gmd4u4a-uc.a.run.app
 npm run smoke:prod
 ```
 
-`EPISODERA_PROD_API_BASE_URL` defaults to the current deployed API URL and `EPISODERA_SMOKE_SHOW_ID` defaults to `125988`. The smoke test signs in through Firebase Auth REST, validates `/health`, profile read/update, TV detail, watchlist add/status/remove, episode progress write/read/remove, stats, and history, then cleans up its watchlist item and watched episode before exiting.
+`EPISODERA_PROD_API_BASE_URL` defaults to the current deployed API URL and `EPISODERA_SMOKE_SHOW_ID` defaults to `125988`. The smoke test signs in through Firebase Auth REST, validates `/health`, profile read/update, TV detail, watchlist add/status/remove, episode progress write/read/remove, stats, and history, then cleans up its watchlist item and watched episode before exiting. It also probes App Check enforce and a tiny TV Time import path (`stagingClearedAt`) unless skipped via env flags.
 
 Negative deployed checks (enabled by default after the happy path):
 
@@ -193,6 +219,7 @@ Optional smoke env flags:
 - `EPISODERA_SMOKE_ALLOWED_ORIGIN` (defaults to `https://episodera.web.app`)
 - `EPISODERA_SMOKE_SKIP_NEGATIVE_CHECKS=true` to skip all negative checks
 - `EPISODERA_SMOKE_SKIP_RATE_LIMIT_CHECK=true` to skip only the rate-limit burst
+- `EPISODERA_SMOKE_SKIP_IMPORT_PATH_CHECK=true` to skip the tiny import path assert
 
 ### GitHub Actions smoke workflow
 
@@ -200,8 +227,10 @@ The `Production Smoke` workflow at `.github/workflows/smoke.yml` runs the same s
 
 Triggers:
 
+- **RC operator trigger:** `npm run smoke:rc` / `node scripts/trigger-production-smoke.mjs` (`workflow_dispatch`, `release_candidate=true`)
 - Manual dispatch from the Actions tab (`workflow_dispatch`)
-- Weekly schedule: Mondays at 06:00 UTC
+- `repository_dispatch` type `production-smoke` (for automation)
+- Weekly schedule: Mondays at 06:00 UTC (regression only)
 
 Required repository secrets:
 
@@ -209,12 +238,13 @@ Required repository secrets:
 - `EPISODERA_SMOKE_EMAIL`
 - `EPISODERA_SMOKE_PASSWORD`
 
-Optional manual-dispatch inputs:
+Optional dispatch inputs:
 
 - `api_base_url` (defaults to the current deployed API URL)
 - `smoke_show_id` (defaults to `125988`)
+- `release_candidate` (defaults to `true` for manual RC runs)
 
-The workflow writes a run summary with commit SHA, API URL, show ID, duration, and workflow run link. Store that evidence in Notion for release candidates. For approval gates, attach the secrets to a protected GitHub environment and point the workflow job at that environment.
+The workflow writes a run summary with commit SHA, API URL, show ID, duration, RC checklist, and workflow run link. Store that evidence in Notion for release candidates. For approval gates, attach the secrets to a protected GitHub environment and point the workflow job at that environment.
 
 ### Account deletion manual validation
 
@@ -237,7 +267,8 @@ The production smoke path intentionally does not delete accounts. Validate accou
 - `web`: `npm run test:components`
 - `web`: `npm run test:coverage`
 - `web`: `npm run test:e2e`
-- `web`: `npm run smoke:prod` with a dedicated automation account after deploy
+- After deploy: `npm run smoke:rc` (hosted Production Smoke) and paste the run URL into Notion Engineering Release Log
+- Optional local preflight: `web`: `npm run smoke:prod:local` with a dedicated automation account
 - Firebase Authentication email/password provider enabled
 - Firebase Analytics enabled and `VITE_FIREBASE_MEASUREMENT_ID` configured
 - Firebase Performance Monitoring enabled for the web app

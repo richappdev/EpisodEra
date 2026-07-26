@@ -1,5 +1,8 @@
 name: Production Smoke
 
+# Required for every release candidate after Functions and/or Hosting deploy.
+# Prefer: `npm run smoke:rc` (or `node scripts/trigger-production-smoke.mjs`) from a
+# machine with `gh` auth, then paste the run URL into Notion Engineering Release Log.
 on:
   workflow_dispatch:
     inputs:
@@ -11,8 +14,17 @@ on:
         description: TMDb TV show ID used by the smoke test
         required: false
         default: "125988"
+      release_candidate:
+        description: Mark this run as an RC smoke (evidence required in Release Log)
+        required: false
+        type: boolean
+        default: true
   schedule:
+    # Weekly regression probe (does not replace per-RC smoke after deploy)
     - cron: "0 6 * * 1"
+  # Allow operators / future deploy automation: gh api repos/.../dispatches -f event_type=production-smoke
+  repository_dispatch:
+    types: [production-smoke]
 
 permissions:
   contents: read
@@ -32,8 +44,8 @@ jobs:
       EPISODERA_SMOKE_PASSWORD: ${{ secrets.EPISODERA_SMOKE_PASSWORD }}
       # Prefer EPISODERA_SMOKE_APP_CHECK_BYPASS; fall back to SMOKE_BYPASS_APP_CHECK_SECRET if that is what was registered.
       EPISODERA_SMOKE_APP_CHECK_BYPASS: ${{ secrets.EPISODERA_SMOKE_APP_CHECK_BYPASS || secrets.SMOKE_BYPASS_APP_CHECK_SECRET }}
-      EPISODERA_PROD_API_BASE_URL: ${{ inputs.api_base_url || 'https://api-m74gmd4u4a-uc.a.run.app' }}
-      EPISODERA_SMOKE_SHOW_ID: ${{ inputs.smoke_show_id || '125988' }}
+      EPISODERA_PROD_API_BASE_URL: ${{ inputs.api_base_url || github.event.client_payload.api_base_url || 'https://api-m74gmd4u4a-uc.a.run.app' }}
+      EPISODERA_SMOKE_SHOW_ID: ${{ inputs.smoke_show_id || github.event.client_payload.smoke_show_id || '125988' }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
@@ -47,6 +59,13 @@ jobs:
           echo "api_base_url=${EPISODERA_PROD_API_BASE_URL}" >> "$GITHUB_OUTPUT"
           echo "smoke_show_id=${EPISODERA_SMOKE_SHOW_ID}" >> "$GITHUB_OUTPUT"
           echo "trigger=${GITHUB_EVENT_NAME}" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "release_candidate=${{ inputs.release_candidate }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "release_candidate=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "release_candidate=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Validate smoke secrets
         run: |
@@ -84,6 +103,7 @@ jobs:
             echo "| --- | --- |"
             echo "| Status | ${{ job.status }} |"
             echo "| Trigger | ${{ steps.context.outputs.trigger }} |"
+            echo "| Release candidate | ${{ steps.context.outputs.release_candidate }} |"
             echo "| Commit | \`${{ steps.context.outputs.commit_short }}\` (\`${{ steps.context.outputs.commit_sha }}\`) |"
             echo "| API | ${{ steps.context.outputs.api_base_url }} |"
             echo "| Show ID | ${{ steps.context.outputs.smoke_show_id }} |"
@@ -91,9 +111,18 @@ jobs:
             echo "| Duration (s) | ${{ steps.smoke.outputs.duration_seconds || 'n/a' }} |"
             echo "| Workflow run | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |"
             echo ""
+            echo "### RC checklist"
+            echo ""
+            echo "- [ ] Deployed Functions/Hosting match this commit (or documented deploy SHA)"
+            echo "- [ ] Happy path passed (profile, watchlist, progress, stats, history)"
+            echo "- [ ] App Check enforce negative probe observed (or explicitly skipped with reason)"
+            echo "- [ ] Import path observed (\`/me/imports/*\` + \`stagingClearedAt\`) unless skipped with reason"
+            echo "- [ ] Negative checks: invalid auth 401, CORS 403, rate-limit 429 (unless skipped)"
+            echo "- [ ] Evidence pasted into Notion Engineering Release Log"
+            echo ""
             echo "Use a dedicated automation account. The smoke path updates profile data, watchlist state, and S1 E1 progress, then cleans up."
             echo ""
-            echo "Negative checks: invalid auth (401), CORS rejection (403), and public read rate limit (429) unless skipped via env flags."
+            echo "Operator trigger: \`npm run smoke:rc\` or \`node scripts/trigger-production-smoke.mjs\`."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload smoke log

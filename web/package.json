@@ -14,7 +14,8 @@
     "test:coverage": "vitest run --config vitest.config.ts --coverage",
     "test:e2e": "playwright test",
     "smoke:prod": "node scripts/production-smoke.mjs",
-    "smoke:prod:local": "node scripts/run-smoke-local.mjs"
+    "smoke:prod:local": "node scripts/run-smoke-local.mjs",
+    "smoke:rc": "node ../scripts/trigger-production-smoke.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.1",
