@@ -110,7 +110,7 @@ The implementation must remain the final authority for whether each capability i
 
 The highest-priority remaining work is:
 
-1. **P1 `watchEvents` Memory Foundation** — append-only viewing events, rewatches, projections (unblocked; Import Phase 1 acceptance **CLOSED** 2026-07-26 — [`docs/TvTimeImportPhase1Acceptance.md`](./TvTimeImportPhase1Acceptance.md))
+1. **Beta hardening and ops** — quota, TMDb compliance, observability/rollback, WCAG, deps/staging; curated puzzle inventory; Supabase cutover soak; Android packaging when prioritized
 2. Repeat hosted `Production Smoke` on each release candidate and retain workflow evidence (latest post-P0 PASS: `ac6ba27` — [run 29730749454](https://github.com/richappdev/EpisodEra/actions/runs/29730749454); prior: `5a9ecf9`, `0518525`, `c97b0c3`)
 3. Staging Firebase environment separation and staging-specific smoke validation (optional)
 4. Broader WCAG-focused accessibility audit beyond current Playwright smoke assertions
@@ -120,6 +120,7 @@ The highest-priority remaining work is:
 8. Observability dashboards, release monitoring, and rollback procedures (include per-import Firestore/TMDb/Functions cost)
 9. Distributed quota beyond per-instance rate limits; optional App Check Phase 4 / Auth Console enforce
 10. Final beta-readiness acceptance review
+11. **P1 `watchEvents` Memory Foundation** — **skipped for now** (deferred; unblocked by Import Phase 1 closeout — [`docs/TvTimeImportPhase1Acceptance.md`](./TvTimeImportPhase1Acceptance.md); resume only when explicitly reactivated)
 
 App Check Phase 3 enforce is live. Account lifecycle implementation is complete (`DELETE /me/account`, Settings UI, emulator test). Manual throwaway-account deletion validation passed on 2026-07-13. Do not delete the smoke automation account during smoke runs.
 
@@ -365,7 +366,7 @@ A feature is complete only when all applicable conditions are met:
 | Resource              | Current status                                                                                                          |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | GitHub implementation | Tip `0c13b88` (2026-07-26). Includes P0 hardening, Daily Puzzle (edit/auto-create), native Android (PR #3), Android emulator CI (PR #4), and Supabase foundation/cutover flags (PR #2). TV Time Phase 1 acceptance **CLOSED** (2026-07-26). Latest post-P0 hosted smoke PASS: `ac6ba27` ([run 29730749454](https://github.com/richappdev/EpisodEra/actions/runs/29730749454)). |
-| Notion planning       | MVP Dashboard is the only active SHA page. Child pages link to it. Import acceptance closed; P1 `watchEvents` active; Daily Puzzle, Android, and Supabase status synced 2026-07-26. |
+| Notion planning       | MVP Dashboard is the only active SHA page. Child pages link to it. Import acceptance closed; P1 `watchEvents` **skipped for now**; Daily Puzzle, Android, and Supabase status synced 2026-07-26. |
 | Figma design          | Cinema Memory D0–D3 **shipped in GitHub/live app** (`fb5cd08`). Figma file rebuild/verification pending — use [`docs/CinemaMemoryDesign.md`](./CinemaMemoryDesign.md) as the handoff brief. MCP write access may still be limited. |
 | Canva reporting       | Refresh stakeholder decks with Cinema Memory talking points in `CinemaMemoryDesign.md`; keep import acceptance and tip-matched smoke language accurate |
 
@@ -383,8 +384,13 @@ These limitations affect resource synchronization only. They do not change produ
 ### 2026-07-26 (TV Time Import Phase 1 acceptance closed)
 
 * Operator confirmed Phase 1 acceptance implemented and verified.
-* Ledger marks A1–A9 **PASS**; Notion MVP Dashboard / Roadmap / Alignment / Debt updated; P1 `watchEvents` is the active product track.
+* Ledger marks A1–A9 **PASS**; Notion MVP Dashboard / Roadmap / Alignment / Debt updated; P1 `watchEvents` later marked **skipped for now**.
 * Hosted smoke reference: [run 29730749454](https://github.com/richappdev/EpisodEra/actions/runs/29730749454) on `ac6ba27` (2026-07-20).
+
+### 2026-07-26 (P1 watchEvents deferred)
+
+* Product decision: skip P1 `watchEvents` Memory Foundation for now; keep it on the roadmap as deferred/unblocked.
+* Active focus: beta hardening gates and parallel ops (puzzle inventory, Supabase soak, Android packaging).
 
 ### 2026-07-26 (Android + Supabase + puzzle ops sync)
 

@@ -189,7 +189,7 @@ From `tv_time_tool/TVTimeDataDesign.md` / Notion sample:
 7. [x] Confirm skipped/failed visibility (A5, A7)
 8. [x] Mark all A1–A9 `PASS` in this file
 9. [x] Update `docs/ResourceAlignment.md` + Notion Dashboard / TV Time schema **Acceptance: Closed** with tip + date
-10. [x] Phase 2 `watchEvents` is unblocked (active product track)
+10. [x] Phase 2 `watchEvents` is unblocked (product decision 2026-07-26: **skipped for now** / deferred; not the active track)
 
 ## Related docs
 
