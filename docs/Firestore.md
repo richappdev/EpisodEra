@@ -2,7 +2,7 @@
 
 Firestore stores user-owned application state. TMDb remains the source of truth for media metadata, so documents should reference TMDb IDs and cache only the fields needed for display or offline convenience.
 
-**Baseline:** tip `3811117` (2026-07-22). P0 import hardening landed in `9a0420e`; Daily Puzzle landed in `c06053b`. App Check **Phase 3 enforce** is live in production (`APP_CHECK_ENFORCE_AUTH_WRITES=true`); code default remains off until that env flag is set. TV Time import Phase 1 **acceptance** remains **OPEN**—A8 is **PASS**, while A4/A5/A9 code has landed and hosted smoke plus soak evidence remain open. Franchise catalogs and Daily Puzzle documents are Functions-only Firestore data. Append-only `watchEvents` remains planned.
+**Baseline:** tip `0c13b88` (2026-07-26). P0 import hardening landed in `9a0420e`; Daily Puzzle landed in `c06053b` (edit/auto-create since). App Check **Phase 3 enforce** is live in production (`APP_CHECK_ENFORCE_AUTH_WRITES=true`); code default remains off until that env flag is set. TV Time import Phase 1 **acceptance** is **CLOSED** (2026-07-26) — see `docs/TvTimeImportPhase1Acceptance.md` (A1–A9 PASS). Library domains may use Supabase via cutover flags (`docs/supabase/Cutover.md`); franchise catalogs, Daily Puzzle, discussions, media mappings, and import staging remain Functions/Firestore. Append-only `watchEvents` is the active P1 track.
 
 ## Collections
 

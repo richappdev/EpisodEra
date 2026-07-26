@@ -1,6 +1,6 @@
 # Episodera Resource Alignment
 
-Last updated: 2026-07-18
+Last updated: 2026-07-26
 
 ## Purpose
 
@@ -31,23 +31,23 @@ When the Notion alignment report and this file disagree:
 
 ## Canonical Product Scope
 
-Episodera is a responsive web application for discovering movies and television shows, maintaining a watchlist, tracking episode progress, and reviewing profile statistics and viewing history.
+Episodera is a personal entertainment memory platform for discovering movies and television shows, maintaining a watchlist, tracking episode progress, and reviewing profile statistics and viewing history.
 
-The MVP platform is a browser-based application built with:
+The primary MVP surface is a responsive web application built with:
 
 * React 18
 * TypeScript
 * Vite
-* Firebase
+* Firebase (Auth, Functions, Hosting; library domains can use Supabase Postgres via cutover flags)
 * TMDb
 
-The MVP supports:
+A native Android client (`android/`) with near web parity is source-shipped; admin puzzle studio remains web-only. Play Store packaging is not part of the current supported release target. iOS is not implemented.
+
+The web MVP supports:
 
 * English
 * Traditional Chinese
 * Desktop, tablet, and mobile responsive layouts
-
-Native mobile applications are post-MVP and must not be presented as part of the current supported release target.
 
 ## Current MVP Capabilities
 
@@ -110,9 +110,8 @@ The implementation must remain the final authority for whether each capability i
 
 The highest-priority remaining work is:
 
-1. **Close TV Time Import Phase 1 acceptance** — evidence ledger [`docs/TvTimeImportPhase1Acceptance.md`](./TvTimeImportPhase1Acceptance.md) (A1 tip-matched smoke after P0 deploy, A2 import smoke fixture, A3 ~4.7k soak, A4–A7 gaps, A9 staging cleanup code landed / hosted verify open; A8 browser-ZIP **PASS**)
-
-2. Repeat hosted `Production Smoke` on the acceptance tip and retain workflow evidence (latest hosted PASS: `5a9ecf9` — [run 29565696402](https://github.com/richappdev/EpisodEra/actions/runs/29565696402); prior: `0518525`, `c97b0c3`)
+1. **P1 `watchEvents` Memory Foundation** — append-only viewing events, rewatches, projections (unblocked; Import Phase 1 acceptance **CLOSED** 2026-07-26 — [`docs/TvTimeImportPhase1Acceptance.md`](./TvTimeImportPhase1Acceptance.md))
+2. Repeat hosted `Production Smoke` on each release candidate and retain workflow evidence (latest post-P0 PASS: `ac6ba27` — [run 29730749454](https://github.com/richappdev/EpisodEra/actions/runs/29730749454); prior: `5a9ecf9`, `0518525`, `c97b0c3`)
 3. Staging Firebase environment separation and staging-specific smoke validation (optional)
 4. Broader WCAG-focused accessibility audit beyond current Playwright smoke assertions
 5. Real-auth deployed E2E cases (signup, token refresh/expiry, deleted-account session, sign-out during write)
@@ -365,8 +364,8 @@ A feature is complete only when all applicable conditions are met:
 
 | Resource              | Current status                                                                                                          |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| GitHub implementation | Tip `3811117` (2026-07-22). P0 hardening landed in `9a0420e`; Daily Puzzle landed in `c06053b`; puzzle-admin environment documentation landed in `3811117`. TV Time Phase 1 acceptance remains **OPEN**. Latest recorded hosted smoke PASS is `5a9ecf9`, not tip-matched. |
-| Notion planning       | MVP Dashboard is the only active SHA page. Child pages link to it. Import acceptance remains open; Daily Puzzle implementation/ops status is tracked separately from its product plan. |
+| GitHub implementation | Tip `0c13b88` (2026-07-26). Includes P0 hardening, Daily Puzzle (edit/auto-create), native Android (PR #3), Android emulator CI (PR #4), and Supabase foundation/cutover flags (PR #2). TV Time Phase 1 acceptance **CLOSED** (2026-07-26). Latest post-P0 hosted smoke PASS: `ac6ba27` ([run 29730749454](https://github.com/richappdev/EpisodEra/actions/runs/29730749454)). |
+| Notion planning       | MVP Dashboard is the only active SHA page. Child pages link to it. Import acceptance closed; P1 `watchEvents` active; Daily Puzzle, Android, and Supabase status synced 2026-07-26. |
 | Figma design          | Cinema Memory D0–D3 **shipped in GitHub/live app** (`fb5cd08`). Figma file rebuild/verification pending — use [`docs/CinemaMemoryDesign.md`](./CinemaMemoryDesign.md) as the handoff brief. MCP write access may still be limited. |
 | Canva reporting       | Refresh stakeholder decks with Cinema Memory talking points in `CinemaMemoryDesign.md`; keep import acceptance and tip-matched smoke language accurate |
 
@@ -381,12 +380,25 @@ At the time of this update:
 These limitations affect resource synchronization only. They do not change product scope or implementation status.
 
 ## Change Log
+### 2026-07-26 (TV Time Import Phase 1 acceptance closed)
+
+* Operator confirmed Phase 1 acceptance implemented and verified.
+* Ledger marks A1–A9 **PASS**; Notion MVP Dashboard / Roadmap / Alignment / Debt updated; P1 `watchEvents` is the active product track.
+* Hosted smoke reference: [run 29730749454](https://github.com/richappdev/EpisodEra/actions/runs/29730749454) on `ac6ba27` (2026-07-20).
+
+### 2026-07-26 (Android + Supabase + puzzle ops sync)
+
+* Rebaselined Notion MVP Dashboard and GitHub alignment/acceptance docs to tip `0c13b88`.
+* Recorded native Android client (PR #3), Android emulator CI (PR #4), Supabase foundation/cutover flags (PR #2), puzzle studio edit/load (`6191d39`), Manage-puzzles link (`e5f5206`), and Taipei auto-create (`270fd10`).
+* Import acceptance later closed the same day (see entry above).
+* Play Store publication and full Supabase Auth cutover remain non-goals / unfinished.
+
 ### 2026-07-22 (Daily Puzzle + baseline sync)
 
 * Shipped the Daily Puzzle player, Functions-backed attempts/stats, editorial puzzle studio, scheduler, routes, analytics, profile stats, and achievement integration in `c06053b`.
 * Documented `PUZZLE_ADMIN_EMAILS` in `3811117`.
 * Rebaselined active documentation from `d72b191` to `3811117`; P0 import hardening is merged, while hosted smoke and soak evidence remain open.
-* Current uncommitted work adds loading/editing of existing puzzles through `GET /admin/puzzles/:puzzleId`; document it as shipped only after commit.
+* Puzzle studio edit/load via `GET /admin/puzzles/:puzzleId` later shipped in `6191d39` (see 2026-07-26 sync).
 
 ### 2026-07-20 (P0 evidence + import hardening)
 
