@@ -381,6 +381,11 @@ At the time of this update:
 These limitations affect resource synchronization only. They do not change product scope or implementation status.
 
 ## Change Log
+### 2026-07-26 (Downloadable import skip/fail report)
+
+* Persist `import.report` on the job doc before A9 staging cleanup (failed/skipped episodes + mapping-skipped shows; row cap 500).
+* Settings Done UI downloads the report as CSV; commit accepts optional `skippedShows` for the snapshot.
+
 ### 2026-07-26 (TV Time Import Phase 1 acceptance closed)
 
 * Operator confirmed Phase 1 acceptance implemented and verified.

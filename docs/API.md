@@ -1002,6 +1002,19 @@ GET /me/imports/:importId
 POST /me/imports/:importId/watchlist
 POST /me/imports/:importId/episodes
 POST /me/imports/:importId/commit
+```
+
+Optional commit body (skipped mapping rows for the post-complete downloadable report):
+
+```json
+{
+  "skippedShows": [
+    { "title": "Mystery Show", "sourceShowId": "200", "reason": "unresolved" }
+  ]
+}
+```
+
+```http
 POST /me/imports/:importId/run
 ```
 
@@ -1017,7 +1030,25 @@ Episode staging body: `{ "episodes": [{ "tmdbId", "seasonNumber", "episodeNumber
     "status": "completed",
     "episodesImported": 100,
     "stagingClearedAt": "2026-07-20T12:00:00.000Z",
-    "stagingDocsDeleted": 101
+    "stagingDocsDeleted": 101,
+    "report": {
+      "generatedAt": "2026-07-20T12:00:00.000Z",
+      "failedEpisodeCount": 2,
+      "skippedEpisodeCount": 10,
+      "skippedShowCount": 1,
+      "truncated": false,
+      "rows": [
+        {
+          "kind": "skipped_show",
+          "title": "Mystery Show",
+          "tmdbId": null,
+          "seasonNumber": null,
+          "episodeNumber": null,
+          "reason": "unresolved",
+          "sourceShowId": "200"
+        }
+      ]
+    }
   },
   "processedEpisodes": 100,
   "remainingEpisodes": 0,
@@ -1025,7 +1056,7 @@ Episode staging body: `{ "episodes": [{ "tmdbId", "seasonNumber", "episodeNumber
 }
 ```
 
-Import rules: historical `watchedAt` is preserved when provided; existing watched episodes keep the earliest timestamp; watchlist statuses never downgrade; clients loop `/run` until `done` is true. When `done` is true, Functions delete `stagedShows` / `stagedEpisodes` for that import and set `stagingClearedAt` + `stagingDocsDeleted` on the job document (A9). The Settings UI accepts a GDPR `.zip` (parsed in-browser; `sourceHash` is SHA-256 of ZIP bytes), pauses for unmatched/ambiguous show review (saving picks via `media-mappings`), or the two prepared CSVs, then drives this loop. In-progress jobs persist `importId` in `sessionStorage` so a refresh can resume `staged` / `running` imports.
+Import rules: historical `watchedAt` is preserved when provided; existing watched episodes keep the earliest timestamp; watchlist statuses never downgrade; clients loop `/run` until `done` is true. When `done` is true, Functions snapshot skip/fail rows onto `import.report` (capped), then delete `stagedShows` / `stagedEpisodes` and set `stagingClearedAt` + `stagingDocsDeleted` on the job document (A9). The Settings UI accepts a GDPR `.zip` (parsed in-browser; `sourceHash` is SHA-256 of ZIP bytes), pauses for unmatched/ambiguous show review (saving picks via `media-mappings`), or the two prepared CSVs, then drives this loop and offers a CSV download of `import.report` after completion. In-progress jobs persist `importId` in `sessionStorage` so a refresh can resume `staged` / `running` imports.
 
 ## Errors
 

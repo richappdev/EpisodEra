@@ -4,7 +4,10 @@ import {HttpError} from "../lib/httpError";
 import {
   ImportEpisodeInput,
   ImportJobSummary,
+  ImportMappingSkippedShow,
   ImportProvider,
+  ImportReport,
+  ImportReportRow,
   ImportRunResult,
   ImportStatus,
   ImportWatchlistItemInput,
@@ -13,11 +16,13 @@ import {
 } from "../models/import";
 import {WatchlistStatus, movieWatchlistStatuses, tvWatchlistStatuses} from "../models/watchlist";
 import {stagedEpisodeDocId, stagedShowDocId} from "./importLogic";
+import {episodeKeyFor} from "./progressLogic";
 import {progressService} from "./progressService";
 import {watchlistService} from "./watchlistService";
 
 const maxStageChunk = 200;
 const maxRunEpisodeWrites = 100;
+const maxReportRows = 500;
 
 const stagingDeletePageSize = 400;
 
@@ -37,6 +42,8 @@ interface ImportDocument {
   completedAt?: Timestamp | null;
   stagingClearedAt?: Timestamp | null;
   stagingDocsDeleted?: number;
+  mappingSkippedShows?: ImportMappingSkippedShow[];
+  report?: ImportReport | null;
 }
 
 interface StagedShowDocument {
@@ -92,6 +99,41 @@ export const parseCreateImportInput = (body: unknown): {provider: ImportProvider
   return {
     provider: provider as ImportProvider,
     sourceHash: optionalString(body.sourceHash),
+  };
+};
+
+export const parseCommitImportInput = (body: unknown): {skippedShows: ImportMappingSkippedShow[]} => {
+  if (body == null) {
+    return {skippedShows: []};
+  }
+  if (!isRecord(body)) {
+    throw new HttpError(400, "Request body must be an object.", "invalid_import_payload");
+  }
+  if (body.skippedShows == null) {
+    return {skippedShows: []};
+  }
+  if (!Array.isArray(body.skippedShows)) {
+    throw new HttpError(400, "skippedShows must be an array.", "invalid_import_payload");
+  }
+  if (body.skippedShows.length > 500) {
+    throw new HttpError(400, "skippedShows cannot contain more than 500 entries.", "invalid_import_payload");
+  }
+
+  return {
+    skippedShows: body.skippedShows.map((item, index) => {
+      if (!isRecord(item)) {
+        throw new HttpError(400, `skippedShows[${index}] must be an object.`, "invalid_import_payload");
+      }
+      const title = optionalString(item.title);
+      if (!title) {
+        throw new HttpError(400, `skippedShows[${index}].title is required.`, "invalid_import_payload");
+      }
+      return {
+        title,
+        sourceShowId: optionalString(item.sourceShowId),
+        reason: optionalString(item.reason) ?? "unresolved",
+      };
+    }),
   };
 };
 
@@ -185,6 +227,95 @@ class ImportService {
       completedAt: timestampToJson(data.completedAt ?? null),
       stagingClearedAt: timestampToJson(data.stagingClearedAt ?? null),
       stagingDocsDeleted: data.stagingDocsDeleted ?? 0,
+      report: data.report ?? null,
+    };
+  }
+
+  private async collectEpisodeReportRows(
+    collectionRef: CollectionReference,
+    status: "failed" | "skipped",
+    titleByTmdbId: Map<number, string>,
+    limit: number,
+  ): Promise<ImportReportRow[]> {
+    if (limit <= 0) {
+      return [];
+    }
+    const snapshot = await collectionRef.where("status", "==", status).limit(limit).get();
+    return snapshot.docs.map((doc) => {
+      const data = doc.data() as StagedEpisodeDocument;
+      return {
+        kind: status === "failed" ? "failed_episode" : "skipped_episode",
+        title: titleByTmdbId.get(data.tmdbId) ?? null,
+        tmdbId: data.tmdbId,
+        seasonNumber: data.seasonNumber,
+        episodeNumber: data.episodeNumber,
+        reason: data.skipReason ?? (status === "failed" ? "failed" : "already_watched"),
+        sourceShowId: data.sourceShowId ?? null,
+      };
+    });
+  }
+
+  /** Snapshot skip/fail rows before staging cleanup so the client can download a report. */
+  private async buildImportReport(
+    userId: string,
+    importId: string,
+    job: ImportDocument,
+  ): Promise<ImportReport> {
+    const ref = this.collection(userId).doc(importId);
+    const mappingSkippedShows = job.mappingSkippedShows ?? [];
+    const failedEpisodeCount = job.episodesFailed ?? 0;
+    const skippedEpisodeCount = job.episodesSkipped ?? 0;
+
+    const showsSnapshot = await ref.collection("stagedShows").limit(500).get();
+    const titleByTmdbId = new Map<number, string>();
+    for (const doc of showsSnapshot.docs) {
+      const show = doc.data() as StagedShowDocument;
+      titleByTmdbId.set(show.tmdbId, show.title);
+    }
+
+    const episodesRef = ref.collection("stagedEpisodes");
+    const showRows: ImportReportRow[] = mappingSkippedShows.slice(0, maxReportRows).map((show) => ({
+      kind: "skipped_show",
+      title: show.title,
+      tmdbId: null,
+      seasonNumber: null,
+      episodeNumber: null,
+      reason: show.reason,
+      sourceShowId: show.sourceShowId,
+    }));
+
+    const remainingBudget = Math.max(0, maxReportRows - showRows.length);
+    const failedBudget = Math.min(remainingBudget, failedEpisodeCount);
+    const failedRows = await this.collectEpisodeReportRows(
+      episodesRef,
+      "failed",
+      titleByTmdbId,
+      failedBudget,
+    );
+    const skippedBudget = Math.min(
+      Math.max(0, remainingBudget - failedRows.length),
+      skippedEpisodeCount,
+    );
+    const skippedRows = await this.collectEpisodeReportRows(
+      episodesRef,
+      "skipped",
+      titleByTmdbId,
+      skippedBudget,
+    );
+
+    const rows = [...showRows, ...failedRows, ...skippedRows];
+    const truncated =
+      mappingSkippedShows.length > showRows.length ||
+      failedEpisodeCount > failedRows.length ||
+      skippedEpisodeCount > skippedRows.length;
+
+    return {
+      generatedAt: new Date().toISOString(),
+      failedEpisodeCount,
+      skippedEpisodeCount,
+      skippedShowCount: mappingSkippedShows.length,
+      truncated,
+      rows,
     };
   }
 
@@ -263,6 +394,8 @@ class ImportService {
       completedAt: null,
       stagingClearedAt: null,
       stagingDocsDeleted: 0,
+      mappingSkippedShows: [],
+      report: null,
     };
     await ref.set(data);
     const summary = this.mapImport(importId, data);
@@ -366,7 +499,11 @@ class ImportService {
     return this.shadowImportJob(userId, importId, "stageEpisodes");
   }
 
-  async commit(userId: string, importId: string): Promise<ImportJobSummary> {
+  async commit(
+    userId: string,
+    importId: string,
+    skippedShows: ImportMappingSkippedShow[] = [],
+  ): Promise<ImportJobSummary> {
     const ref = this.collection(userId).doc(importId);
     const snapshot = await ref.get();
     if (!snapshot.exists) {
@@ -385,6 +522,7 @@ class ImportService {
     await ref.set(
       {
         status: "staged",
+        mappingSkippedShows: skippedShows,
         updatedAt: FieldValue.serverTimestamp(),
       },
       {merge: true},
@@ -465,15 +603,21 @@ class ImportService {
         processedEpisodes += chunk.length;
 
         const failed = new Set(result.failedKeys);
+        const skipped = new Set(result.skippedKeys);
         const statusBatch = getFirestore().batch();
         for (const doc of chunk) {
           const data = doc.data() as StagedEpisodeDocument;
-          const key = `s${String(data.seasonNumber).padStart(2, "0")}e${String(data.episodeNumber).padStart(2, "0")}`;
-          // progressLogic episodeKeyFor uses the same zero-padded form.
+          const key = episodeKeyFor(data.seasonNumber, data.episodeNumber);
           if (failed.has(key)) {
             statusBatch.set(
               doc.ref,
               {status: "failed", skipReason: "episode_not_found_in_tmdb"},
+              {merge: true},
+            );
+          } else if (skipped.has(key)) {
+            statusBatch.set(
+              doc.ref,
+              {status: "skipped", skipReason: "already_watched"},
               {merge: true},
             );
           } else {
@@ -509,6 +653,9 @@ class ImportService {
     const done = remainingSnapshot.empty && remainingShows.empty;
 
     if (done) {
+      const latestSnapshot = await ref.get();
+      const latestJob = (latestSnapshot.data() as ImportDocument | undefined) ?? job;
+      const report = await this.buildImportReport(userId, importId, latestJob);
       const stagingDocsDeleted = await this.clearStaging(userId, importId);
       await ref.set(
         {
@@ -517,6 +664,7 @@ class ImportService {
           updatedAt: FieldValue.serverTimestamp(),
           stagingClearedAt: FieldValue.serverTimestamp(),
           stagingDocsDeleted,
+          report,
         },
         {merge: true},
       );

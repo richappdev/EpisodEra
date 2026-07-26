@@ -14,6 +14,7 @@ import {statsService} from "../services/statsService";
 import {franchiseService} from "../services/franchiseService";
 import {
   importService,
+  parseCommitImportInput,
   parseCreateImportInput,
   parseEpisodeStageInput,
   parseWatchlistStageInput,
@@ -264,7 +265,8 @@ meRouter.post("/me/imports/:importId/episodes", async (req: AuthenticatedRequest
 
 meRouter.post("/me/imports/:importId/commit", async (req: AuthenticatedRequest, res, next) => {
   try {
-    res.json({import: await importService.commit(req.user!.uid, req.params.importId)});
+    const {skippedShows} = parseCommitImportInput(req.body);
+    res.json({import: await importService.commit(req.user!.uid, req.params.importId, skippedShows)});
   } catch (error) {
     next(error);
   }

@@ -178,6 +178,13 @@ From `tv_time_tool/TVTimeDataDesign.md` / Notion sample:
 * Native apps
 * Onboarding entry-point promotion (optional polish now that the gate is closed)
 
+## Non-blocking polish (post-acceptance)
+
+| Item | Status |
+| --- | --- |
+| Downloadable skip/fail report | Done — `import.report` snapshot before A9 cleanup; Settings CSV download |
+| Production Smoke on each RC | Done — `npm run smoke:rc` + workflow RC path |
+
 ## Closeout checklist (operator)
 
 1. [x] Implement A9 staging cleanup (+ A4 SHA-256 + A5 resume) in code

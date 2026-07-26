@@ -26,6 +26,7 @@ import {AddWatchlistItemInput, WatchlistItem, WatchlistResponse, WatchlistStatus
 import {
   ImportEpisodeInput,
   ImportJobSummary,
+  ImportMappingSkippedShow,
   ImportRunResult,
   ImportWatchlistItemInput,
   MediaMapping,
@@ -262,10 +263,13 @@ export const api = {
       method: "POST",
       body: {episodes},
     }),
-  commitImport: (importId: string) =>
+  commitImport: (
+    importId: string,
+    body: {skippedShows?: ImportMappingSkippedShow[]} = {},
+  ) =>
     request<{import: ImportJobSummary}>(`/me/imports/${encodeURIComponent(importId)}/commit`, {
       method: "POST",
-      body: {},
+      body,
     }),
   runImport: (importId: string, maxEpisodeWrites = 100) =>
     request<ImportRunResult>(`/me/imports/${encodeURIComponent(importId)}/run`, {

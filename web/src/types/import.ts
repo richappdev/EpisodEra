@@ -8,6 +8,31 @@ export type ImportStatus =
   | "failed"
   | "cancelled";
 
+export interface ImportReportRow {
+  kind: "failed_episode" | "skipped_episode" | "skipped_show";
+  title: string | null;
+  tmdbId: number | null;
+  seasonNumber: number | null;
+  episodeNumber: number | null;
+  reason: string;
+  sourceShowId: string | null;
+}
+
+export interface ImportReport {
+  generatedAt: string;
+  failedEpisodeCount: number;
+  skippedEpisodeCount: number;
+  skippedShowCount: number;
+  truncated: boolean;
+  rows: ImportReportRow[];
+}
+
+export interface ImportMappingSkippedShow {
+  title: string;
+  sourceShowId: string | null;
+  reason: string;
+}
+
 export interface ImportJobSummary {
   importId: string;
   provider: ImportProvider;
@@ -25,6 +50,8 @@ export interface ImportJobSummary {
   completedAt: string | null;
   stagingClearedAt: string | null;
   stagingDocsDeleted: number;
+  /** Snapshot of skips/failures captured before staging cleanup. */
+  report: ImportReport | null;
 }
 
 export interface ImportRunResult {

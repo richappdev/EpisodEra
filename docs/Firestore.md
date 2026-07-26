@@ -264,11 +264,13 @@ TV Time (and future provider) import jobs. Written only by Cloud Functions; clie
   "updatedAt": "<timestamp>",
   "completedAt": null,
   "stagingClearedAt": null,
-  "stagingDocsDeleted": 0
+  "stagingDocsDeleted": 0,
+  "mappingSkippedShows": [],
+  "report": null
 }
 ```
 
-`stagedShows` and `stagedEpisodes` hold pending rows before `/run`. After a successful import (`done: true`), Functions delete those subcollections and set `stagingClearedAt` / `stagingDocsDeleted` on the job document. Episode progress written by import may include `source` (`tv_time`) and `sourceImportId`, and preserve historical `watchedAt`.
+`stagedShows` and `stagedEpisodes` hold pending rows before `/run`. After a successful import (`done: true`), Functions snapshot skipped/failed staging rows (plus `mappingSkippedShows`) onto `report` (row cap 500, with `truncated` when capped), then delete those subcollections and set `stagingClearedAt` / `stagingDocsDeleted` on the job document. Clients can download `report` as CSV after completion even though staging is gone. Episode progress written by import may include `source` (`tv_time`) and `sourceImportId`, and preserve historical `watchedAt`.
 
 ## mediaMappings/{provider}_{mediaType}_{externalId}
 

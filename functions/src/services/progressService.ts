@@ -480,9 +480,9 @@ class ProgressService {
     showId: string,
     tmdbId: number,
     input: ImportEpisodesInput,
-  ): Promise<{imported: number; skipped: number; failedKeys: string[]}> {
+  ): Promise<{imported: number; skipped: number; failedKeys: string[]; skippedKeys: string[]; importedKeys: string[]}> {
     if (input.episodes.length === 0) {
-      return {imported: 0, skipped: 0, failedKeys: []};
+      return {imported: 0, skipped: 0, failedKeys: [], skippedKeys: [], importedKeys: []};
     }
 
     if (input.episodes.length > maxBatchEpisodeCount) {
@@ -506,13 +506,15 @@ class ProgressService {
     });
 
     if (requested.length === 0) {
-      return {imported: 0, skipped: 0, failedKeys};
+      return {imported: 0, skipped: 0, failedKeys, skippedKeys: [], importedKeys: []};
     }
 
     const progressRef = this.collection(userId).doc(showId);
     const historyCollection = this.historyCollection(userId);
     let imported = 0;
     let skipped = 0;
+    const skippedKeys: string[] = [];
+    const importedKeys: string[] = [];
     const now = new Date();
 
     await getFirestore().runTransaction(async (transaction) => {
@@ -550,6 +552,7 @@ class ProgressService {
 
         if (existing) {
           skipped += 1;
+          skippedKeys.push(episode.episodeKey);
           transaction.set(
             episodeRef,
             {
@@ -572,6 +575,7 @@ class ProgressService {
         }
 
         imported += 1;
+        importedKeys.push(episode.episodeKey);
         finalEpisodeKeys.add(episode.episodeKey);
         const seasonEpisode = canonical.seasons
           .flatMap((season) => season.episodes)
@@ -650,7 +654,7 @@ class ProgressService {
     }
 
     await derivedCacheService.invalidateUserLibraryCaches(userId);
-    return {imported, skipped, failedKeys};
+    return {imported, skipped, failedKeys, skippedKeys, importedKeys};
   }
 
   private async loadCanonicalMetadata(tmdbId: number): Promise<CanonicalProgressMetadata> {

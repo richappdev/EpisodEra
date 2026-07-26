@@ -36,6 +36,7 @@ const baseJob: ImportJobSummary = {
   completedAt: null,
   stagingClearedAt: null,
   stagingDocsDeleted: 0,
+  report: null,
 };
 
 const makeZipFile = (secondShow = false) => {
@@ -302,10 +303,79 @@ describe("ImportTvTimePanel", () => {
 
     await waitFor(() => expect(api.runImport).toHaveBeenCalled());
     expect(api.upsertMediaMapping).not.toHaveBeenCalled();
+    await waitFor(() => expect(api.commitImport).toHaveBeenCalled());
+    expect(vi.mocked(api.commitImport).mock.calls[0][1]).toEqual({
+      skippedShows: [
+        {
+          title: "Mystery Show",
+          sourceShowId: "200",
+          reason: "low_confidence",
+        },
+      ],
+    });
     await waitFor(() =>
       expect(screen.getByTestId("tv-time-import-message")).toHaveTextContent("1 shows skipped"),
     );
     expect(screen.getByTestId("tv-time-import-skipped")).toHaveTextContent("Skipped shows: Mystery Show");
+  });
+
+  it("offers a downloadable skip/fail report after completion", async () => {
+    vi.mocked(api.runImport).mockResolvedValue({
+      import: {
+        ...baseJob,
+        status: "completed",
+        watchlistImported: 1,
+        episodesImported: 1,
+        episodesSkipped: 1,
+        episodesFailed: 1,
+        episodesStaged: 2,
+        stagingClearedAt: "2026-07-26T00:00:00.000Z",
+        stagingDocsDeleted: 3,
+        report: {
+          generatedAt: "2026-07-26T00:00:00.000Z",
+          failedEpisodeCount: 1,
+          skippedEpisodeCount: 1,
+          skippedShowCount: 0,
+          truncated: false,
+          rows: [
+            {
+              kind: "failed_episode",
+              title: "Silo",
+              tmdbId: 125988,
+              seasonNumber: 1,
+              episodeNumber: 99,
+              reason: "episode_not_found_in_tmdb",
+              sourceShowId: "100",
+            },
+            {
+              kind: "skipped_episode",
+              title: "Silo",
+              tmdbId: 125988,
+              seasonNumber: 1,
+              episodeNumber: 1,
+              reason: "already_watched",
+              sourceShowId: "100",
+            },
+          ],
+        },
+      },
+      processedEpisodes: 2,
+      remainingEpisodes: 0,
+      done: true,
+    });
+
+    render(<ImportTvTimePanel language="en-US" signedIn />);
+    fireEvent.change(screen.getByTestId("tv-time-zip-input"), {
+      target: {files: [makeZipFile()]},
+    });
+    fireEvent.click(screen.getByTestId("tv-time-import-start"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("tv-time-import-download-report")).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId("tv-time-import-download-report")).toHaveTextContent(
+      "Download skip/fail report",
+    );
   });
 
   it("applies a manual TMDb id and persists the mapping", async () => {

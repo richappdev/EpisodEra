@@ -2,6 +2,10 @@ import {ChangeEvent, useEffect, useState} from "react";
 import {Upload} from "lucide-react";
 import {api} from "../api/client";
 import {clearImportResume, loadImportResume, saveImportResume} from "../lib/importResume";
+import {
+  downloadImportReportCsv,
+  importReportHasDownloadableRows,
+} from "../lib/importReportCsv";
 import {sha256Hex} from "../lib/sha256";
 import {buildImportFromNormalized} from "../lib/tvTimeBuildImport";
 import {chunkArray, parseEpisodesImportCsv, parseWatchlistImportCsv} from "../lib/tvTimeImportCsv";
@@ -11,6 +15,7 @@ import {
   AcceptedTvTimeShowMapping,
   ImportEpisodeInput,
   ImportJobSummary,
+  ImportMappingSkippedShow,
   ImportWatchlistItemInput,
   SkippedTvTimeShowMapping,
   TvTimeMappingCandidate,
@@ -127,6 +132,7 @@ const copyByLanguage = {
       titles.length === 0
         ? null
         : `Skipped shows: ${titles.slice(0, 12).join(", ")}${titles.length > 12 ? ` (+${titles.length - 12} more)` : ""}`,
+    downloadReport: "Download skip/fail report",
   },
   "zh-TW": {
     title: "從 TV Time 匯入",
@@ -184,6 +190,7 @@ const copyByLanguage = {
       titles.length === 0
         ? null
         : `略過節目：${titles.slice(0, 12).join("、")}${titles.length > 12 ? `（另有 ${titles.length - 12} 個）` : ""}`,
+    downloadReport: "下載略過／失敗報告",
   },
 } as const;
 
@@ -243,9 +250,10 @@ const runStagedImport = async (
   watchlist: ImportWatchlistItemInput[],
   episodes: ImportEpisodeInput[],
   sourceHash: string,
-  skippedTitles: string[],
+  skippedShows: ImportMappingSkippedShow[],
   onProgress: (update: Partial<ImportProgress> & {job?: ImportJobSummary}) => void,
 ) => {
+  const skippedTitles = skippedShows.map((show) => show.title);
   onProgress({
     phase: "uploading",
     watchlistTotal: watchlist.length,
@@ -288,7 +296,7 @@ const runStagedImport = async (
       onProgress({job: current});
     }
 
-    current = (await api.commitImport(current.importId)).import;
+    current = (await api.commitImport(current.importId, {skippedShows})).import;
     onProgress({
       phase: "importing",
       job: current,
@@ -428,7 +436,7 @@ export const ImportTvTimePanel = ({language, signedIn}: ImportTvTimePanelProps) 
   const finishWithMappings = async (
     normalized: NormalizedTvTimeExport,
     accepted: AcceptedTvTimeShowMapping[],
-    finalSkippedTitles: string[],
+    finalSkippedShows: ImportMappingSkippedShow[],
     sourceHash: string,
   ) => {
     const built = buildImportFromNormalized(
@@ -442,6 +450,7 @@ export const ImportTvTimePanel = ({language, signedIn}: ImportTvTimePanelProps) 
       })),
     );
 
+    const finalSkippedTitles = finalSkippedShows.map((show) => show.title);
     if (built.watchlist.length === 0 && built.episodes.length === 0) {
       throw new Error(
         finalSkippedTitles.length > 0
@@ -452,7 +461,7 @@ export const ImportTvTimePanel = ({language, signedIn}: ImportTvTimePanelProps) 
 
     setSkippedTitles(finalSkippedTitles);
     patchProgress({skippedShows: finalSkippedTitles.length});
-    await runStagedImport(built.watchlist, built.episodes, sourceHash, finalSkippedTitles, patchProgress);
+    await runStagedImport(built.watchlist, built.episodes, sourceHash, finalSkippedShows, patchProgress);
     patchProgress({phase: "done"});
   };
 
@@ -565,11 +574,15 @@ export const ImportTvTimePanel = ({language, signedIn}: ImportTvTimePanelProps) 
     setError(null);
     try {
       const accepted = [...pendingZip.accepted];
-      const stillSkipped: string[] = [];
+      const stillSkipped: ImportMappingSkippedShow[] = [];
 
       for (const row of pendingZip.reviewRows) {
         if (row.selectedTmdbId == null) {
-          stillSkipped.push(row.title);
+          stillSkipped.push({
+            title: row.title,
+            sourceShowId: row.sourceShowId,
+            reason: row.reason || "unresolved",
+          });
           continue;
         }
         const candidate =
@@ -899,6 +912,22 @@ export const ImportTvTimePanel = ({language, signedIn}: ImportTvTimePanelProps) 
             <p className="settings-note" data-testid="tv-time-import-skipped">
               {skippedNote}
             </p>
+          ) : null}
+          {progress.phase === "done" &&
+          importReportHasDownloadableRows(progress.job?.report) &&
+          progress.job ? (
+            <button
+              className="primary-button"
+              type="button"
+              data-testid="tv-time-import-download-report"
+              onClick={() => {
+                if (progress.job?.report) {
+                  downloadImportReportCsv(progress.job.report, progress.job.importId);
+                }
+              }}
+            >
+              {copy.downloadReport}
+            </button>
           ) : null}
           {error ? (
             <p className="form-error" role="alert" data-testid="tv-time-import-error">
