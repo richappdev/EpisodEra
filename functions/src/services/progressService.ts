@@ -509,6 +509,155 @@ class ProgressService {
       return {imported: 0, skipped: 0, failedKeys, skippedKeys: [], importedKeys: []};
     }
 
+    const {isSupabaseWritePrimary, shouldPersistFirestore} = await import("../config/env");
+    const {getSupabaseEnvOrNull} = await import("../db/supabaseClient");
+    if (isSupabaseWritePrimary() && getSupabaseEnvOrNull()) {
+      return this.importWatchedEpisodesSupabasePrimary(
+        userId,
+        showId,
+        tmdbId,
+        input,
+        requested,
+        failedKeys,
+        canonical,
+        shouldPersistFirestore(),
+      );
+    }
+
+    const counts = await this.importWatchedEpisodesFirestoreOnly(
+      userId,
+      showId,
+      tmdbId,
+      input,
+      requested,
+      canonical,
+    );
+
+    const progress = await this.get(userId, showId);
+    if (progress) {
+      await watchlistService.syncTvStatusFromProgress(userId, tmdbId, progress);
+      if (!this.suppressShadowOnce) {
+        const {shadowWrite} = await import("../migration/shadow");
+        const {upsertShowProgressShadow} = await import("../migration/supabaseWriters");
+        await shadowWrite({
+          domain: "progress",
+          operation: "importWatchedEpisodes",
+          firebaseUid: userId,
+          operationId: `progress:import:${userId}:${showId}:${Date.now()}`,
+          payload: {showId, tmdbId, imported: counts.imported, skipped: counts.skipped},
+          secondary: () => upsertShowProgressShadow(userId, progress),
+        });
+      }
+    }
+
+    await derivedCacheService.invalidateUserLibraryCaches(userId);
+    return {...counts, failedKeys};
+  }
+
+  private async importWatchedEpisodesSupabasePrimary(
+    userId: string,
+    showId: string,
+    tmdbId: number,
+    input: ImportEpisodesInput,
+    requested: Array<{metadata: ProgressEpisodePointer; watchedAt: Date | null}>,
+    failedKeys: string[],
+    canonical: CanonicalProgressMetadata,
+    persistFirestore: boolean,
+  ): Promise<{imported: number; skipped: number; failedKeys: string[]; skippedKeys: string[]; importedKeys: string[]}> {
+    const before = await this.get(userId, showId, {forceSupabase: true});
+    const existingKeys = new Set(
+      (before?.episodes ?? []).filter((episode) => episode.watched).map((episode) => episode.episodeKey),
+    );
+    const importedKeys: string[] = [];
+    const skippedKeys: string[] = [];
+    for (const {metadata} of requested) {
+      if (existingKeys.has(metadata.episodeKey)) {
+        skippedKeys.push(metadata.episodeKey);
+      } else {
+        importedKeys.push(metadata.episodeKey);
+      }
+    }
+
+    const now = new Date();
+    const {
+      markEpisodesWatchedPrimary,
+      patchShowProgressNextEpisode,
+    } = await import("../migration/supabaseWriters");
+
+    await markEpisodesWatchedPrimary({
+      firebaseUid: userId,
+      showTmdbId: tmdbId,
+      title: canonical.tvDetail.title,
+      posterPath: normalizeImageUrl(canonical.tvDetail.images.poster),
+      totalEpisodes: canonical.totalEpisodes,
+      preserveEarliestWatchedAt: true,
+      genreNames: canonical.tvDetail.genres.map((genre) => genre.name),
+      episodes: requested.map(({metadata, watchedAt}) => ({
+        season_number: metadata.seasonNumber,
+        episode_number: metadata.episodeNumber,
+        episode_title: metadata.episodeTitle,
+        watched: true,
+        watched_at: (watchedAt ?? now).toISOString(),
+        source: input.source ?? "tv_time",
+        source_import_id: input.importId,
+      })),
+    });
+
+    const after = await this.get(userId, showId, {forceSupabase: true});
+    const watchedKeys = new Set((after?.episodes ?? []).map((episode) => episode.episodeKey));
+    const nextEpisode = findNextUnwatchedEpisode(canonical.seasons, watchedKeys);
+    await patchShowProgressNextEpisode(
+      userId,
+      tmdbId,
+      nextEpisode
+        ? {
+            seasonNumber: nextEpisode.seasonNumber,
+            episodeNumber: nextEpisode.episodeNumber,
+            episodeTitle: nextEpisode.episodeTitle,
+          }
+        : null,
+    );
+
+    if (persistFirestore) {
+      this.suppressShadowOnce = true;
+      try {
+        await this.importWatchedEpisodesFirestoreOnly(
+          userId,
+          showId,
+          tmdbId,
+          input,
+          requested,
+          canonical,
+        );
+      } finally {
+        this.suppressShadowOnce = false;
+      }
+    }
+
+    const progress = await this.get(userId, showId, {forceSupabase: true});
+    if (!progress) {
+      throw new HttpError(500, "Progress could not be read after import.", "progress_update_failed");
+    }
+    await watchlistService.syncTvStatusFromProgress(userId, tmdbId, progress);
+    await derivedCacheService.invalidateUserLibraryCaches(userId);
+
+    return {
+      imported: importedKeys.length,
+      skipped: skippedKeys.length,
+      failedKeys,
+      skippedKeys,
+      importedKeys,
+    };
+  }
+
+  private async importWatchedEpisodesFirestoreOnly(
+    userId: string,
+    showId: string,
+    tmdbId: number,
+    input: ImportEpisodesInput,
+    requested: Array<{metadata: ProgressEpisodePointer; watchedAt: Date | null}>,
+    canonical: CanonicalProgressMetadata,
+  ): Promise<{imported: number; skipped: number; skippedKeys: string[]; importedKeys: string[]}> {
     const progressRef = this.collection(userId).doc(showId);
     const historyCollection = this.historyCollection(userId);
     let imported = 0;
@@ -638,23 +787,7 @@ class ProgressService {
       );
     });
 
-    const progress = await this.get(userId, showId);
-    if (progress) {
-      await watchlistService.syncTvStatusFromProgress(userId, tmdbId, progress);
-      const {shadowWrite} = await import("../migration/shadow");
-      const {upsertShowProgressShadow} = await import("../migration/supabaseWriters");
-      await shadowWrite({
-        domain: "progress",
-        operation: "importWatchedEpisodes",
-        firebaseUid: userId,
-        operationId: `progress:import:${userId}:${showId}:${Date.now()}`,
-        payload: {showId, tmdbId, imported, skipped},
-        secondary: () => upsertShowProgressShadow(userId, progress),
-      });
-    }
-
-    await derivedCacheService.invalidateUserLibraryCaches(userId);
-    return {imported, skipped, failedKeys, skippedKeys, importedKeys};
+    return {imported, skipped, skippedKeys, importedKeys};
   }
 
   private async loadCanonicalMetadata(tmdbId: number): Promise<CanonicalProgressMetadata> {

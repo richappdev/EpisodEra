@@ -55,7 +55,7 @@ Then set `FIRESTORE_WRITES_DISABLED=false` (keep `SUPABASE_WRITE_PRIMARY=true`) 
 
 ## Still on Firestore (not cut over yet)
 
-Puzzles, discussions, franchises catalog, media mappings, import **staging** rows. Auth remains Firebase until Phase 9.
+Puzzles, discussions, franchises catalog, media mappings, import **staging** rows (progress/watchlist merges from import follow write-primary). Auth remains Firebase until Phase 9.
 
 ## Not automatic
 

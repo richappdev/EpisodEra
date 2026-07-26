@@ -358,6 +358,10 @@ const runImportPathCheck = async (token, title) => {
     Number(summary?.stagingDocsDeleted) >= 1,
     `Import stagingDocsDeleted expected >= 1, got ${summary?.stagingDocsDeleted ?? "none"}.`,
   );
+  assert(
+    Number(summary?.episodesImported) + Number(summary?.episodesSkipped) >= 1,
+    `Import expected imported+skipped >= 1, got imported=${summary?.episodesImported ?? "none"} skipped=${summary?.episodesSkipped ?? "none"} failed=${summary?.episodesFailed ?? "none"}.`,
+  );
 
   const progressRead = await request(`/progress/${showId}`, {token});
   const episode = progressRead.payload?.progress?.episodes?.find((item) => item.episodeKey === "s01e01");
