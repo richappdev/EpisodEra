@@ -1,8 +1,16 @@
-# Firestore
+# Firestore Schema Reference (archived)
 
-Firestore stores user-owned application state. TMDb remains the source of truth for media metadata, so documents should reference TMDb IDs and cache only the fields needed for display or offline convenience.
+> **Status:** Archived
+> **Authority:** Historical Firestore schema, security-rule, rollback, and retention reference
+> **Owner role:** Engineering
+> **Archived:** 2026-07-27
+> **Final source baseline:** `a325fdd`
+> **Notion counterpart:** [Firestore Database Schema & Firebase Architecture (archived)](https://app.notion.com/p/39ca4181b62881f1857ac61d3867ebc7)
+> **Superseded by:** [`supabase/SchemaInventory.md`](supabase/SchemaInventory.md) and [`supabase/Cutover.md`](supabase/Cutover.md)
 
-**Baseline:** tip `0c13b88` (2026-07-26). P0 import hardening landed in `9a0420e`; Daily Puzzle landed in `c06053b` (edit/auto-create since). App Check **Phase 3 enforce** is live in production (`APP_CHECK_ENFORCE_AUTH_WRITES=true`); code default remains off until that env flag is set. TV Time import Phase 1 **acceptance** is **CLOSED** (2026-07-26) — see `docs/TvTimeImportPhase1Acceptance.md` (A1–A9 PASS). Library domains may use Supabase via cutover flags (`docs/supabase/Cutover.md`); franchise catalogs, Daily Puzzle, discussions, media mappings, and import staging remain Functions/Firestore. Append-only `watchEvents` remains planned as **P1 skipped for now** (deferred).
+Supabase Postgres is the product database of record, and production Firestore persistence is disabled. This document preserves the former Firestore model because rules/emulator coverage, rollback tooling, historical exports, and retention procedures still reference it. It must not be used as the current product persistence architecture.
+
+TMDb remains the source of truth for media metadata. The append-only `watchEvents` foundation remains deferred.
 
 ## Collections
 

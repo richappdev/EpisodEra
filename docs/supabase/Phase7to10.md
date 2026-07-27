@@ -1,4 +1,14 @@
-# Phases 7–10
+# Phases 7–10 Combined Plan (archived)
+
+> **Status:** Archived
+> **Authority:** Historical implementation and migration plan
+> **Owner role:** Engineering
+> **Archived:** 2026-07-27
+> **Final source baseline:** `a325fdd`
+> **Notion counterpart:** [Episodera Firebase → Supabase Migration Assessment (archived)](https://app.notion.com/p/3a5a4181b62881fa969af954b500ffc5)
+> **Superseded by:** [`Cutover.md`](Cutover.md), [`AuthMigration.md`](AuthMigration.md), and [`Phase10Retirement.md`](Phase10Retirement.md)
+
+The data-domain portions of this combined plan are complete. Native Supabase Auth and final Firebase runtime retirement remain separate active decisions.
 
 ## Phase 7 — Progress + history (shadow)
 
@@ -44,12 +54,12 @@ Prep flags (default off):
 
 Retirement order:
 
-1. Shadow writes stable; outbox drained  
-2. Historical import parity OK (including `backfill-remaining-domains.mjs`)  
-3. Switch reads domain-by-domain (`SUPABASE_READ_PROFILES`, remaining-domain flags, later `SUPABASE_READ_PRIMARY`)  
-4. Phase 9 Auth cutover + soak  
-5. `FIRESTORE_WRITES_DISABLED` + Firebase read-only retention  
-6. Remove Functions Firestore dependency / retire Auth after window  
-7. Hosting/Analytics can lag  
+1. Shadow writes stable; outbox drained
+2. Historical import parity OK (including `backfill-remaining-domains.mjs`)
+3. Switch reads domain-by-domain (`SUPABASE_READ_PROFILES`, remaining-domain flags, later `SUPABASE_READ_PRIMARY`)
+4. Phase 9 Auth cutover + soak
+5. `FIRESTORE_WRITES_DISABLED` + Firebase read-only retention
+6. Remove Functions Firestore dependency / retire Auth after window
+7. Hosting/Analytics can lag
 
 This repo does **not** auto-delete Firebase projects.

@@ -1,5 +1,13 @@
 # Phase 9 — Native Supabase Auth (last)
 
+> **Status:** Deferred
+> **Authority:** Future Firebase Auth-to-Supabase Auth migration plan
+> **Owner role:** Engineering and security
+> **Last reviewed:** 2026-07-27
+> **Current baseline:** See the Notion MVP Dashboard
+> **Notion counterpart:** [Security, Identity, and Access Boundaries](https://app.notion.com/p/3aaa4181b6288145b751ea32c22d7ecc)
+> **Supersedes:** Auth steps embedded in the archived combined phase plan
+
 Do **not** run until Postgres domains are at parity and soaked.
 
 ## Prep from a site export

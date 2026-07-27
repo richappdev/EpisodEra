@@ -1,5 +1,13 @@
 # Schema inventory (Firestore → Postgres)
 
+> **Status:** Active
+> **Authority:** Firestore-to-Postgres domain mapping; SQL migrations remain DDL authority
+> **Owner role:** Engineering
+> **Last reviewed:** 2026-07-27
+> **Current baseline:** See the Notion MVP Dashboard
+> **Notion counterpart:** [Data Architecture — Supabase Primary / Firebase Services](https://app.notion.com/p/3aaa4181b6288109b9d8f86aaa3a6394)
+> **Supersedes:** `../Firestore.md` as the current data-model index
+
 Source of truth for DDL: `supabase/migrations/*.sql`.
 
 | Firestore | PostgreSQL | Notes |

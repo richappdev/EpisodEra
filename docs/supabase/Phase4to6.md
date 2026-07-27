@@ -1,4 +1,14 @@
-# Phase 4–6 — Repository adapters + shadow dual-write
+# Phase 4–6 — Repository Adapters + Shadow Dual-Write (archived)
+
+> **Status:** Archived
+> **Authority:** Historical implementation record
+> **Owner role:** Engineering
+> **Archived:** 2026-07-27
+> **Final source baseline:** `a325fdd`
+> **Notion counterpart:** [Episodera Firebase → Supabase Migration Assessment (archived)](https://app.notion.com/p/3a5a4181b62881fa969af954b500ffc5)
+> **Superseded by:** [`Cutover.md`](Cutover.md) and [`SchemaInventory.md`](SchemaInventory.md)
+
+This page describes the former Firestore-primary shadow-write phase. It is historical and must not be used as the current production configuration.
 
 ## Phase 4 — Repository adapters
 

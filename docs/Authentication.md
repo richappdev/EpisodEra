@@ -1,5 +1,13 @@
 # Authentication
 
+> **Status:** Active
+> **Authority:** Firebase identity and API authentication contract
+> **Owner role:** Engineering and security
+> **Last reviewed:** 2026-07-27
+> **Current baseline:** See the Notion MVP Dashboard
+> **Notion counterpart:** [Security, Identity, and Access Boundaries](https://app.notion.com/p/3aaa4181b6288145b751ea32c22d7ecc)
+> **Supersedes:** Firebase-database ownership assumptions
+
 ## Goal
 
 Use Firebase Authentication as the single identity provider for the MVP. The web app signs users in with email/password and sends Firebase ID tokens to the Cloud Functions API.
@@ -75,15 +83,15 @@ For local emulator runs, provide the secret through the Firebase emulator secret
 
 - Discovery endpoints are public today and use optional auth.
 - User-owned endpoints must use `requireAuth` (and `requireAppCheck` when Phase 3 enforcement is enabled).
-- Firestore writes must use `req.user.uid` as the owner path.
+- Product writes must use `req.user.uid` as the Supabase ownership key through the API. Retained Firestore rollback writes use the same Firebase UID.
 - The backend should not trust user IDs sent in request bodies.
 
 ## Acceptance criteria
 
 - Users can create an account with email/password.
 - Users can sign in and sign out.
-- Users can delete their account from Settings. Deletion calls `DELETE /me/account`, which removes all Firestore data under `users/{uid}` and deletes the Firebase Authentication user.
-- Manual account-deletion validation passed on 2026-07-13 against the deployed app using a throwaway account. Confirmed `DELETE` confirmation UI, HTTP `204`, Firebase Auth user removal, and empty Firestore user data. The smoke automation account must not be used for deletion tests.
+- Users can delete their account from Settings. Deletion calls `DELETE /me/account`, which removes Supabase-owned product data, clears explicitly owned discussion/puzzle rows, removes any retained Firestore user tree when applicable, and deletes the Firebase Authentication user.
+- Manual account-deletion validation passed on 2026-07-13 against the then-current deployed Firebase data plane. Post-cutover deletion must also verify Supabase-owned rows. The smoke automation account must not be used for deletion tests.
 - Existing discovery and detail screens still work after sign-in.
 - API requests include an ID token for signed-in users.
 - Signed-out users can still browse public discovery pages.
