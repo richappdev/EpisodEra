@@ -34,15 +34,54 @@ class FriendService {
   }
 
   async ensureFriendCode(userId: string): Promise<string> {
-    const ref = this.users().doc(userId);
-    const snapshot = await ref.get();
-    const existing = snapshot.exists ? snapshot.data()?.friendCode : null;
-    if (typeof existing === "string" && existing.length >= 6) {
-      return existing;
+    const {shouldPersistFirestore} = await import("../config/env");
+    const {isSupabaseReadProfiles} = await import("../config/env");
+    const {getSupabaseEnvOrNull, supabaseRest} = await import("../db/supabaseClient");
+
+    if (isSupabaseReadProfiles() || !shouldPersistFirestore()) {
+      const env = getSupabaseEnvOrNull();
+      if (env) {
+        const rows = (await supabaseRest(
+          env,
+          `profiles?firebase_uid=eq.${encodeURIComponent(userId)}&select=friend_code&limit=1`,
+          {method: "GET", prefer: "return=representation"},
+        )) as Array<Record<string, unknown>> | null;
+        const existing = Array.isArray(rows) && rows[0] ? rows[0].friend_code : null;
+        if (typeof existing === "string" && existing.length >= 6) {
+          return existing;
+        }
+      }
+    }
+
+    if (shouldPersistFirestore()) {
+      const ref = this.users().doc(userId);
+      const snapshot = await ref.get();
+      const existing = snapshot.exists ? snapshot.data()?.friendCode : null;
+      if (typeof existing === "string" && existing.length >= 6) {
+        return existing;
+      }
     }
 
     const friendCode = generateFriendCode(userId);
-    await ref.set({friendCode, updatedAt: FieldValue.serverTimestamp()}, {merge: true});
+    if (shouldPersistFirestore()) {
+      await this.users().doc(userId).set({friendCode, updatedAt: FieldValue.serverTimestamp()}, {merge: true});
+    }
+
+    const profile = await profileService.get(userId);
+    if (profile) {
+      const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
+      const {upsertProfileShadow} = await import("../migration/supabaseWriters");
+      const next = {...profile, friendCode, updatedAt: new Date().toISOString()};
+      await writeSupabasePrimaryOrShadow({
+        domain: "profiles",
+        operation: "ensureFriendCode",
+        firebaseUid: userId,
+        operationId: `profiles:friendCode:${userId}:${Date.now()}`,
+        payload: {friendCode},
+        write: () => upsertProfileShadow(userId, next),
+      });
+    }
+
     return friendCode;
   }
 
@@ -181,37 +220,40 @@ class FriendService {
     ]);
 
     const batch = getFirestore().batch();
-    batch.set(
-      this.friends(userId).doc(targetUserId),
-      {
-        status: "pending_outgoing",
-        displayName: this.displayNameFor(targetProfile, "Friend"),
-        friendCode,
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      {merge: true},
-    );
-    batch.set(
-      this.friends(targetUserId).doc(userId),
-      {
-        status: "pending_incoming",
-        displayName: this.displayNameFor(selfProfile, "Friend"),
-        friendCode: await this.ensureFriendCode(userId),
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      {merge: true},
-    );
-    await batch.commit();
-    const {shadowWrite} = await import("../migration/shadow");
+    const {shouldPersistFirestore} = await import("../config/env");
+    if (shouldPersistFirestore()) {
+      batch.set(
+        this.friends(userId).doc(targetUserId),
+        {
+          status: "pending_outgoing",
+          displayName: this.displayNameFor(targetProfile, "Friend"),
+          friendCode,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
+      batch.set(
+        this.friends(targetUserId).doc(userId),
+        {
+          status: "pending_incoming",
+          displayName: this.displayNameFor(selfProfile, "Friend"),
+          friendCode: await this.ensureFriendCode(userId),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
+      await batch.commit();
+    }
+    const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
     const {upsertFriendshipShadow} = await import("../migration/supabaseWriters");
     const selfCode = await this.ensureFriendCode(userId);
-    await shadowWrite({
+    await writeSupabasePrimaryOrShadow({
       domain: "friendships",
       operation: "request",
       firebaseUid: userId,
       operationId: `friendships:request:${userId}:${targetUserId}:${Date.now()}`,
       payload: {targetUserId, friendCode},
-      secondary: async () => {
+      write: async () => {
         await upsertFriendshipShadow(
           userId,
           targetUserId,
@@ -232,47 +274,63 @@ class FriendService {
   }
 
   async updateStatus(userId: string, friendUserId: string, status: "accepted" | "declined" | "removed") {
+    const {shouldPersistFirestore} = await import("../config/env");
     const friendRef = this.friends(userId).doc(friendUserId);
     const mirrorRef = this.friends(friendUserId).doc(userId);
-    const [friendSnap, mirrorSnap] = await Promise.all([friendRef.get(), mirrorRef.get()]);
+    const [friendSnap, mirrorSnap] = shouldPersistFirestore()
+      ? await Promise.all([friendRef.get(), mirrorRef.get()])
+      : [null, null];
 
-    if (!friendSnap.exists) {
-      throw new HttpError(404, "Friend relationship not found.", "friend_not_found");
+    if (shouldPersistFirestore() && (!friendSnap || !friendSnap.exists)) {
+      // Fall through to Supabase check when FS missing
+      const listed = await this.list(userId);
+      if (!listed.items.some((item) => item.userId === friendUserId)) {
+        throw new HttpError(404, "Friend relationship not found.", "friend_not_found");
+      }
+    } else if (!shouldPersistFirestore()) {
+      const listed = await this.list(userId);
+      if (!listed.items.some((item) => item.userId === friendUserId)) {
+        throw new HttpError(404, "Friend relationship not found.", "friend_not_found");
+      }
     }
 
     if (status === "removed" || status === "declined") {
-      const batch = getFirestore().batch();
-      batch.delete(friendRef);
-      if (mirrorSnap.exists) {
-        batch.delete(mirrorRef);
+      if (shouldPersistFirestore() && friendSnap) {
+        const batch = getFirestore().batch();
+        batch.delete(friendRef);
+        if (mirrorSnap?.exists) {
+          batch.delete(mirrorRef);
+        }
+        await batch.commit();
       }
-      await batch.commit();
-      const {shadowWrite} = await import("../migration/shadow");
+      const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
       const {removeFriendshipShadow} = await import("../migration/supabaseWriters");
-      await shadowWrite({
+      await writeSupabasePrimaryOrShadow({
         domain: "friendships",
         operation: status,
         firebaseUid: userId,
         operationId: `friendships:${status}:${userId}:${friendUserId}:${Date.now()}`,
         payload: {friendUserId},
-        secondary: () => removeFriendshipShadow(userId, friendUserId),
+        write: () => removeFriendshipShadow(userId, friendUserId),
       });
       return this.list(userId);
     }
 
-    const batch = getFirestore().batch();
-    batch.set(friendRef, {status: "accepted", updatedAt: FieldValue.serverTimestamp()}, {merge: true});
-    batch.set(mirrorRef, {status: "accepted", updatedAt: FieldValue.serverTimestamp()}, {merge: true});
-    await batch.commit();
-    const {shadowWrite} = await import("../migration/shadow");
+    if (shouldPersistFirestore()) {
+      const batch = getFirestore().batch();
+      batch.set(friendRef, {status: "accepted", updatedAt: FieldValue.serverTimestamp()}, {merge: true});
+      batch.set(mirrorRef, {status: "accepted", updatedAt: FieldValue.serverTimestamp()}, {merge: true});
+      await batch.commit();
+    }
+    const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
     const {upsertFriendshipShadow} = await import("../migration/supabaseWriters");
-    await shadowWrite({
+    await writeSupabasePrimaryOrShadow({
       domain: "friendships",
       operation: "accept",
       firebaseUid: userId,
       operationId: `friendships:accept:${userId}:${friendUserId}:${Date.now()}`,
       payload: {friendUserId},
-      secondary: async () => {
+      write: async () => {
         await upsertFriendshipShadow(userId, friendUserId, "accepted", null, null);
         await upsertFriendshipShadow(friendUserId, userId, "accepted", null, null);
       },

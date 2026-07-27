@@ -2,15 +2,17 @@
  * Sync Supabase library domains → Firestore (catch-up when Firestore mirror was off).
  *
  * Covers: profiles, settings, watchlist, likes, progress+episodes, history, friendships,
- * and derived cache keys (stats / achievements / recent yearRecap via RPC).
+ * derived cache keys, plus optional remaining domains (discussions, puzzles, franchises,
+ * media mappings) when `--include-remaining` is set.
  *
  * Usage (repo root, with Firebase Admin ADC + functions/.env.supabase):
  *   node scripts/supabase/sync-supabase-to-firestore.mjs --dry-run
  *   node scripts/supabase/sync-supabase-to-firestore.mjs --uid <FIREBASE_UID>
  *   node scripts/supabase/sync-supabase-to-firestore.mjs --limit 20
  *   node scripts/supabase/sync-supabase-to-firestore.mjs --skip-derived
+ *   node scripts/supabase/sync-supabase-to-firestore.mjs --include-remaining
  *
- * Does NOT sync puzzles, discussions, franchises, or import staging.
+ * Import staging is not mirrored back to Firestore (ephemeral).
  */
 import {createRequire} from "node:module";
 import path from "node:path";
@@ -37,6 +39,7 @@ const {getFirestore, Timestamp} = require("firebase-admin/firestore");
 
 const dryRun = process.argv.includes("--dry-run");
 const skipDerived = process.argv.includes("--skip-derived");
+const includeRemaining = process.argv.includes("--include-remaining");
 const uidFilter = process.argv.includes("--uid")
   ? process.argv[process.argv.indexOf("--uid") + 1]
   : null;
@@ -326,6 +329,7 @@ console.log(
       uidFilter,
       limit,
       skipDerived,
+      includeRemaining,
       plannedUsers: uids.length,
     },
     null,
@@ -342,6 +346,140 @@ for (const uid of uids) {
     }
   }
   console.log(JSON.stringify(summary));
+}
+
+if (includeRemaining) {
+  const remaining = {discussions: 0, puzzles: 0, mappings: 0, franchises: 0};
+
+  async function fetchTable(table, order) {
+    const rows = [];
+    let offset = 0;
+    for (;;) {
+      const path = `${table}?select=*&order=${order}&offset=${offset}&limit=${pageSize}`;
+      const page = (await supabaseRest(supabase, path, {
+        method: "GET",
+        prefer: "return=representation",
+      })) ?? [];
+      if (!Array.isArray(page) || page.length === 0) break;
+      rows.push(...page);
+      if (page.length < pageSize) break;
+      offset += pageSize;
+    }
+    return rows;
+  }
+
+  for (const row of await fetchTable("discussion_comments", "created_at.asc")) {
+    const mediaType = row.media_type;
+    const tmdbId = row.tmdb_id;
+    const commentId = row.firestore_id || row.id;
+    if (!mediaType || !tmdbId || !commentId) continue;
+    const ref = db
+      .collection("public")
+      .doc("discussions")
+      .collection(`${mediaType}_${tmdbId}`)
+      .doc(String(commentId));
+    if (!dryRun) {
+      await ref.set(
+        withTimestamps(
+          {
+            userId: row.author_firebase_uid,
+            displayName: row.display_name ?? "Viewer",
+            body: row.body,
+            mediaType,
+            tmdbId,
+            seasonNumber: row.season_number ?? null,
+            episodeNumber: row.episode_number ?? null,
+            createdAt: row.created_at,
+          },
+          ["createdAt"],
+        ),
+        {merge: true},
+      );
+    }
+    remaining.discussions += 1;
+  }
+
+  for (const row of await fetchTable("puzzles_public", "puzzle_date.asc")) {
+    const payload = row.payload ?? {};
+    if (!dryRun) {
+      await db.collection("puzzlePublic").doc(row.puzzle_id).set(payload, {merge: true});
+      const priv = await supabaseRpc(
+        supabase,
+        "get_puzzle_private",
+        {p_puzzle_id: row.puzzle_id},
+        "return=representation",
+      );
+      if (priv && typeof priv === "object") {
+        const answer = priv.answer ?? {};
+        await db.collection("puzzlePrivate").doc(row.puzzle_id).set(
+          {
+            puzzleId: row.puzzle_id,
+            correctChoiceId: answer.correctChoiceId,
+            correctShowId: answer.correctShowId,
+            correctTitle: answer.correctTitle ?? null,
+            hints: priv.hints ?? [],
+            status: priv.status,
+            difficulty: answer.difficulty ?? "medium",
+            seasonNumber: answer.seasonNumber ?? null,
+            episodeNumber: answer.episodeNumber ?? null,
+            createdAt: answer.createdAt ?? null,
+            updatedAt: priv.updated_at ?? null,
+            publishedAt: answer.publishedAt ?? row.published_at ?? null,
+            imageAsset: priv.image_asset ?? null,
+          },
+          {merge: true},
+        );
+      }
+    }
+    remaining.puzzles += 1;
+  }
+
+  for (const row of await fetchTable("media_mappings", "updated_at.asc")) {
+    const raw = row.raw ?? {};
+    const id = `${row.provider}_${row.media_type}_${row.external_id}`;
+    if (!dryRun) {
+      await db.collection("mediaMappings").doc(id).set(
+        withTimestamps(
+          {
+            provider: row.provider,
+            mediaType: row.media_type,
+            externalId: row.external_id,
+            tmdbId: row.tmdb_id,
+            title: raw.title ?? null,
+            updatedBy: raw.updatedBy ?? null,
+            updatedAt: row.updated_at,
+          },
+          ["updatedAt"],
+        ),
+        {merge: true},
+      );
+    }
+    remaining.mappings += 1;
+  }
+
+  for (const row of await fetchTable("franchises", "sort_order.asc")) {
+    if (!dryRun) {
+      await db.collection("franchises").doc(row.slug).set(
+        withTimestamps(
+          {
+            slug: row.slug,
+            name: row.title,
+            description: row.description,
+            published: row.published,
+            sortOrder: row.sort_order,
+            phases: row.phases ?? [],
+            titles: row.titles ?? [],
+            updatedAt: row.updated_at,
+          },
+          ["updatedAt"],
+        ),
+        {merge: true},
+      );
+    }
+    remaining.franchises += 1;
+  }
+
+  console.log(JSON.stringify({remaining, dryRun}, null, 2));
 }
 
 console.log(JSON.stringify({done: true, dryRun, totals}, null, 2));

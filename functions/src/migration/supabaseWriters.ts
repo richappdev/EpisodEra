@@ -443,7 +443,7 @@ export async function patchShowProgressNextEpisode(
   );
 }
 
-/** Import job metadata only — staging rows stay Firestore until cutover. */
+/** Import job metadata only — staging rows use dedicated staging writers. */
 export async function upsertImportShadow(
   firebaseUid: string,
   job: {
@@ -485,4 +485,232 @@ export async function upsertImportShadow(
       updated_at: job.updatedAt ?? new Date().toISOString(),
     },
   ]);
+}
+
+export async function upsertDiscussionCommentShadow(comment: {
+  commentId: string;
+  userId: string;
+  displayName: string;
+  body: string;
+  mediaType: "movie" | "tv";
+  tmdbId: number;
+  seasonNumber: number | null;
+  episodeNumber: number | null;
+  createdAt?: string | null;
+}): Promise<void> {
+  await ensureProfileStubShadow(comment.userId);
+  const env = getSupabaseEnvOrNull();
+  if (!env) {
+    throw new Error("Supabase is not configured");
+  }
+  await supabaseRest(env, "discussion_comments?on_conflict=firestore_id", {
+    method: "POST",
+    body: [
+      {
+        firestore_id: comment.commentId,
+        media_type: comment.mediaType,
+        tmdb_id: comment.tmdbId,
+        author_firebase_uid: comment.userId,
+        display_name: comment.displayName,
+        body: comment.body,
+        season_number: comment.seasonNumber,
+        episode_number: comment.episodeNumber,
+        created_at: comment.createdAt ?? new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    ],
+    prefer: "resolution=merge-duplicates,return=minimal",
+  });
+}
+
+export async function upsertMediaMappingShadow(mapping: {
+  provider: string;
+  mediaType: "movie" | "tv";
+  externalId: string;
+  tmdbId: number;
+  title: string | null;
+  updatedBy: string | null;
+  updatedAt?: string | null;
+}): Promise<void> {
+  await upsert("media_mappings", "provider,media_type,external_id", [
+    {
+      provider: mapping.provider,
+      media_type: mapping.mediaType,
+      external_id: mapping.externalId,
+      tmdb_id: mapping.tmdbId,
+      raw: {title: mapping.title, updatedBy: mapping.updatedBy},
+      updated_at: mapping.updatedAt ?? new Date().toISOString(),
+    },
+  ]);
+}
+
+export async function upsertFranchiseShadow(franchise: {
+  slug: string;
+  title: string;
+  description?: string | null;
+  published?: boolean;
+  sortOrder?: number;
+  phases?: unknown;
+  titles?: unknown;
+  updatedAt?: string | null;
+}): Promise<void> {
+  await upsert("franchises", "slug", [
+    {
+      slug: franchise.slug,
+      title: franchise.title,
+      description: franchise.description ?? null,
+      published: franchise.published ?? true,
+      sort_order: franchise.sortOrder ?? 0,
+      phases: franchise.phases ?? [],
+      titles: franchise.titles ?? [],
+      updated_at: franchise.updatedAt ?? new Date().toISOString(),
+    },
+  ]);
+}
+
+export async function upsertPuzzleShadow(input: {
+  puzzleId: string;
+  puzzleDate: string;
+  publicPayload: Record<string, unknown>;
+  answer: Record<string, unknown>;
+  hints: unknown;
+  status: string;
+  imageAsset?: unknown;
+  publishedAt?: string | null;
+}): Promise<void> {
+  const env = getSupabaseEnvOrNull();
+  if (!env) {
+    throw new Error("Supabase is not configured");
+  }
+  await upsert("puzzles_public", "puzzle_id", [
+    {
+      puzzle_id: input.puzzleId,
+      puzzle_date: input.puzzleDate,
+      payload: input.publicPayload,
+      published_at: input.publishedAt ?? null,
+      updated_at: new Date().toISOString(),
+    },
+  ]);
+  await supabaseRpc(env, "upsert_puzzle_private", {
+    p_puzzle_id: input.puzzleId,
+    p_answer: input.answer,
+    p_hints: input.hints ?? [],
+    p_status: input.status,
+    p_image_asset: input.imageAsset ?? null,
+  });
+}
+
+export async function upsertPuzzleAttemptShadow(
+  playerId: string,
+  puzzleId: string,
+  attemptState: Record<string, unknown>,
+): Promise<void> {
+  await upsert("puzzle_attempts", "player_id,puzzle_id", [
+    {
+      player_id: playerId,
+      puzzle_id: puzzleId,
+      attempt_state: attemptState,
+      updated_at: new Date().toISOString(),
+    },
+  ]);
+}
+
+export async function upsertUserGameStatsShadow(
+  firebaseUid: string,
+  stats: {
+    currentStreak: number;
+    maxStreak: number;
+    wins: number;
+    plays: number;
+    payload?: Record<string, unknown>;
+  },
+): Promise<void> {
+  await ensureProfileStubShadow(firebaseUid);
+  await upsert("user_game_stats", "firebase_uid", [
+    {
+      firebase_uid: firebaseUid,
+      current_streak: stats.currentStreak,
+      max_streak: stats.maxStreak,
+      wins: stats.wins,
+      plays: stats.plays,
+      payload: stats.payload ?? {},
+      updated_at: new Date().toISOString(),
+    },
+  ]);
+}
+
+export async function upsertGameConfigShadow(key: string, payload: Record<string, unknown>): Promise<void> {
+  const env = getSupabaseEnvOrNull();
+  if (!env) {
+    throw new Error("Supabase is not configured");
+  }
+  await supabaseRpc(env, "upsert_game_config", {p_key: key, p_payload: payload});
+}
+
+export async function upsertImportStagedShowShadow(
+  importId: string,
+  show: {
+    mediaType: "movie" | "tv";
+    tmdbId: number;
+    status?: string;
+    payload: Record<string, unknown>;
+  },
+): Promise<void> {
+  const env = getSupabaseEnvOrNull();
+  if (!env) {
+    throw new Error("Supabase is not configured");
+  }
+  await supabaseRpc(env, "upsert_import_staged_show", {
+    p_import_id: importId,
+    p_media_type: show.mediaType,
+    p_tmdb_id: show.tmdbId,
+    p_status: show.status ?? "pending",
+    p_payload: show.payload,
+  });
+}
+
+export async function upsertImportStagedEpisodeShadow(
+  importId: string,
+  episode: {
+    showTmdbId: number;
+    seasonNumber: number;
+    episodeNumber: number;
+    status?: string;
+    payload: Record<string, unknown>;
+  },
+): Promise<void> {
+  const env = getSupabaseEnvOrNull();
+  if (!env) {
+    throw new Error("Supabase is not configured");
+  }
+  await supabaseRpc(env, "upsert_import_staged_episode", {
+    p_import_id: importId,
+    p_show_tmdb_id: episode.showTmdbId,
+    p_season_number: episode.seasonNumber,
+    p_episode_number: episode.episodeNumber,
+    p_status: episode.status ?? "pending",
+    p_payload: episode.payload,
+  });
+}
+
+export async function deleteImportStagedShadow(importId: string): Promise<void> {
+  const env = getSupabaseEnvOrNull();
+  if (!env) {
+    throw new Error("Supabase is not configured");
+  }
+  await supabaseRpc(env, "delete_import_staged", {p_import_id: importId});
+}
+
+export async function deleteUserOwnedOrphansShadow(firebaseUid: string): Promise<void> {
+  const env = getSupabaseEnvOrNull();
+  if (!env) {
+    return;
+  }
+  await removeEq(
+    "discussion_comments",
+    `author_firebase_uid=eq.${encodeURIComponent(firebaseUid)}`,
+  );
+  await removeEq("puzzle_attempts", `player_id=eq.${encodeURIComponent(`uid:${firebaseUid}`)}`);
+  await removeEq("user_game_stats", `firebase_uid=eq.${encodeURIComponent(firebaseUid)}`);
+  await removeEq("profiles", `firebase_uid=eq.${encodeURIComponent(firebaseUid)}`);
 }

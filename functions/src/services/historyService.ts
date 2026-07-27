@@ -266,165 +266,227 @@ class HistoryService {
   }
 
   async updateWatchedAt(userId: string, historyId: string, input: UpdateHistoryInput): Promise<HistoryEntry> {
-    const ref = this.collection(userId).doc(historyId);
-    const snapshot = await ref.get();
-    if (!snapshot.exists) {
-      throw new HttpError(404, "History entry was not found.", "history_not_found");
+    const {shouldPersistFirestore} = await import("../config/env");
+    const watchedAt = parseHistoryWatchedAt(input.watchedAt);
+    const existing = await this.get(userId, historyId);
+
+    if (shouldPersistFirestore()) {
+      const ref = this.collection(userId).doc(historyId);
+      await ref.set(
+        {
+          watchedAt: Timestamp.fromDate(watchedAt),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
     }
 
-    const watchedAt = parseHistoryWatchedAt(input.watchedAt);
-    await ref.set(
-      {
-        watchedAt: Timestamp.fromDate(watchedAt),
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      {merge: true},
-    );
-
-    const updated = await ref.get();
-    const mapped = mapHistoryDocument(updated.id, updated.data() as HistoryDocument);
+    const mapped: HistoryEntry = shouldPersistFirestore()
+      ? await this.get(userId, historyId)
+      : {
+        ...existing,
+        watchedAt: watchedAt.toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
     await derivedCacheService.invalidateUserLibraryCaches(userId);
-    const {shadowWrite} = await import("../migration/shadow");
+    const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
     const {upsertHistoryShadow} = await import("../migration/supabaseWriters");
-    await shadowWrite({
+    await writeSupabasePrimaryOrShadow({
       domain: "history",
       operation: "updateWatchedAt",
       firebaseUid: userId,
       operationId: `history:update:${userId}:${historyId}:${Date.now()}`,
       payload: mapped,
-      secondary: () => upsertHistoryShadow(userId, mapped),
+      write: () => upsertHistoryShadow(userId, mapped),
     });
     return mapped;
   }
 
   async delete(userId: string, historyId: string): Promise<HistoryEntry> {
+    const {shouldPersistFirestore} = await import("../config/env");
     const entry = await this.get(userId, historyId);
-    await this.collection(userId).doc(historyId).delete();
+    if (shouldPersistFirestore()) {
+      await this.collection(userId).doc(historyId).delete();
+    }
     await derivedCacheService.invalidateUserLibraryCaches(userId);
-    const {shadowWrite} = await import("../migration/shadow");
+    const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
     const {removeHistoryShadow} = await import("../migration/supabaseWriters");
-    await shadowWrite({
+    await writeSupabasePrimaryOrShadow({
       domain: "history",
       operation: "delete",
       firebaseUid: userId,
       operationId: `history:remove:${userId}:${historyId}:${Date.now()}`,
       payload: {historyId},
-      secondary: () => removeHistoryShadow(userId, historyId),
+      write: () => removeHistoryShadow(userId, historyId),
     });
     return entry;
   }
 
   async recordMovie(userId: string, input: MovieHistoryInput): Promise<void> {
+    const {shouldPersistFirestore} = await import("../config/env");
     const historyId = historyIdForMovie(input.tmdbId);
     const ref = this.collection(userId).doc(historyId);
-    const existing = await ref.get();
-    const isRewatch = existing.exists;
+    const nowIso = new Date().toISOString();
+    let mapped: HistoryEntry | null = null;
 
-    await ref.set(
-      {
+    if (shouldPersistFirestore()) {
+      const existing = await ref.get();
+      const isRewatch = existing.exists;
+      await ref.set(
+        {
+          tmdbId: input.tmdbId,
+          mediaType: "movie",
+          title: input.title,
+          seasonNumber: null,
+          episodeNumber: null,
+          episodeTitle: null,
+          watchedAt: isRewatch
+            ? (existing.get("watchedAt") ?? FieldValue.serverTimestamp())
+            : FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+          rewatchCount: isRewatch ? FieldValue.increment(1) : 0,
+          genreNames: input.genreNames ?? existing.get("genreNames") ?? [],
+          runtimeMinutes: input.runtimeMinutes ?? existing.get("runtimeMinutes") ?? null,
+        },
+        {merge: true},
+      );
+      const snap = await ref.get();
+      if (snap.exists) {
+        mapped = mapHistoryDocument(historyId, snap.data() as HistoryDocument);
+      }
+    } else {
+      mapped = {
+        historyId,
         tmdbId: input.tmdbId,
         mediaType: "movie",
         title: input.title,
         seasonNumber: null,
         episodeNumber: null,
         episodeTitle: null,
-        watchedAt: isRewatch
-          ? (existing.get("watchedAt") ?? FieldValue.serverTimestamp())
-          : FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-        rewatchCount: isRewatch ? FieldValue.increment(1) : 0,
-        genreNames: input.genreNames ?? existing.get("genreNames") ?? [],
-        runtimeMinutes: input.runtimeMinutes ?? existing.get("runtimeMinutes") ?? null,
-      },
-      {merge: true},
-    );
+        watchedAt: nowIso,
+        updatedAt: nowIso,
+        rewatchCount: 0,
+        genreNames: input.genreNames ?? [],
+        runtimeMinutes: input.runtimeMinutes ?? null,
+      };
+    }
+
     await derivedCacheService.invalidateUserLibraryCaches(userId);
-    const snap = await ref.get();
-    if (snap.exists) {
-      const data = snap.data() as HistoryDocument;
-      const {shadowWrite} = await import("../migration/shadow");
+    if (mapped) {
+      const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
       const {upsertHistoryShadow} = await import("../migration/supabaseWriters");
-      await shadowWrite({
+      await writeSupabasePrimaryOrShadow({
         domain: "history",
         operation: "recordMovie",
         firebaseUid: userId,
         operationId: `history:upsert:${userId}:${historyId}:${Date.now()}`,
         payload: {historyId},
-        secondary: () => upsertHistoryShadow(userId, mapHistoryDocument(historyId, data)),
+        write: () => upsertHistoryShadow(userId, mapped!),
       });
     }
   }
 
   async removeMovie(userId: string, tmdbId: number): Promise<void> {
+    const {shouldPersistFirestore} = await import("../config/env");
     const historyId = historyIdForMovie(tmdbId);
-    await this.collection(userId).doc(historyId).delete();
+    if (shouldPersistFirestore()) {
+      await this.collection(userId).doc(historyId).delete();
+    }
     await derivedCacheService.invalidateUserLibraryCaches(userId);
-    const {shadowWrite} = await import("../migration/shadow");
+    const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
     const {removeHistoryShadow} = await import("../migration/supabaseWriters");
-    await shadowWrite({
+    await writeSupabasePrimaryOrShadow({
       domain: "history",
       operation: "removeMovie",
       firebaseUid: userId,
       operationId: `history:remove:${userId}:${historyId}:${Date.now()}`,
       payload: {historyId},
-      secondary: () => removeHistoryShadow(userId, historyId),
+      write: () => removeHistoryShadow(userId, historyId),
     });
   }
 
   async recordEpisode(userId: string, input: EpisodeHistoryInput): Promise<void> {
+    const {shouldPersistFirestore} = await import("../config/env");
     const historyId = `tv_${input.tmdbId}_${input.episodeKey}`;
     const ref = this.collection(userId).doc(historyId);
-    const existing = await ref.get();
-    const isRewatch = existing.exists;
+    const nowIso = new Date().toISOString();
+    let mapped: HistoryEntry | null = null;
 
-    await ref.set(
-      {
+    if (shouldPersistFirestore()) {
+      const existing = await ref.get();
+      const isRewatch = existing.exists;
+      await ref.set(
+        {
+          tmdbId: input.tmdbId,
+          mediaType: "tv",
+          title: input.title,
+          seasonNumber: input.seasonNumber,
+          episodeNumber: input.episodeNumber,
+          episodeTitle: input.episodeTitle,
+          watchedAt: isRewatch
+            ? (existing.get("watchedAt") ?? FieldValue.serverTimestamp())
+            : FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+          rewatchCount: isRewatch ? FieldValue.increment(1) : 0,
+          genreNames: input.genreNames ?? existing.get("genreNames") ?? [],
+          runtimeMinutes: input.runtimeMinutes ?? existing.get("runtimeMinutes") ?? null,
+        },
+        {merge: true},
+      );
+      const snap = await ref.get();
+      if (snap.exists) {
+        mapped = mapHistoryDocument(historyId, snap.data() as HistoryDocument);
+      }
+    } else {
+      mapped = {
+        historyId,
         tmdbId: input.tmdbId,
         mediaType: "tv",
         title: input.title,
         seasonNumber: input.seasonNumber,
         episodeNumber: input.episodeNumber,
         episodeTitle: input.episodeTitle,
-        watchedAt: isRewatch
-          ? (existing.get("watchedAt") ?? FieldValue.serverTimestamp())
-          : FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-        rewatchCount: isRewatch ? FieldValue.increment(1) : 0,
-        genreNames: input.genreNames ?? existing.get("genreNames") ?? [],
-        runtimeMinutes: input.runtimeMinutes ?? existing.get("runtimeMinutes") ?? null,
-      },
-      {merge: true},
-    );
+        watchedAt: nowIso,
+        updatedAt: nowIso,
+        rewatchCount: 0,
+        genreNames: input.genreNames ?? [],
+        runtimeMinutes: input.runtimeMinutes ?? null,
+      };
+    }
+
     await derivedCacheService.invalidateUserLibraryCaches(userId);
-    const snap = await ref.get();
-    if (snap.exists) {
-      const data = snap.data() as HistoryDocument;
-      const {shadowWrite} = await import("../migration/shadow");
+    if (mapped) {
+      const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
       const {upsertHistoryShadow} = await import("../migration/supabaseWriters");
-      await shadowWrite({
+      await writeSupabasePrimaryOrShadow({
         domain: "history",
         operation: "recordEpisode",
         firebaseUid: userId,
         operationId: `history:upsert:${userId}:${historyId}:${Date.now()}`,
         payload: {historyId},
-        secondary: () => upsertHistoryShadow(userId, mapHistoryDocument(historyId, data)),
+        write: () => upsertHistoryShadow(userId, mapped!),
       });
     }
   }
 
   async removeEpisode(userId: string, tmdbId: number, episodeKey: string): Promise<void> {
+    const {shouldPersistFirestore} = await import("../config/env");
     const historyId = `tv_${tmdbId}_${episodeKey}`;
-    await this.collection(userId).doc(historyId).delete();
+    if (shouldPersistFirestore()) {
+      await this.collection(userId).doc(historyId).delete();
+    }
     await derivedCacheService.invalidateUserLibraryCaches(userId);
-    const {shadowWrite} = await import("../migration/shadow");
+    const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
     const {removeHistoryShadow} = await import("../migration/supabaseWriters");
-    await shadowWrite({
+    await writeSupabasePrimaryOrShadow({
       domain: "history",
       operation: "removeEpisode",
       firebaseUid: userId,
       operationId: `history:remove:${userId}:${historyId}:${Date.now()}`,
       payload: {historyId},
-      secondary: () => removeHistoryShadow(userId, historyId),
+      write: () => removeHistoryShadow(userId, historyId),
     });
   }
-}export const historyService = new HistoryService();
+}
+
+export const historyService = new HistoryService();

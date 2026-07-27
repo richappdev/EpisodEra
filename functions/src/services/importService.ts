@@ -341,6 +341,18 @@ class ImportService {
     const ref = this.collection(userId).doc(importId);
     const showsDeleted = await this.deleteCollectionDocs(ref.collection("stagedShows"));
     const episodesDeleted = await this.deleteCollectionDocs(ref.collection("stagedEpisodes"));
+
+    const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
+    const {deleteImportStagedShadow} = await import("../migration/supabaseWriters");
+    await writeSupabasePrimaryOrShadow({
+      domain: "importStaging",
+      operation: "clearStaging",
+      firebaseUid: userId,
+      operationId: `importStaging:clear:${userId}:${importId}:${Date.now()}`,
+      payload: {importId},
+      write: () => deleteImportStagedShadow(importId),
+    });
+
     return showsDeleted + episodesDeleted;
   }
 
@@ -351,15 +363,15 @@ class ImportService {
     operation: string,
   ): Promise<ImportJobSummary> {
     const summary = await this.get(userId, importId);
-    const {shadowWrite} = await import("../migration/shadow");
+    const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
     const {upsertImportShadow} = await import("../migration/supabaseWriters");
-    await shadowWrite({
+    await writeSupabasePrimaryOrShadow({
       domain: "imports",
       operation,
       firebaseUid: userId,
       operationId: `imports:${operation}:${userId}:${importId}:${Date.now()}`,
       payload: summary,
-      secondary: () => upsertImportShadow(userId, summary),
+      write: () => upsertImportShadow(userId, summary),
     });
     return summary;
   }
@@ -397,22 +409,67 @@ class ImportService {
       mappingSkippedShows: [],
       report: null,
     };
-    await ref.set(data);
+    const {shouldPersistFirestore} = await import("../config/env");
+    if (shouldPersistFirestore()) {
+      await ref.set(data);
+    }
     const summary = this.mapImport(importId, data);
-    const {shadowWrite} = await import("../migration/shadow");
+    const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
     const {upsertImportShadow} = await import("../migration/supabaseWriters");
-    await shadowWrite({
+    await writeSupabasePrimaryOrShadow({
       domain: "imports",
       operation: "create",
       firebaseUid: userId,
       operationId: `imports:create:${userId}:${importId}`,
       payload: summary,
-      secondary: () => upsertImportShadow(userId, summary),
+      write: () => upsertImportShadow(userId, summary),
     });
     return summary;
   }
 
   async get(userId: string, importId: string): Promise<ImportJobSummary> {
+    const {isSupabaseReadImportStaging, shouldPersistFirestore} = await import("../config/env");
+    const {getSupabaseEnvOrNull, supabaseRest} = await import("../db/supabaseClient");
+
+    if (isSupabaseReadImportStaging() || !shouldPersistFirestore()) {
+      const env = getSupabaseEnvOrNull();
+      if (env) {
+        const rows = (await supabaseRest(
+          env,
+          `imports?id=eq.${encodeURIComponent(importId)}` +
+            `&firebase_uid=eq.${encodeURIComponent(userId)}&select=*&limit=1`,
+          {method: "GET", prefer: "return=representation"},
+        )) as Array<Record<string, unknown>> | null;
+        const row = Array.isArray(rows) && rows[0] ? rows[0] : null;
+        if (row) {
+          const summary = (row.summary as Record<string, unknown> | null) ?? {};
+          return {
+            importId: String(row.id),
+            provider: String(row.provider ?? "tv_time") as ImportProvider,
+            status: String(row.status ?? "draft") as ImportJobSummary["status"],
+            sourceHash: (summary.sourceHash as string | null) ?? null,
+            watchlistStaged: Number(summary.watchlistStaged ?? 0),
+            episodesStaged: Number(summary.episodesStaged ?? 0),
+            watchlistImported: Number(summary.watchlistImported ?? 0),
+            episodesImported: Number(summary.episodesImported ?? 0),
+            episodesSkipped: Number(summary.episodesSkipped ?? 0),
+            episodesFailed: Number(summary.episodesFailed ?? 0),
+            errorMessage: (summary.errorMessage as string | null) ?? null,
+            createdAt: typeof row.created_at === "string" ? row.created_at : null,
+            updatedAt: typeof row.updated_at === "string" ? row.updated_at : null,
+            completedAt: (summary.completedAt as string | null) ?? null,
+            stagingClearedAt: null,
+            stagingDocsDeleted: 0,
+            report: null,
+          };
+        }
+      }
+    }
+
+    if (!shouldPersistFirestore()) {
+      throw new HttpError(404, "Import job was not found.", "import_not_found");
+    }
+
     const snapshot = await this.collection(userId).doc(importId).get();
     if (!snapshot.exists) {
       throw new HttpError(404, "Import job was not found.", "import_not_found");
@@ -421,81 +478,161 @@ class ImportService {
   }
 
   async stageWatchlist(userId: string, importId: string, items: ImportWatchlistItemInput[]): Promise<ImportJobSummary> {
+    const {shouldPersistFirestore} = await import("../config/env");
     const ref = this.collection(userId).doc(importId);
-    const snapshot = await ref.get();
-    if (!snapshot.exists) {
-      throw new HttpError(404, "Import job was not found.", "import_not_found");
+    let status: ImportJobSummary["status"];
+
+    if (shouldPersistFirestore()) {
+      const snapshot = await ref.get();
+      if (!snapshot.exists) {
+        throw new HttpError(404, "Import job was not found.", "import_not_found");
+      }
+      status = (snapshot.data() as ImportDocument).status;
+    } else {
+      status = (await this.get(userId, importId)).status;
     }
 
-    const job = snapshot.data() as ImportDocument;
-    if (job.status !== "draft" && job.status !== "staged") {
+    if (status !== "draft" && status !== "staged") {
       throw new HttpError(409, "Import job can no longer accept staging writes.", "import_not_staging");
     }
 
-    const batch = getFirestore().batch();
-    for (const item of items) {
-      const docId = stagedShowDocId(item.mediaType, item.tmdbId);
-      batch.set(ref.collection("stagedShows").doc(docId), {
-        tmdbId: item.tmdbId,
-        mediaType: item.mediaType,
-        title: item.title,
-        poster: item.poster ?? null,
-        backdrop: item.backdrop ?? null,
-        status: item.status,
-        sourceShowId: item.sourceShowId ?? null,
-        imported: false,
-      } satisfies StagedShowDocument);
+    if (shouldPersistFirestore()) {
+      const batch = getFirestore().batch();
+      for (const item of items) {
+        const docId = stagedShowDocId(item.mediaType, item.tmdbId);
+        batch.set(ref.collection("stagedShows").doc(docId), {
+          tmdbId: item.tmdbId,
+          mediaType: item.mediaType,
+          title: item.title,
+          poster: item.poster ?? null,
+          backdrop: item.backdrop ?? null,
+          status: item.status,
+          sourceShowId: item.sourceShowId ?? null,
+          imported: false,
+        } satisfies StagedShowDocument);
+      }
+      batch.set(
+        ref,
+        {
+          status: "draft",
+          watchlistStaged: FieldValue.increment(items.length),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
+      await batch.commit();
     }
-    batch.set(
-      ref,
-      {
-        status: "draft",
-        watchlistStaged: FieldValue.increment(items.length),
-        updatedAt: FieldValue.serverTimestamp(),
+
+    const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
+    const {upsertImportStagedShowShadow} = await import("../migration/supabaseWriters");
+    await writeSupabasePrimaryOrShadow({
+      domain: "importStaging",
+      operation: "stageWatchlist",
+      firebaseUid: userId,
+      operationId: `importStaging:show:${userId}:${importId}:${Date.now()}`,
+      payload: {importId, count: items.length},
+      write: async () => {
+        for (const item of items) {
+          await upsertImportStagedShowShadow(importId, {
+            mediaType: item.mediaType,
+            tmdbId: item.tmdbId,
+            status: item.status,
+            payload: {
+              tmdbId: item.tmdbId,
+              mediaType: item.mediaType,
+              title: item.title,
+              poster: item.poster ?? null,
+              backdrop: item.backdrop ?? null,
+              status: item.status,
+              sourceShowId: item.sourceShowId ?? null,
+              imported: false,
+            },
+          });
+        }
       },
-      {merge: true},
-    );
-    await batch.commit();
+    });
+
     return this.shadowImportJob(userId, importId, "stageWatchlist");
   }
 
   async stageEpisodes(userId: string, importId: string, episodes: ImportEpisodeInput[]): Promise<ImportJobSummary> {
+    const {shouldPersistFirestore} = await import("../config/env");
     const ref = this.collection(userId).doc(importId);
-    const snapshot = await ref.get();
-    if (!snapshot.exists) {
-      throw new HttpError(404, "Import job was not found.", "import_not_found");
+    let status: ImportJobSummary["status"];
+
+    if (shouldPersistFirestore()) {
+      const snapshot = await ref.get();
+      if (!snapshot.exists) {
+        throw new HttpError(404, "Import job was not found.", "import_not_found");
+      }
+      status = (snapshot.data() as ImportDocument).status;
+    } else {
+      status = (await this.get(userId, importId)).status;
     }
 
-    const job = snapshot.data() as ImportDocument;
-    if (job.status !== "draft" && job.status !== "staged") {
+    if (status !== "draft" && status !== "staged") {
       throw new HttpError(409, "Import job can no longer accept staging writes.", "import_not_staging");
     }
 
-    const batch = getFirestore().batch();
-    for (const episode of episodes) {
-      const docId = stagedEpisodeDocId(episode.tmdbId, episode.seasonNumber, episode.episodeNumber);
-      batch.set(ref.collection("stagedEpisodes").doc(docId), {
-        tmdbId: episode.tmdbId,
-        seasonNumber: episode.seasonNumber,
-        episodeNumber: episode.episodeNumber,
-        watchedAt: episode.watchedAt ?? null,
-        sourceShowId: episode.sourceShowId ?? null,
-        sourceEpisodeId: episode.sourceEpisodeId ?? null,
-        bulkType: episode.bulkType ?? null,
-        status: "pending",
-        skipReason: null,
-      } satisfies StagedEpisodeDocument);
+    if (shouldPersistFirestore()) {
+      const batch = getFirestore().batch();
+      for (const episode of episodes) {
+        const docId = stagedEpisodeDocId(episode.tmdbId, episode.seasonNumber, episode.episodeNumber);
+        batch.set(ref.collection("stagedEpisodes").doc(docId), {
+          tmdbId: episode.tmdbId,
+          seasonNumber: episode.seasonNumber,
+          episodeNumber: episode.episodeNumber,
+          watchedAt: episode.watchedAt ?? null,
+          sourceShowId: episode.sourceShowId ?? null,
+          sourceEpisodeId: episode.sourceEpisodeId ?? null,
+          bulkType: episode.bulkType ?? null,
+          status: "pending",
+          skipReason: null,
+        } satisfies StagedEpisodeDocument);
+      }
+      batch.set(
+        ref,
+        {
+          status: "draft",
+          episodesStaged: FieldValue.increment(episodes.length),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
+      await batch.commit();
     }
-    batch.set(
-      ref,
-      {
-        status: "draft",
-        episodesStaged: FieldValue.increment(episodes.length),
-        updatedAt: FieldValue.serverTimestamp(),
+
+    const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
+    const {upsertImportStagedEpisodeShadow} = await import("../migration/supabaseWriters");
+    await writeSupabasePrimaryOrShadow({
+      domain: "importStaging",
+      operation: "stageEpisodes",
+      firebaseUid: userId,
+      operationId: `importStaging:episode:${userId}:${importId}:${Date.now()}`,
+      payload: {importId, count: episodes.length},
+      write: async () => {
+        for (const episode of episodes) {
+          await upsertImportStagedEpisodeShadow(importId, {
+            showTmdbId: episode.tmdbId,
+            seasonNumber: episode.seasonNumber,
+            episodeNumber: episode.episodeNumber,
+            status: "pending",
+            payload: {
+              tmdbId: episode.tmdbId,
+              seasonNumber: episode.seasonNumber,
+              episodeNumber: episode.episodeNumber,
+              watchedAt: episode.watchedAt ?? null,
+              sourceShowId: episode.sourceShowId ?? null,
+              sourceEpisodeId: episode.sourceEpisodeId ?? null,
+              bulkType: episode.bulkType ?? null,
+              status: "pending",
+              skipReason: null,
+            },
+          });
+        }
       },
-      {merge: true},
-    );
-    await batch.commit();
+    });
+
     return this.shadowImportJob(userId, importId, "stageEpisodes");
   }
 
@@ -519,14 +656,17 @@ class ImportService {
       throw new HttpError(400, "Stage at least one watchlist or episode row before commit.", "import_empty");
     }
 
-    await ref.set(
-      {
-        status: "staged",
-        mappingSkippedShows: skippedShows,
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      {merge: true},
-    );
+    const {shouldPersistFirestore} = await import("../config/env");
+    if (shouldPersistFirestore()) {
+      await ref.set(
+        {
+          status: "staged",
+          mappingSkippedShows: skippedShows,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
+    }
     return this.shadowImportJob(userId, importId, "commit");
   }
 

@@ -231,21 +231,24 @@ class WatchlistService {
           return item;
         }
 
-        await this.collection(userId).doc(item.itemId).update({
-          poster: merged.poster,
-          backdrop: merged.backdrop,
-        });
+        const {shouldPersistFirestore} = await import("../config/env");
+        if (shouldPersistFirestore()) {
+          await this.collection(userId).doc(item.itemId).update({
+            poster: merged.poster,
+            backdrop: merged.backdrop,
+          });
+        }
 
         const next = {...item, poster: merged.poster, backdrop: merged.backdrop};
-        const {shadowWrite} = await import("../migration/shadow");
+        const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
         const {upsertWatchlistShadow} = await import("../migration/supabaseWriters");
-        await shadowWrite({
+        await writeSupabasePrimaryOrShadow({
           domain: "watchlist",
           operation: "backfillImages",
           firebaseUid: userId,
           operationId: `watchlist:images:${userId}:${item.itemId}:${Date.now()}`,
           payload: next,
-          secondary: () => upsertWatchlistShadow(userId, next),
+          write: () => upsertWatchlistShadow(userId, next),
         });
 
         return next;
@@ -259,38 +262,55 @@ class WatchlistService {
   }
 
   async add(userId: string, input: AddWatchlistItemInput): Promise<WatchlistItem> {
+    const {shouldPersistFirestore} = await import("../config/env");
     const itemId = itemIdFor(input.mediaType, input.tmdbId);
     const ref = this.collection(userId).doc(itemId);
+    const nowIso = new Date().toISOString();
+    const status = input.status ?? defaultStatusFor(input.mediaType);
 
-    await getFirestore().runTransaction(async (transaction) => {
-      const existing = await transaction.get(ref);
-      transaction.set(
-        ref,
-        {
-          tmdbId: input.tmdbId,
-          mediaType: input.mediaType,
-          title: input.title,
-          poster: normalizeImageUrl(input.poster),
-          backdrop: normalizeImageUrl(input.backdrop),
-          status: input.status ?? defaultStatusFor(input.mediaType),
-          addedAt: existing.exists ? existing.get("addedAt") ?? FieldValue.serverTimestamp() : FieldValue.serverTimestamp(),
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        {merge: true},
-      );
-    });
+    if (shouldPersistFirestore()) {
+      await getFirestore().runTransaction(async (transaction) => {
+        const existing = await transaction.get(ref);
+        transaction.set(
+          ref,
+          {
+            tmdbId: input.tmdbId,
+            mediaType: input.mediaType,
+            title: input.title,
+            poster: normalizeImageUrl(input.poster),
+            backdrop: normalizeImageUrl(input.backdrop),
+            status,
+            addedAt: existing.exists ? existing.get("addedAt") ?? FieldValue.serverTimestamp() : FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          {merge: true},
+        );
+      });
+    }
 
-    const item = await this.get(userId, itemId);
+    const item = shouldPersistFirestore()
+      ? await this.get(userId, itemId)
+      : {
+        itemId,
+        tmdbId: input.tmdbId,
+        mediaType: input.mediaType,
+        title: input.title,
+        poster: normalizeImageUrl(input.poster),
+        backdrop: normalizeImageUrl(input.backdrop),
+        status,
+        addedAt: nowIso,
+        updatedAt: nowIso,
+      };
     await derivedCacheService.invalidateUserLibraryCaches(userId);
-    const {shadowWrite} = await import("../migration/shadow");
+    const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
     const {upsertWatchlistShadow} = await import("../migration/supabaseWriters");
-    await shadowWrite({
+    await writeSupabasePrimaryOrShadow({
       domain: "watchlist",
       operation: "upsert",
       firebaseUid: userId,
       operationId: `watchlist:upsert:${userId}:${itemId}:${Date.now()}`,
       payload: item,
-      secondary: () => upsertWatchlistShadow(userId, item),
+      write: () => upsertWatchlistShadow(userId, item),
     });
     return item;
   }
@@ -306,32 +326,53 @@ class WatchlistService {
       throw new HttpError(400, statusErrorForMediaType(input.mediaType), "invalid_status");
     }
 
-    await getFirestore().runTransaction(async (transaction) => {
-      const existing = await transaction.get(ref);
-      const existingData = existing.exists ? (existing.data() as WatchlistDocument) : null;
-      const mergedStatus = mergeWatchlistStatus(
-        input.mediaType,
-        existingData ? normalizeStatusForMediaType(existingData.mediaType, existingData.status) : null,
-        incomingStatus,
-      );
+    const {shouldPersistFirestore} = await import("../config/env");
+    const nowIso = new Date().toISOString();
+    let mergedStatus = incomingStatus;
+    let existingData: WatchlistDocument | null = null;
 
-      transaction.set(
-        ref,
-        {
-          tmdbId: input.tmdbId,
-          mediaType: input.mediaType,
-          title: existingData?.title?.trim() ? existingData.title : input.title,
-          poster: preferImageUrl(existingData?.poster, input.poster),
-          backdrop: preferImageUrl(existingData?.backdrop, input.backdrop),
-          status: mergedStatus,
-          addedAt: existing.exists ? existing.get("addedAt") ?? FieldValue.serverTimestamp() : FieldValue.serverTimestamp(),
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        {merge: true},
-      );
-    });
+    if (shouldPersistFirestore()) {
+      await getFirestore().runTransaction(async (transaction) => {
+        const existing = await transaction.get(ref);
+        existingData = existing.exists ? (existing.data() as WatchlistDocument) : null;
+        mergedStatus = mergeWatchlistStatus(
+          input.mediaType,
+          existingData ? normalizeStatusForMediaType(existingData.mediaType, existingData.status) : null,
+          incomingStatus,
+        );
 
-    const item = await this.get(userId, itemId);
+        transaction.set(
+          ref,
+          {
+            tmdbId: input.tmdbId,
+            mediaType: input.mediaType,
+            title: existingData?.title?.trim() ? existingData.title : input.title,
+            poster: preferImageUrl(existingData?.poster, input.poster),
+            backdrop: preferImageUrl(existingData?.backdrop, input.backdrop),
+            status: mergedStatus,
+            addedAt: existing.exists ? existing.get("addedAt") ?? FieldValue.serverTimestamp() : FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          {merge: true},
+        );
+      });
+    } else {
+      mergedStatus = mergeWatchlistStatus(input.mediaType, null, incomingStatus);
+    }
+
+    const item = shouldPersistFirestore()
+      ? await this.get(userId, itemId)
+      : {
+        itemId,
+        tmdbId: input.tmdbId,
+        mediaType: input.mediaType,
+        title: input.title,
+        poster: preferImageUrl(null, input.poster),
+        backdrop: preferImageUrl(null, input.backdrop),
+        status: mergedStatus,
+        addedAt: nowIso,
+        updatedAt: nowIso,
+      };
     if (item.mediaType === "movie" && item.status === "watched") {
       await historyService.recordMovie(userId, {
         tmdbId: item.tmdbId,
@@ -341,48 +382,48 @@ class WatchlistService {
       await derivedCacheService.invalidateUserLibraryCaches(userId);
     }
 
-    const {shadowWrite} = await import("../migration/shadow");
+    const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
     const {upsertWatchlistShadow} = await import("../migration/supabaseWriters");
-    await shadowWrite({
+    await writeSupabasePrimaryOrShadow({
       domain: "watchlist",
       operation: "mergeImport",
       firebaseUid: userId,
       operationId: `watchlist:merge:${userId}:${itemId}:${Date.now()}`,
       payload: item,
-      secondary: () => upsertWatchlistShadow(userId, item),
+      write: () => upsertWatchlistShadow(userId, item),
     });
 
     return item;
   }
 
   async updateStatus(userId: string, itemId: string, status: WatchlistStatus): Promise<WatchlistItem> {
+    const {shouldPersistFirestore} = await import("../config/env");
     const parsed = parseItemId(itemId);
-    const ref = this.collection(userId).doc(itemId);
-    const snapshot = await ref.get();
-
-    if (!snapshot.exists) {
-      throw new HttpError(404, "Watchlist item was not found.", "watchlist_item_not_found");
-    }
-
-    const data = snapshot.data() as WatchlistDocument;
     if (!isValidStatusForMediaType(parsed.mediaType, status)) {
       throw new HttpError(400, statusErrorForMediaType(parsed.mediaType), "invalid_status");
     }
 
-    await ref.update({
-      status,
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+    const existing = await this.getOrNull(userId, itemId);
+    if (!existing) {
+      throw new HttpError(404, "Watchlist item was not found.", "watchlist_item_not_found");
+    }
 
-    if (data.mediaType === "movie") {
-      const previousStatus = normalizeStatusForMediaType(data.mediaType, data.status);
+    if (shouldPersistFirestore()) {
+      await this.collection(userId).doc(itemId).update({
+        status,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    }
+
+    if (existing.mediaType === "movie") {
+      const previousStatus = normalizeStatusForMediaType(existing.mediaType, existing.status);
       if (status === "watched") {
         await historyService.recordMovie(userId, {
-          tmdbId: data.tmdbId,
-          title: data.title,
+          tmdbId: existing.tmdbId,
+          title: existing.title,
         });
       } else if (previousStatus === "watched") {
-        await historyService.removeMovie(userId, data.tmdbId);
+        await historyService.removeMovie(userId, existing.tmdbId);
       } else {
         await derivedCacheService.invalidateUserLibraryCaches(userId);
       }
@@ -390,16 +431,24 @@ class WatchlistService {
       await derivedCacheService.invalidateUserLibraryCaches(userId);
     }
 
-    const item = await this.get(userId, itemId);
-    const {shadowWrite} = await import("../migration/shadow");
+    const item: WatchlistItem = {
+      ...existing,
+      status,
+      updatedAt: new Date().toISOString(),
+    };
+    if (shouldPersistFirestore()) {
+      Object.assign(item, await this.get(userId, itemId));
+    }
+
+    const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
     const {upsertWatchlistShadow} = await import("../migration/supabaseWriters");
-    await shadowWrite({
+    await writeSupabasePrimaryOrShadow({
       domain: "watchlist",
       operation: "updateStatus",
       firebaseUid: userId,
       operationId: `watchlist:status:${userId}:${itemId}:${Date.now()}`,
       payload: item,
-      secondary: () => upsertWatchlistShadow(userId, item),
+      write: () => upsertWatchlistShadow(userId, item),
     });
     return item;
   }
@@ -432,37 +481,69 @@ class WatchlistService {
   }
 
   async remove(userId: string, itemId: string): Promise<void> {
+    const {shouldPersistFirestore} = await import("../config/env");
     const parsed = parseItemId(itemId);
-    const ref = this.collection(userId).doc(itemId);
-    const snapshot = await ref.get();
+    const existing = await this.getOrNull(userId, itemId);
 
-    await ref.delete();
+    if (shouldPersistFirestore()) {
+      await this.collection(userId).doc(itemId).delete();
+    }
 
-    if (parsed.mediaType === "movie" && snapshot.exists) {
+    if (parsed.mediaType === "movie" && existing) {
       await historyService.removeMovie(userId, parsed.tmdbId);
     } else {
       await derivedCacheService.invalidateUserLibraryCaches(userId);
     }
 
-    const {shadowWrite} = await import("../migration/shadow");
+    const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
     const {removeWatchlistShadow} = await import("../migration/supabaseWriters");
-    await shadowWrite({
+    await writeSupabasePrimaryOrShadow({
       domain: "watchlist",
       operation: "remove",
       firebaseUid: userId,
       operationId: `watchlist:remove:${userId}:${itemId}:${Date.now()}`,
       payload: {itemId, mediaType: parsed.mediaType, tmdbId: parsed.tmdbId},
-      secondary: () => removeWatchlistShadow(userId, parsed.mediaType, parsed.tmdbId),
+      write: () => removeWatchlistShadow(userId, parsed.mediaType, parsed.tmdbId),
     });
   }
 
-  private async get(userId: string, itemId: string): Promise<WatchlistItem> {
-    const snapshot = await this.collection(userId).doc(itemId).get();
-    if (!snapshot.exists) {
-      throw new HttpError(404, "Watchlist item was not found.", "watchlist_item_not_found");
+  private async getOrNull(userId: string, itemId: string): Promise<WatchlistItem | null> {
+    const {isSupabaseReadWatchlist, shouldPersistFirestore} = await import("../config/env");
+    const {getSupabaseEnvOrNull, supabaseRest} = await import("../db/supabaseClient");
+    if (!shouldPersistFirestore() || isSupabaseReadWatchlist()) {
+      const env = getSupabaseEnvOrNull();
+      if (env) {
+        const parsed = parseItemId(itemId);
+        const rows = (await supabaseRest(
+          env,
+          `watchlist_items?firebase_uid=eq.${encodeURIComponent(userId)}` +
+            `&media_type=eq.${parsed.mediaType}&tmdb_id=eq.${parsed.tmdbId}&select=*&limit=1`,
+          {method: "GET", prefer: "return=representation"},
+        )) as Array<Record<string, unknown>> | null;
+        const row = Array.isArray(rows) && rows[0] ? rows[0] : null;
+        if (row) {
+          return this.mapSupabaseRow(row);
+        }
+      }
     }
 
+    if (!shouldPersistFirestore()) {
+      return null;
+    }
+
+    const snapshot = await this.collection(userId).doc(itemId).get();
+    if (!snapshot.exists) {
+      return null;
+    }
     return mapDocument(snapshot.id, snapshot.data() as WatchlistDocument);
+  }
+
+  private async get(userId: string, itemId: string): Promise<WatchlistItem> {
+    const item = await this.getOrNull(userId, itemId);
+    if (!item) {
+      throw new HttpError(404, "Watchlist item was not found.", "watchlist_item_not_found");
+    }
+    return item;
   }
 }
 

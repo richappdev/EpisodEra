@@ -35,4 +35,4 @@ Account deletion must explicitly decide orphans that Firestore `recursiveDelete(
 - `puzzle_attempts` by player
 - `user_game_stats`
 
-Postgres FKs cascade profile-owned rows; global discussion/puzzle rows need an explicit deletion service update before Auth cutover.
+Postgres FKs cascade profile-owned rows; account deletion also clears `discussion_comments`, `puzzle_attempts`, and `user_game_stats` via `deleteUserOwnedOrphansShadow`.
