@@ -15,9 +15,9 @@ App Check is the recommended complement to the current per-instance in-memory ra
 | `GET /search`, `GET /trending`, `GET /movie/:id`, `GET /tv/:id` | Public (optional auth) | TMDb proxy scraping, quota burn |
 | Authenticated writes (`/watchlist`, `/progress`, `/me/*`) | Firebase ID token | Token farming if Auth signup is open |
 | Firebase Auth (client) | Email/password | Scripted account creation |
-| Firestore (client) | Not used directly | Low — all writes go through Functions Admin SDK |
+| Firestore (client) | Not used directly | Low — product writes use the Functions API and Supabase-primary persistence |
 
-Primary enforcement target: **Cloud Functions API** (`api`). Secondary target: **Firebase Auth** (via App Check on the web client). Firestore rules remain defense-in-depth; App Check on Firestore client SDK is not required while the web app avoids direct Firestore access.
+Primary enforcement target: **Cloud Functions API** (`api`). Secondary target: **Firebase Auth** (via App Check on the web client). Firestore rules remain relevant to legacy, emulator, and rollback paths; App Check on the Firestore client SDK is not required because clients do not access Firestore directly.
 
 ## Recommended provider
 

@@ -1,5 +1,13 @@
 # Cutover — Supabase as database of record
 
+> **Status:** Active
+> **Authority:** Production data-plane flags, cutover state, and rollback procedure
+> **Owner role:** Engineering and release operations
+> **Last reviewed:** 2026-07-27
+> **Current baseline:** See the Notion MVP Dashboard
+> **Notion counterpart:** [Supabase Post-Cutover Validation Record](https://app.notion.com/p/3aaa4181b628811e9621fc27c2a0df2a)
+> **Supersedes:** Archived Supabase phase plans
+
 ## Already on (prod) — Steps A/B/C complete (2026-07-27)
 
 ```env

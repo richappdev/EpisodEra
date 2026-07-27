@@ -1,5 +1,24 @@
 # Deployment
 
+> **Status:** Active
+> **Authority:** Deployment, release smoke, and rollback operations
+> **Owner role:** Release engineering
+> **Last reviewed:** 2026-07-27
+> **Current baseline:** See the Notion MVP Dashboard
+> **Notion counterpart:** [Engineering Release Log](https://app.notion.com/p/39fa4181b628813c85b5ea0352bd59e0)
+> **Supersedes:** Firebase-database-only deployment assumptions
+
+## Production Service Split
+
+- Firebase Auth: user identity and ID tokens
+- Firebase Functions v2: Express API and scheduled jobs
+- Firebase Hosting: web client
+- Firebase App Check and monitoring: abuse and runtime signals
+- Supabase Postgres: product database of record
+- Firestore: legacy schema, rollback/retention, and emulator/rules coverage; production persistence is disabled
+
+Production data-plane flags and rollback steps are maintained in [`supabase/Cutover.md`](supabase/Cutover.md). A source commit or configuration note is not hosted verification; attach a tip-matched Production Smoke run to the Notion Engineering Release Log.
+
 ## Firebase project
 
 Project ID: `episodera`
@@ -43,7 +62,7 @@ Legacy Gen2 URL (still valid during migration):
 https://us-central1-episodera.cloudfunctions.net/api
 ```
 
-## Firestore deployment
+## Firestore rules and rollback deployment
 
 Deploy rules and indexes with:
 

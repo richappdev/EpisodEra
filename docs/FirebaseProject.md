@@ -22,14 +22,14 @@ Gen2 HTTPS functions deploy to Cloud Run. Both API URLs above should remain heal
 | Service | Config file | Notes |
 | --- | --- | --- |
 | Cloud Functions (Gen2) | `firebase.json`, `functions/` | Single export: `api` (`nodejs22`, `us-central1`) |
-| Firestore | `firestore.rules`, `firestore.indexes.json` | Admin SDK access from Functions only |
+| Firestore | `firestore.rules`, `firestore.indexes.json` | Legacy, emulator, rollback, and retention paths; production persistence disabled |
 | Firebase Hosting | `firebase.json` | SPA from `web/dist` |
 | Firebase Auth | Web SDK + Admin SDK | Email/password provider |
 | Analytics | Web SDK | Requires `VITE_FIREBASE_MEASUREMENT_ID` |
 | Performance Monitoring | Web SDK | Initialized at app startup |
 | Emulators | `firebase.json` | Auth `9099`, Functions `5001`, Firestore `8080`, UI `4000` |
 
-## Firestore ops checklist
+## Firestore legacy and rollback ops checklist
 
 | Item | Notes |
 | --- | --- |

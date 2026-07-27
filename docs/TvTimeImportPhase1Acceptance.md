@@ -1,11 +1,14 @@
-# TV Time Import Phase 1 Acceptance
+# TV Time Import Phase 1 Acceptance (archived)
 
-Last updated: 2026-07-26
-Canonical tip at checklist creation: `5a72102`  
-Current repository tip (main): `0c13b88`
-P0 hardening landed in `9a0420e`: A9 staging cleanup, A4 SHA-256 `sourceHash`, A5 session resume, smoke App Check + import path probes
-**Phase 1 acceptance:** **CLOSED** (operator-verified 2026-07-26)
-Notion counterpart: [TV Time Data Schema Analysis](https://app.notion.com/p/39ca4181b628812e9792c7589cd14c5b)
+> **Status:** Archived
+> **Authority:** Completed TV Time Import Phase 1 acceptance evidence
+> **Owner role:** Product and release engineering
+> **Archived:** 2026-07-27
+> **Final source baseline:** `a325fdd`
+> **Notion counterpart:** [TV Time Import — Product & Data Contract](https://app.notion.com/p/39ca4181b628812e9792c7589cd14c5b)
+> **Superseded by:** The active product/data contract and normal release-candidate smoke practice
+
+Phase 1 acceptance closed on 2026-07-26 with A1–A9 recorded **PASS**. This ledger preserves the evidence and must not be treated as a current project-status page.
 
 ## Purpose
 
@@ -13,7 +16,7 @@ Close Phase 1 as a **product gate**, not as “code exists.” Acceptance blocke
 
 GitHub is the evidence ledger. Notion remains the product-scope record and should mirror this checklist status.
 
-**Document control:** Active repository SHA lives only on the Notion MVP Dashboard (and this ledger after each rebaseline). Child Notion pages must not invent competing baselines.
+**Document control:** The active repository baseline lives only on the Notion MVP Dashboard. This completed ledger is no longer rebaselined.
 
 ## Status summary
 
@@ -23,7 +26,7 @@ GitHub is the evidence ledger. Notion remains the product-scope record and shoul
 | Phase 1 **acceptance** | **CLOSED** |
 | Gate outcome | Closed 2026-07-26 — operator-verified; A1–A9 recorded **PASS** |
 | Unblocks | Phase 2 `watchEvents`; import may be treated as accepted for product messaging |
-| Remaining polish (non-blocking) | Optional downloadable skipped/failed report; tip-matched smoke on every future RC remains a normal release practice |
+| Remaining polish (non-blocking) | Downloadable skipped/failed reporting shipped; tip-matched smoke on every future RC remains normal release practice |
 
 ### Criterion roll-up
 
@@ -77,7 +80,7 @@ From `tv_time_tool/TVTimeDataDesign.md` / Notion sample:
 | --- | --- |
 | Outcome | **CLOSED** |
 | Authority | Operator confirmation that Phase 1 acceptance is implemented and verified |
-| Code baseline | P0 hardening `9a0420e` and subsequent main tip `0c13b88` |
+| Code baseline | P0 hardening plus the completed Phase 1 closeout recorded in repository history |
 | Hosted smoke (post-P0) | [run 29730749454](https://github.com/richappdev/EpisodEra/actions/runs/29730749454) on `ac6ba27` (2026-07-20 scheduled Production Smoke **success**) |
 | Prior hosted PASS | [run 29565696402](https://github.com/richappdev/EpisodEra/actions/runs/29565696402) on `5a9ecf9` (App Check Phase 3) |
 | Smoke coverage | `web/scripts/production-smoke.mjs` exercises App Check enforce + `/me/imports/*` + `stagingClearedAt` |
@@ -90,7 +93,7 @@ From `tv_time_tool/TVTimeDataDesign.md` / Notion sample:
 | Status | **PASS** |
 | Requirement | Hosted `Production Smoke` success whose workflow `headSha` equals the acceptance tip (or a tip explicitly rebaselined in this file + ResourceAlignment) |
 | Evidence | Post-P0 hosted PASS [29730749454](https://github.com/richappdev/EpisodEra/actions/runs/29730749454) (`ac6ba27`); operator closed acceptance against verified deployed import behavior |
-| Current tip | `0c13b88` |
+| Current tip | See the Notion MVP Dashboard |
 | Ongoing practice | Re-run Production Smoke on each release candidate; tip mismatch alone does not reopen Phase 1 |
 
 ### A2 — Deployed import path evidence

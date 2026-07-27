@@ -1,5 +1,13 @@
 # API
 
+> **Status:** Active
+> **Authority:** HTTP request and response contracts
+> **Owner role:** Engineering
+> **Last reviewed:** 2026-07-27
+> **Current baseline:** See the Notion MVP Dashboard
+> **Notion counterpart:** [API and Client Contract Index](https://app.notion.com/p/3aaa4181b62881e289e6f0d2252640a5)
+> **Supersedes:** Firestore-specific persistence descriptions in earlier revisions
+
 The backend exposes a single Firebase HTTPS Function named `api`. In local emulators the base URL is:
 
 ```text
@@ -25,6 +33,10 @@ Missing, malformed, expired, and otherwise invalid tokens all produce the same `
 When `APP_CHECK_ENFORCE_AUTH_WRITES=true`, protected routes also require a valid Firebase App Check token in `X-Firebase-AppCheck` (or a configured smoke bypass header). Missing App Check yields `401 app_check_required`; a present-but-invalid token yields `401 app_check_invalid`. Public discovery routes stay on monitor-only App Check until Phase 4 (`APP_CHECK_ENFORCE_PUBLIC_READS`).
 
 Requests that pass CORS processing receive an `x-request-id` response header. If the request supplies an `x-request-id` header, the API echoes it; otherwise the API generates a UUID. This identifier is also included in the structured server log for the request.
+
+## Persistence Contract
+
+Firebase Auth remains the identity provider and Firebase Functions remains the API runtime. Supabase Postgres is the product database of record across mapped domains. Production Steps A/B/C are documented complete with Firestore persistence disabled. Firestore paths described later in this document are legacy schema identifiers, rollback references, or implementation history unless a section explicitly says otherwise.
 
 Set `CORS_ORIGINS` to a comma-separated allowlist for deployed environments. When omitted, the API allows all origins for local development.
 
@@ -307,7 +319,7 @@ Response:
 
 ## Watchlist
 
-Watchlist endpoints require authentication and read/write only the signed-in user's Firestore path:
+Watchlist endpoints require authentication and read/write only the signed-in user's Supabase-owned rows through the API. The historical Firestore path was:
 
 ```text
 users/{uid}/watchlist/{itemId}
@@ -422,7 +434,7 @@ Response: `204 No Content`. Deleting a well-formed item ID is idempotent: a miss
 
 ## Episode Progress
 
-Progress endpoints require authentication and read/write only the signed-in user's Firestore path:
+Progress endpoints require authentication and read/write only the signed-in user's Supabase-owned progress rows through the API. The historical Firestore path was:
 
 ```text
 users/{uid}/progress/{showId}
@@ -559,7 +571,7 @@ Request:
 }
 ```
 
-The input array must contain 1-100 entries. It is deduplicated by season/episode after the 100-entry limit is checked. The backend validates all requested episodes before writing, then updates episode rows, history entries, and the aggregate progress summary in one Firestore transaction.
+The input array must contain 1-100 entries. It is deduplicated by season/episode after the 100-entry limit is checked. The backend validates all requested episodes before writing, then atomically updates episode rows, history entries, and the aggregate progress summary through the active Supabase path.
 
 Response: the updated `ShowProgress` object directly (without a `progress` wrapper).
 
@@ -733,7 +745,7 @@ Response shape: `{created: true, puzzleDate, puzzleId}` or `{created: false, puz
 
 ## Franchises and Smart Discovery
 
-Curated franchise catalogs are public via Cloud Functions. Documents live at root `franchises/{slug}` (Admin SDK / seed only; client R/W denied). Functions cache published catalogs in memory and fall back to bundled `functions/src/data/franchises.ts` when Firestore reads fail. Personal completion requires authentication.
+Curated franchise catalogs are public via Cloud Functions. Catalog rows are Supabase-primary and retain bundled `functions/src/data/franchises.ts` fallback data. The historical Firestore root was `franchises/{slug}`. Personal completion requires authentication.
 
 ```http
 GET /franchises
@@ -827,7 +839,7 @@ The Settings UI downloads this payload as a multi-file ZIP (`manifest.json`, `hi
 
 ## Profile and User Settings
 
-Profile endpoints require authentication and store personal profile fields under `users/{uid}`. `email` is derived from Firebase Auth on writes and should not be trusted from client request bodies.
+Profile endpoints require authentication and store personal profile fields in Supabase using the Firebase UID identity bridge. The historical Firestore root was `users/{uid}`. `email` is derived from Firebase Auth on writes and should not be trusted from client request bodies.
 
 ```http
 GET /me/profile
@@ -915,7 +927,7 @@ Response: updated settings. Supported language values are `en-US` and `zh-TW`. T
 DELETE /me/account
 ```
 
-Permanently deletes the signed-in user's Firestore data under `users/{uid}` (profile, watchlist, progress, history, settings, ratings, friends, imports) and removes the Firebase Authentication user. Returns `204 No Content` on success. This action is irreversible.
+Permanently deletes the signed-in user's Supabase-owned product data, explicitly clears user-owned discussion/puzzle rows, removes any retained Firestore user tree when persistence is enabled for rollback, and deletes the Firebase Authentication user. Returns `204 No Content` on success. This action is irreversible.
 
 ## TV Time import
 
@@ -1018,7 +1030,7 @@ Optional commit body (skipped mapping rows for the post-complete downloadable re
 POST /me/imports/:importId/run
 ```
 
-Watchlist staging body: `{ "items": [{ "tmdbId", "mediaType", "title", "status", "poster?", "backdrop?", "sourceShowId?" }] }`.  
+Watchlist staging body: `{ "items": [{ "tmdbId", "mediaType", "title", "status", "poster?", "backdrop?", "sourceShowId?" }] }`.
 Episode staging body: `{ "episodes": [{ "tmdbId", "seasonNumber", "episodeNumber", "watchedAt?", "sourceShowId?", "sourceEpisodeId?", "bulkType?" }] }`.
 
 `/run` response:

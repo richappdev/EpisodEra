@@ -1,6 +1,14 @@
-# Episodera Resource Alignment
+# Episodera Resource Alignment (archived)
 
-Last updated: 2026-07-26
+> **Status:** Archived
+> **Authority:** Historical cross-resource alignment snapshot
+> **Owner role:** Product and engineering leads
+> **Archived:** 2026-07-27
+> **Final source baseline:** `a325fdd`
+> **Notion counterpart:** [Episodera Development Resource Alignment Report (archived)](https://app.notion.com/p/39aa4181b62881a0b328c74c20a9f924)
+> **Superseded by:** [`docs/README.md`](README.md) and the Notion [Documentation Register](https://app.notion.com/p/3aaa4181b6288185a042c7a737db3434)
+
+This file preserves the completed point-in-time alignment review. It must not direct current implementation or release decisions.
 
 ## Purpose
 
@@ -38,7 +46,8 @@ The primary MVP surface is a responsive web application built with:
 * React 18
 * TypeScript
 * Vite
-* Firebase (Auth, Functions, Hosting; library domains can use Supabase Postgres via cutover flags)
+* Firebase (Auth, Functions, Hosting, App Check, monitoring, and scheduled jobs)
+* Supabase Postgres (product database of record)
 * TMDb
 
 A native Android client (`android/`) with near web parity is source-shipped; admin puzzle studio remains web-only. Play Store packaging is not part of the current supported release target. iOS is not implemented.
@@ -365,7 +374,7 @@ A feature is complete only when all applicable conditions are met:
 
 | Resource              | Current status                                                                                                          |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| GitHub implementation | Tip `0c13b88` (2026-07-26). Includes P0 hardening, Daily Puzzle (edit/auto-create), native Android (PR #3), Android emulator CI (PR #4), and Supabase foundation/cutover flags (PR #2). TV Time Phase 1 acceptance **CLOSED** (2026-07-26). Latest post-P0 hosted smoke PASS: `ac6ba27` ([run 29730749454](https://github.com/richappdev/EpisodEra/actions/runs/29730749454)). |
+| GitHub implementation | Historical snapshot before the completed production database cutover. Use the Notion MVP Dashboard and active repository docs for current state. Latest hosted smoke recorded by this snapshot: `ac6ba27` ([run 29730749454](https://github.com/richappdev/EpisodEra/actions/runs/29730749454)). |
 | Notion planning       | MVP Dashboard is the only active SHA page. Child pages link to it. Import acceptance closed; P1 `watchEvents` **skipped for now**; Daily Puzzle, Android, and Supabase status synced 2026-07-26. |
 | Figma design          | Cinema Memory D0–D3 **shipped in GitHub/live app** (`fb5cd08`). Figma file rebuild/verification pending — use [`docs/CinemaMemoryDesign.md`](./CinemaMemoryDesign.md) as the handoff brief. MCP write access may still be limited. |
 | Canva reporting       | Refresh stakeholder decks with Cinema Memory talking points in `CinemaMemoryDesign.md`; keep import acceptance and tip-matched smoke language accurate |
@@ -399,7 +408,7 @@ These limitations affect resource synchronization only. They do not change produ
 
 ### 2026-07-26 (Android + Supabase + puzzle ops sync)
 
-* Rebaselined Notion MVP Dashboard and GitHub alignment/acceptance docs to tip `0c13b88`.
+* Rebaselined Notion MVP Dashboard and GitHub alignment/acceptance documents to the then-current pre-cutover tip.
 * Recorded native Android client (PR #3), Android emulator CI (PR #4), Supabase foundation/cutover flags (PR #2), puzzle studio edit/load (`6191d39`), Manage-puzzles link (`e5f5206`), and Taipei auto-create (`270fd10`).
 * Import acceptance later closed the same day (see entry above).
 * Play Store publication and full Supabase Auth cutover remain non-goals / unfinished.

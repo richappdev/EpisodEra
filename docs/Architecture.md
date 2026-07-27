@@ -1,6 +1,32 @@
 # Architecture
 
-The project starts as a Firebase-backed TV and movie discovery app. The backend is a TypeScript Firebase Functions API that normalizes TMDb responses for future frontend screens.
+> **Status:** Active
+> **Authority:** Current runtime topology and repository layering
+> **Owner role:** Engineering
+> **Last reviewed:** 2026-07-27
+> **Current baseline:** See the Notion MVP Dashboard
+> **Notion counterpart:** [System Architecture & Runtime Topology](https://app.notion.com/p/3aaa4181b62881ab9378ee7bfe9cd532)
+> **Supersedes:** The Firebase-only architecture description
+
+Episodera uses React/Vite and Kotlin/Compose clients, Firebase Auth, a TypeScript Express API on Firebase Functions, Supabase Postgres as the product database of record, and TMDb as the media metadata provider.
+
+## Runtime Topology
+
+```text
+React/Vite web + Kotlin/Compose Android
+            │
+            │ Firebase ID token + App Check
+            ▼
+Firebase Functions v2 / Express API
+            ├── Supabase service role → Postgres product data
+            ├── Firebase Admin → Auth and retained rollback/legacy tooling
+            └── TMDb API → canonical media metadata
+
+Firebase Hosting → web delivery
+Firebase Analytics/Performance/Crashlytics → monitoring
+```
+
+Production Steps A/B/C are documented complete: mapped product domains read and write through Supabase, and Firestore persistence is disabled. Firebase Auth, Functions/API runtime, Hosting, App Check, monitoring, and scheduled jobs remain active.
 
 ## Current Structure
 
@@ -34,7 +60,7 @@ Express routes and HTTP validation. Route handlers should stay thin and delegate
 
 `services`
 
-Application-facing service objects. This layer gives future watchlist/rating endpoints a place to combine Auth, Firestore, and TMDb behavior.
+Application-facing service objects combine authenticated identity, Supabase-primary persistence, retained Firestore rollback paths, and TMDb behavior.
 
 `integrations`
 

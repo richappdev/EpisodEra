@@ -1,10 +1,17 @@
 # Episodera
 
-Episodera is a movie and TV tracking app for discovering titles, saving a watchlist, tracking episode progress, and reviewing profile stats. Clients share one Firebase backend (Auth, Firestore, Cloud Functions) and TMDb metadata: a React/Vite web app and a Kotlin/Jetpack Compose Android app under [`android/`](android/).
+> **Status:** Active
+> **Authority:** Repository overview and developer entry point
+> **Owner role:** Engineering
+> **Last reviewed:** 2026-07-27
+> **Current baseline:** See the Notion MVP Dashboard
+> **Documentation index:** [`docs/README.md`](docs/README.md)
+
+Episodera is a Personal Entertainment Memory Platform for discovering TV and movies, tracking progress, importing viewing history, and reliving it through Timeline, statistics, recaps, franchises, social features, and Daily Puzzle. A React/Vite web app and Kotlin/Jetpack Compose Android app share a Firebase-authenticated Express API, Supabase Postgres product data, and TMDb metadata.
 
 ## Current Status
 
-The project is in MVP hardening. Core web features are implemented, progress-tracking reliability fixes are in place, and GitHub Actions runs Java-backed Firestore emulator tests (`npm run test:emulator`) on hosted CI. A native Android client with near web feature parity (except the admin puzzle studio) lives in [`android/`](android/); see [`docs/Android.md`](docs/Android.md). Remaining work includes dependency upgrade planning, deeper web accessibility validation, hosted production-smoke evidence for release candidates, Android Play Store packaging / App Check release setup, and production-readiness decisions.
+The project is in early-beta MVP hardening. Core web features and a native Android client with near-web parity are source-shipped; the admin puzzle studio remains web-only. Supabase is the product database of record, while Firebase continues to provide Auth, Functions/API runtime, Hosting, App Check, monitoring, and scheduled jobs. Production Steps A/B/C are documented complete with Firestore persistence disabled. Remaining work includes current-tip hosted smoke, post-cutover parity/outbox/rollback validation, dependency planning, deeper accessibility review, Android Play Store packaging, distributed quota, and production-readiness decisions.
 
 ## Features
 
@@ -19,7 +26,7 @@ The project is in MVP hardening. Core web features are implemented, progress-tra
   - remove titles
   - change TV status to `planned`, `watching`, `completed`, or `dropped`
   - change movie status to `unwatched` or `watched`
-- User-owned Firestore watchlist storage.
+- User-owned Supabase watchlist storage through the authenticated API.
 - TV episode progress tracking:
   - season selector
   - episode list
@@ -40,7 +47,7 @@ The project is in MVP hardening. Core web features are implemented, progress-tra
   - saved title count
   - tracked show count
 - Recent watched history timeline for movies and episodes.
-- Owner-scoped Firestore security rules for watchlist, progress, and history.
+- API-controlled authorization and Supabase row ownership, with Firestore rules retained for legacy and rollback boundaries.
 - Firebase Analytics and Performance Monitoring for the web app; Crashlytics, Analytics, and Performance on Android.
 - Native Android client (`android/`): email/password auth, discovery/search/detail, watchlist and episode progress, likes, timeline, profile/stats, settings (export/delete/import staging), daily puzzle, franchises, social, deep links — setup in [`docs/Android.md`](docs/Android.md). Admin puzzle studio remains web-only.
 - GitHub Actions CI for backend build, backend lint, backend unit tests with coverage enforcement, Java-backed Firestore emulator tests, frontend build, frontend component coverage enforcement, Playwright critical-flow / progress / accessibility smoke, and Android assemble/unit tests (`.github/workflows/android.yml`).
@@ -55,14 +62,14 @@ The project is in MVP hardening. Core web features are implemented, progress-tra
 - Android: Kotlin, Jetpack Compose, Hilt, Retrofit (see [`android/`](android/) and [`docs/Android.md`](docs/Android.md))
 - Backend: Firebase Cloud Functions, Express, TypeScript
 - Auth: Firebase Authentication
-- Database: Supabase Postgres (library domains) with optional Firestore mirror; Firebase Auth still primary
+- Database: Supabase Postgres across mapped product domains; Firebase Auth remains primary
 - Monitoring: Firebase Analytics, Firebase Performance Monitoring, Analytics exception events for web errors; Crashlytics on Android
 - Metadata provider: TMDb API
 - CI: GitHub Actions
 
 ## Supabase / Firestore cutover flags
 
-Library domains (profile, settings, watchlist/likes, progress, history, friends, derived cache) can run with **Supabase as primary** and Firestore as an optional mirror. Configure in `functions/.env.episodera`, then redeploy Functions (`firebase deploy --only functions:api`).
+All mapped product domains can run with **Supabase as primary** and Firestore as an optional rollback mirror. Production currently uses Supabase-primary reads and writes with Firestore persistence disabled. Configure flags in `functions/.env.episodera`, then redeploy Functions (`firebase deploy --only functions:api`).
 
 | Mode | Flags | Behavior |
 | --- | --- | --- |
@@ -74,14 +81,14 @@ Reads use `SUPABASE_READ_*` / `SUPABASE_READ_PRIMARY` (Firestore fallback when e
 
 To turn the Firestore write mirror back on while keeping Supabase primary: set `SUPABASE_WRITE_PRIMARY=true` and remove or set `FIRESTORE_WRITES_DISABLED=false`, then redeploy.
 
-If Firestore fell behind while mirror was off, catch up library domains with:
+If Firestore fell behind while mirror was off, catch up mapped product domains with:
 
 ```bash
 node scripts/supabase/sync-supabase-to-firestore.mjs --dry-run
 node scripts/supabase/sync-supabase-to-firestore.mjs
 ```
 
-**Caveats:** mirror/write-primary is wired for cut-over library domains. Puzzles, discussions, franchises, media mappings, and import staging still use Firestore. Auth remains Firebase until Phase 9.
+**Caveats:** Firebase Auth remains primary until a separately approved Phase 9 migration. Firebase Functions, Hosting, App Check, monitoring, and scheduled jobs are also still active. Treat `docs/supabase/Cutover.md` as the runtime flag authority and do not infer hosted verification from source state.
 
 Full cutover steps: [`docs/supabase/Cutover.md`](docs/supabase/Cutover.md). Migration docs: [`docs/supabase/`](docs/supabase/).
 
@@ -178,7 +185,7 @@ Authenticated user endpoints:
 - `GET /me/settings`
 - `PATCH /me/settings`
 
-Progress writes accept season and episode numbers only. The backend validates against TMDb, resolves canonical titles and episode counts, and writes episode rows, progress summary, and watched history in one Firestore transaction. `GET /progress` returns summary rows only; use `GET /progress/:showId` when full watched episode rows are required.
+Progress writes accept season and episode numbers only. The backend validates against TMDb, resolves canonical titles and episode counts, and applies the watched-episode, progress-summary, and history update atomically through the active Supabase path. `GET /progress` returns summary rows only; use `GET /progress/:showId` when full watched episode rows are required.
 
 See `docs/API.md` for full request and response contracts.
 
@@ -350,7 +357,7 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 - `docs/Android.md` covers the Kotlin/Compose client setup, App Check, and release checklist.
 - `docs/Architecture.md` explains the system structure.
 - `docs/API.md` defines backend contracts.
-- `docs/Firestore.md` defines Firestore documents and ownership rules.
+- `docs/Firestore.md` preserves the archived Firestore schema and ownership reference.
 - `docs/Authentication.md` explains auth flow.
 - `docs/AppCheck.md` defines the App Check rollout plan.
 - `docs/FirebaseProject.md` records project verification and live endpoint checks.
@@ -359,5 +366,5 @@ See `docs/Deployment.md` for the full pre-deploy checklist.
 - `docs/CodingStandard.md` records implementation conventions.
 - `docs/DependencyAudit.md` records current audit findings and upgrade plan.
 - `docs/Deployment.md` covers deployment and CI.
-- `docs/supabase/` covers the Firebase → Supabase migration; start with `docs/supabase/Cutover.md` for primary/mirror flags.
+- `docs/supabase/` covers the Supabase-primary data plane and remaining Firebase retirement work; start with `docs/supabase/Cutover.md`.
 - `docs/ResourceAlignment.md` records GitHub, Notion, Figma, and Canva source-of-truth rules.
