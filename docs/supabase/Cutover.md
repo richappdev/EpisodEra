@@ -1,12 +1,23 @@
 # Cutover — Supabase as database of record
 
-## Already on (prod)
+## Already on (prod) — Steps A/B/C complete (2026-07-27)
 
 ```env
 SUPABASE_SHADOW_WRITES=true
 SUPABASE_READ_PROFILES=true
 SUPABASE_READ_SETTINGS=true
 SUPABASE_READ_WATCHLIST=true
+SUPABASE_READ_PROGRESS=true
+SUPABASE_READ_HISTORY=true
+SUPABASE_READ_FRIENDS=true
+SUPABASE_READ_DERIVED=true
+SUPABASE_READ_DISCUSSIONS=true
+SUPABASE_READ_PUZZLES=true
+SUPABASE_READ_FRANCHISES=true
+SUPABASE_READ_MEDIA_MAPPINGS=true
+SUPABASE_READ_IMPORT_STAGING=true
+SUPABASE_WRITE_PRIMARY=true
+FIRESTORE_WRITES_DISABLED=true
 ```
 
 ## Step A — finish library reads (safe)
@@ -22,6 +33,8 @@ SUPABASE_READ_DERIVED=true
 
 Redeploy Functions. Verify progress / history / friends / stats on the live site.
 
+**Status:** done in prod (2026-07-27), including remaining-domain read flags.
+
 ## Step B — write primary (still optional Firestore mirror)
 
 ```env
@@ -31,7 +44,7 @@ SUPABASE_WRITE_PRIMARY=true
 
 Progress mutations use `mark_episodes_watched` RPC. Profiles/settings/derived/watchlist/likes/history/friends/imports write Supabase first when this flag is on. Remaining domains (discussions, puzzles, franchises, media mappings, import staging) also honor write-primary via `writeSupabasePrimaryOrShadow`.
 
-**Status:** enable `SUPABASE_WRITE_PRIMARY` in prod when library reads look good; do **not** set `FIRESTORE_WRITES_DISABLED` until outbox stays clean for a soak window.
+**Status:** done in prod (2026-07-27). Proceeded to Step C in the same deploy.
 
 ## Step C — stop Firestore persistence
 
@@ -42,7 +55,7 @@ SUPABASE_WRITE_PRIMARY=true
 FIRESTORE_WRITES_DISABLED=true
 ```
 
-**Status:** enable after write-primary soak. All product writers that honor `shouldPersistFirestore()` then persist to Supabase only.
+**Status:** done in prod (2026-07-27). All product writers that honor `shouldPersistFirestore()` persist to Supabase only.
 
 To catch up Firestore after a period with mirror off:
 
