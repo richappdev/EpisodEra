@@ -15,6 +15,13 @@ import {loadEnvFiles, requireSupabaseEnv, supabaseRest, supabaseRpc} from "./lib
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 loadEnvFiles(repoRoot);
 
+// Production backfill must hit live Firestore, not local emulators from repo `.env`.
+const useEmulator = process.argv.includes("--emulator");
+if (!useEmulator) {
+  delete process.env.FIRESTORE_EMULATOR_HOST;
+  delete process.env.FIREBASE_AUTH_EMULATOR_HOST;
+}
+
 const dryRun = process.argv.includes("--dry-run");
 const onlyArg = process.argv.includes("--only")
   ? process.argv[process.argv.indexOf("--only") + 1]
