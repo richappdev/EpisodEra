@@ -5,6 +5,13 @@ class AccountDeletionService {
   async deleteUserData(userId: string): Promise<void> {
     const firestore = getFirestore();
     await firestore.recursiveDelete(firestore.collection("users").doc(userId));
+
+    try {
+      const {deleteUserOwnedOrphansShadow} = await import("../migration/supabaseWriters");
+      await deleteUserOwnedOrphansShadow(userId);
+    } catch (error) {
+      console.error("deleteUserOwnedOrphansShadow failed", userId, error);
+    }
   }
 
   async deleteAccount(userId: string): Promise<void> {

@@ -77,6 +77,38 @@ class MediaMappingService {
     mediaType: MediaMappingMediaType,
     externalId: string,
   ): Promise<MediaMapping | null> {
+    const {isSupabaseReadMediaMappings, shouldPersistFirestore} = await import("../config/env");
+    const {getSupabaseEnvOrNull, supabaseRest} = await import("../db/supabaseClient");
+    if (isSupabaseReadMediaMappings() || !shouldPersistFirestore()) {
+      const env = getSupabaseEnvOrNull();
+      if (env) {
+        const rows = (await supabaseRest(
+          env,
+          `media_mappings?provider=eq.${encodeURIComponent(provider)}` +
+            `&media_type=eq.${mediaType}&external_id=eq.${encodeURIComponent(externalId)}` +
+            `&select=*&limit=1`,
+          {method: "GET", prefer: "return=representation"},
+        )) as Array<Record<string, unknown>> | null;
+        const row = Array.isArray(rows) && rows[0] ? rows[0] : null;
+        if (row) {
+          const raw = (row.raw as Record<string, unknown> | null) ?? {};
+          return {
+            provider: row.provider as MediaMappingProvider,
+            mediaType: row.media_type === "movie" ? "movie" : "tv",
+            externalId: String(row.external_id ?? ""),
+            tmdbId: Number(row.tmdb_id),
+            title: typeof raw.title === "string" ? raw.title : null,
+            updatedBy: typeof raw.updatedBy === "string" ? raw.updatedBy : null,
+            updatedAt: typeof row.updated_at === "string" ? row.updated_at : null,
+          };
+        }
+      }
+    }
+
+    if (!shouldPersistFirestore()) {
+      return null;
+    }
+
     const snapshot = await this.collection().doc(mappingDocId(provider, mediaType, externalId)).get();
     if (!snapshot.exists) {
       return null;
@@ -103,23 +135,49 @@ class MediaMappingService {
       title: string | null;
     },
   ): Promise<MediaMapping> {
-    const ref = this.collection().doc(mappingDocId(input.provider, input.mediaType, input.externalId));
-    await ref.set(
-      {
+    const {shouldPersistFirestore} = await import("../config/env");
+    const nowIso = new Date().toISOString();
+    if (shouldPersistFirestore()) {
+      const ref = this.collection().doc(mappingDocId(input.provider, input.mediaType, input.externalId));
+      await ref.set(
+        {
+          provider: input.provider,
+          mediaType: input.mediaType,
+          externalId: input.externalId,
+          tmdbId: input.tmdbId,
+          title: input.title,
+          updatedBy: userId,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
+    }
+
+    const saved = shouldPersistFirestore()
+      ? await this.get(input.provider, input.mediaType, input.externalId)
+      : {
         provider: input.provider,
         mediaType: input.mediaType,
         externalId: input.externalId,
         tmdbId: input.tmdbId,
         title: input.title,
         updatedBy: userId,
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      {merge: true},
-    );
-    const saved = await this.get(input.provider, input.mediaType, input.externalId);
+        updatedAt: nowIso,
+      };
     if (!saved) {
       throw new HttpError(500, "Media mapping could not be read after write.", "mapping_write_failed");
     }
+
+    const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
+    const {upsertMediaMappingShadow} = await import("../migration/supabaseWriters");
+    await writeSupabasePrimaryOrShadow({
+      domain: "mediaMappings",
+      operation: "upsert",
+      firebaseUid: userId,
+      operationId: `mediaMappings:upsert:${input.provider}:${input.mediaType}:${input.externalId}`,
+      payload: saved,
+      write: () => upsertMediaMappingShadow(saved),
+    });
     return saved;
   }
 }

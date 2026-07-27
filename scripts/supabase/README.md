@@ -45,7 +45,15 @@ node scripts/supabase/sync-supabase-to-firestore.mjs --uid <FIREBASE_UID>
 node scripts/supabase/sync-supabase-to-firestore.mjs
 ```
 
-Requires Firebase Admin credentials + `functions/.env.supabase`. Covers profiles, settings, watchlist, likes, progress/episodes, history, friendships, and common derived cache keys. Does not sync puzzles/discussions/franchises/import staging.
+Requires Firebase Admin credentials + `functions/.env.supabase`. Covers profiles, settings, watchlist, likes, progress/episodes, history, friendships, and common derived cache keys. Add `--include-remaining` to also mirror discussions, puzzles, media mappings, and franchises.
+
+```bash
+node scripts/supabase/backfill-remaining-domains.mjs --dry-run
+node scripts/supabase/backfill-remaining-domains.mjs
+node scripts/supabase/backfill-remaining-domains.mjs --only discussions,puzzles
+```
+
+Apply `20260727120001_remaining_domain_cutover.sql` before remaining-domain writers/backfill.
 
 ## Phase 9 Auth cutover prep (do not flip production Auth)
 

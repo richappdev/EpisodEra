@@ -8,6 +8,7 @@ import {
   PublicPuzzleDoc,
   PuzzleAttemptDoc,
   PuzzleChoice,
+  PuzzleHint,
   UpsertPuzzleInput,
   UserGameStatsDoc,
 } from "../models/puzzle";
@@ -48,8 +49,104 @@ class PuzzleService {
     return `anon:${anon}`;
   }
 
+  private async getTodayFromSupabase(
+    playerId: string | null,
+    puzzleDate: string,
+  ): Promise<DailyPuzzleResponse | null> {
+    const {getSupabaseEnvOrNull, supabaseRest, supabaseRpc} = await import("../db/supabaseClient");
+    const env = getSupabaseEnvOrNull();
+    if (!env) {
+      return null;
+    }
+
+    try {
+      const publicRows = (await supabaseRest(
+        env,
+        `puzzles_public?puzzle_id=eq.${encodeURIComponent(puzzleDate)}&select=*&limit=1`,
+        {method: "GET", prefer: "return=representation"},
+      )) as Array<Record<string, unknown>> | null;
+      const publicRow = Array.isArray(publicRows) && publicRows[0] ? publicRows[0] : null;
+      if (!publicRow) {
+        return null;
+      }
+
+      const privateRow = (await supabaseRpc(
+        env,
+        "get_puzzle_private",
+        {p_puzzle_id: puzzleDate},
+        "return=representation",
+      )) as Record<string, unknown> | null;
+      if (!privateRow || privateRow.status !== "published") {
+        return null;
+      }
+
+      const publicPuzzle = this.mapPublic(
+        puzzleDate,
+        (publicRow.payload as Record<string, unknown>) ?? {},
+      );
+      const answer = (privateRow.answer as Record<string, unknown>) ?? {};
+      const hints = (privateRow.hints as PuzzleHint[]) ?? [];
+
+      let attempt: DailyPuzzleResponse["attempt"] = null;
+      if (playerId) {
+        const attemptRows = (await supabaseRest(
+          env,
+          `puzzle_attempts?player_id=eq.${encodeURIComponent(playerId)}` +
+            `&puzzle_id=eq.${encodeURIComponent(puzzleDate)}&select=*&limit=1`,
+          {method: "GET", prefer: "return=representation"},
+        )) as Array<Record<string, unknown>> | null;
+        const attemptRow = Array.isArray(attemptRows) && attemptRows[0] ? attemptRows[0] : null;
+        if (attemptRow) {
+          const data = (attemptRow.attempt_state as Record<string, unknown>) ?? {};
+          const attemptCount = Number(data.attemptCount ?? 0);
+          const completed = Boolean(data.completed);
+          const won = Boolean(data.won);
+          const revealedHints = hints.filter((hint) => hint.revealAfterAttempt <= attemptCount);
+          const correctChoice = publicPuzzle.choices.find(
+            (choice) => choice.choiceId === answer.correctChoiceId,
+          );
+          attempt = {
+            puzzleId: puzzleDate,
+            selectedChoiceIds: Array.isArray(data.selectedChoiceIds) ? (data.selectedChoiceIds as string[]) : [],
+            attemptCount,
+            completed,
+            won,
+            hints: completed ? [] : revealedHints.filter((hint) => !won || hint.revealAfterAttempt < attemptCount),
+            answer: completed
+              ? {
+                  showId: Number(answer.correctShowId),
+                  title: String(answer.correctTitle ?? correctChoice?.title ?? "Unknown"),
+                  seasonNumber: (answer.seasonNumber as number | null) ?? null,
+                  episodeNumber: (answer.episodeNumber as number | null) ?? null,
+                }
+              : null,
+          };
+          if (!completed) {
+            attempt.hints = revealedHints;
+          }
+        }
+      }
+
+      return {
+        ...publicPuzzle,
+        puzzleId: publicPuzzle.id,
+        attempt,
+      };
+    } catch {
+      return null;
+    }
+  }
+
   async getToday(playerId: string | null, now = new Date()): Promise<DailyPuzzleResponse> {
     const puzzleDate = utcPuzzleDate(now);
+    const {isSupabaseReadPuzzles} = await import("../config/env");
+    if (isSupabaseReadPuzzles()) {
+      const fromSupabase = await this.getTodayFromSupabase(playerId, puzzleDate);
+      if (fromSupabase) {
+        return fromSupabase;
+      }
+    }
+
     const publicSnap = await this.publicCollection().doc(puzzleDate).get();
     if (!publicSnap.exists) {
       throw new HttpError(404, "No puzzle is published for today.", "puzzle_not_found");
@@ -223,10 +320,99 @@ class PuzzleService {
       };
     });
 
+    const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
+    const {upsertPuzzleAttemptShadow, upsertUserGameStatsShadow} = await import("../migration/supabaseWriters");
+
+    const attemptSnap = await attemptRef.get();
+    if (attemptSnap.exists) {
+      const attemptData = attemptSnap.data() as PuzzleAttemptDoc;
+      await writeSupabasePrimaryOrShadow({
+        domain: "puzzleAttempts",
+        operation: "submitGuess",
+        firebaseUid: input.uid ?? input.playerId,
+        operationId: `puzzleAttempts:submitGuess:${input.playerId}:${puzzleId}:${Date.now()}`,
+        payload: attemptData,
+        write: () =>
+          upsertPuzzleAttemptShadow(input.playerId, puzzleId, attemptData as unknown as Record<string, unknown>),
+      });
+    }
+
+    if (input.uid && result.completed) {
+      const statsSnap = await this.statsCollection().doc(input.uid).get();
+      if (statsSnap.exists) {
+        const stats = statsSnap.data() as UserGameStatsDoc;
+        const uid = input.uid;
+        await writeSupabasePrimaryOrShadow({
+          domain: "puzzleStats",
+          operation: "submitGuess",
+          firebaseUid: uid,
+          operationId: `puzzleStats:submitGuess:${uid}:${puzzleId}:${Date.now()}`,
+          payload: stats,
+          write: () =>
+            upsertUserGameStatsShadow(uid, {
+              currentStreak: stats.currentStreak,
+              maxStreak: stats.longestStreak,
+              wins: stats.gamesWon,
+              plays: stats.gamesPlayed,
+              payload: {
+                winsByAttempt: stats.winsByAttempt,
+                lastPlayedPuzzleDate: stats.lastPlayedPuzzleDate,
+              },
+            }),
+        });
+      }
+    }
+
     return result;
   }
 
+  private async getStatsFromSupabase(uid: string): Promise<UserGameStatsDoc | null> {
+    const {getSupabaseEnvOrNull, supabaseRest} = await import("../db/supabaseClient");
+    const env = getSupabaseEnvOrNull();
+    if (!env) {
+      return null;
+    }
+
+    try {
+      const rows = (await supabaseRest(
+        env,
+        `user_game_stats?firebase_uid=eq.${encodeURIComponent(uid)}&select=*&limit=1`,
+        {method: "GET", prefer: "return=representation"},
+      )) as Array<Record<string, unknown>> | null;
+      const row = Array.isArray(rows) && rows[0] ? rows[0] : null;
+      if (!row) {
+        return null;
+      }
+
+      const payload = (row.payload as Record<string, unknown>) ?? {};
+      const winsByAttempt = (payload.winsByAttempt as Record<string, number>) ?? {};
+      return {
+        gamesPlayed: Number(row.plays ?? 0),
+        gamesWon: Number(row.wins ?? 0),
+        currentStreak: Number(row.current_streak ?? 0),
+        longestStreak: Number(row.max_streak ?? 0),
+        winsByAttempt: {
+          1: Number(winsByAttempt[1] ?? 0),
+          2: Number(winsByAttempt[2] ?? 0),
+          3: Number(winsByAttempt[3] ?? 0),
+        },
+        lastPlayedPuzzleDate:
+          typeof payload.lastPlayedPuzzleDate === "string" ? payload.lastPlayedPuzzleDate : null,
+      };
+    } catch {
+      return null;
+    }
+  }
+
   async getStats(uid: string): Promise<UserGameStatsDoc> {
+    const {isSupabaseReadPuzzles} = await import("../config/env");
+    if (isSupabaseReadPuzzles()) {
+      const fromSupabase = await this.getStatsFromSupabase(uid);
+      if (fromSupabase) {
+        return fromSupabase;
+      }
+    }
+
     const snap = await this.statsCollection().doc(uid).get();
     if (!snap.exists) {
       return emptyUserGameStats();
@@ -278,18 +464,49 @@ class PuzzleService {
       publishedAt,
     };
 
-    const batch = getFirestore().batch();
-    batch.set(this.publicCollection().doc(puzzleId), publicDoc, {merge: true});
-    batch.set(
-      this.privateCollection().doc(puzzleId),
-      {
-        ...privateDoc,
-        correctTitle: input.correctTitle,
-        imageAsset: input.imageAsset ?? null,
-      },
-      {merge: true},
-    );
-    await batch.commit();
+    const {shouldPersistFirestore} = await import("../config/env");
+    if (shouldPersistFirestore()) {
+      const batch = getFirestore().batch();
+      batch.set(this.publicCollection().doc(puzzleId), publicDoc, {merge: true});
+      batch.set(
+        this.privateCollection().doc(puzzleId),
+        {
+          ...privateDoc,
+          correctTitle: input.correctTitle,
+          imageAsset: input.imageAsset ?? null,
+        },
+        {merge: true},
+      );
+      await batch.commit();
+    }
+
+    const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
+    const {upsertPuzzleShadow} = await import("../migration/supabaseWriters");
+    await writeSupabasePrimaryOrShadow({
+      domain: "puzzles",
+      operation: "upsertPuzzle",
+      firebaseUid: "system:puzzle-admin",
+      operationId: `puzzles:upsert:${puzzleId}:${Date.now()}`,
+      payload: {puzzleId, status: input.status},
+      write: () =>
+        upsertPuzzleShadow({
+          puzzleId,
+          puzzleDate: input.puzzleDate,
+          publicPayload: publicDoc as unknown as Record<string, unknown>,
+          answer: {
+            correctChoiceId: input.correctChoiceId,
+            correctShowId: input.correctShowId,
+            correctTitle: input.correctTitle,
+            seasonNumber: input.seasonNumber,
+            episodeNumber: input.episodeNumber,
+          },
+          hints: input.hints,
+          status: input.status,
+          imageAsset: input.imageAsset ?? null,
+          publishedAt,
+        }),
+    });
+
     return {puzzleId};
   }
 
@@ -343,8 +560,11 @@ class PuzzleService {
 
   async publishScheduledPuzzles(now = new Date()): Promise<{published: string[]}> {
     const today = utcPuzzleDate(now);
+    const {shouldPersistFirestore} = await import("../config/env");
     const scheduled = await this.privateCollection().where("status", "==", "scheduled").get();
     const published: string[] = [];
+    const publishedAtIso = now.toISOString();
+    const privateByPuzzleId = new Map<string, PrivatePuzzleDoc & {correctTitle?: string; imageAsset?: unknown}>();
     const batch = getFirestore().batch();
 
     for (const doc of scheduled.docs) {
@@ -353,25 +573,80 @@ class PuzzleService {
           doc.ref,
           {
             status: "published",
-            publishedAt: now.toISOString(),
-            updatedAt: now.toISOString(),
+            publishedAt: publishedAtIso,
+            updatedAt: publishedAtIso,
           },
           {merge: true},
         );
         published.push(doc.id);
+        privateByPuzzleId.set(
+          doc.id,
+          doc.data() as PrivatePuzzleDoc & {correctTitle?: string; imageAsset?: unknown},
+        );
       }
     }
 
-    if (published.length > 0) {
-      await batch.commit();
+    if (shouldPersistFirestore()) {
+      if (published.length > 0) {
+        await batch.commit();
+      }
+      await this.configDoc().set(
+        {
+          lastPublishCheckAt: FieldValue.serverTimestamp(),
+          lastPublishedIds: published,
+        },
+        {merge: true},
+      );
     }
-    await this.configDoc().set(
-      {
-        lastPublishCheckAt: FieldValue.serverTimestamp(),
-        lastPublishedIds: published,
-      },
-      {merge: true},
-    );
+
+    const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
+    const {upsertPuzzleShadow, upsertGameConfigShadow} = await import("../migration/supabaseWriters");
+
+    for (const puzzleId of published) {
+      const privateData = privateByPuzzleId.get(puzzleId);
+      const publicSnap = await this.publicCollection().doc(puzzleId).get();
+      const publicPuzzle = publicSnap.exists
+        ? this.mapPublic(publicSnap.id, publicSnap.data() as Record<string, unknown>)
+        : null;
+      await writeSupabasePrimaryOrShadow({
+        domain: "puzzles",
+        operation: "publish",
+        firebaseUid: "system:puzzle-scheduler",
+        operationId: `puzzles:publish:${puzzleId}:${Date.now()}`,
+        payload: {puzzleId, status: "published", publishedAt: publishedAtIso},
+        write: () =>
+          upsertPuzzleShadow({
+            puzzleId,
+            puzzleDate: publicPuzzle?.puzzleDate ?? puzzleId,
+            publicPayload: publicPuzzle ? (publicPuzzle as unknown as Record<string, unknown>) : {},
+            answer: {
+              correctChoiceId: privateData?.correctChoiceId ?? null,
+              correctShowId: privateData?.correctShowId ?? null,
+              correctTitle: privateData?.correctTitle ?? null,
+              seasonNumber: privateData?.seasonNumber ?? null,
+              episodeNumber: privateData?.episodeNumber ?? null,
+            },
+            hints: privateData?.hints ?? [],
+            status: "published",
+            imageAsset: privateData?.imageAsset ?? null,
+            publishedAt: publishedAtIso,
+          }),
+      });
+    }
+
+    await writeSupabasePrimaryOrShadow({
+      domain: "gameConfig",
+      operation: "publishScheduledPuzzles",
+      firebaseUid: "system:puzzle-scheduler",
+      operationId: `gameConfig:dailyPuzzle:${Date.now()}`,
+      payload: {lastPublishCheckAt: publishedAtIso, lastPublishedIds: published},
+      write: () =>
+        upsertGameConfigShadow("dailyPuzzle", {
+          lastPublishCheckAt: publishedAtIso,
+          lastPublishedIds: published,
+        }),
+    });
+
     return {published};
   }
 

@@ -161,6 +161,42 @@ class FranchiseCatalogLoader {
       return {catalogs: fresh, source: "cache"};
     }
 
+    const {isSupabaseReadFranchises} = await import("../config/env");
+    const {getSupabaseEnvOrNull, supabaseRest} = await import("../db/supabaseClient");
+    if (isSupabaseReadFranchises()) {
+      try {
+        const env = getSupabaseEnvOrNull();
+        if (env) {
+          const rows = (await supabaseRest(
+            env,
+            "franchises?published=eq.true&select=*&order=sort_order.asc",
+            {method: "GET", prefer: "return=representation"},
+          )) as Array<Record<string, unknown>> | null;
+          if (Array.isArray(rows) && rows.length > 0) {
+            const parsed = rows
+              .map((row) =>
+                parseCatalogDocument(String(row.slug ?? ""), {
+                  slug: row.slug,
+                  name: row.title,
+                  description: row.description,
+                  phases: row.phases,
+                  titles: row.titles,
+                  sortOrder: row.sort_order,
+                  published: row.published,
+                }),
+              )
+              .filter((entry): entry is {catalog: FranchiseCatalog; sortOrder: number} => entry != null);
+            const catalogs = sortCatalogs(parsed);
+            this.cache = {catalogs, expiresAt: Date.now() + CACHE_TTL_MS};
+            return {catalogs, source: "remote"};
+          }
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn(`[franchises] Supabase read failed; trying Firestore. ${message}`);
+      }
+    }
+
     try {
       const catalogs = await this.fetchFromFirestore();
       this.cache = {

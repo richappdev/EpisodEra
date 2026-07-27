@@ -14,8 +14,13 @@ Reads remain Firestore. Failures → migration outbox.
 - Friend request / accept / remove → `friendships`
 - Derived stats/yearRecap/achievements set + invalidate → `private.derived_cache` via RPCs
 - Import **job metadata** (create / stage / commit / run) → `public.imports` summary JSON
+- Import **staging** rows → `private.import_staged_*` via RPCs (`upsert_import_staged_*`)
+- Discussions → `discussion_comments`
+- Puzzles / attempts / stats / game config → `puzzles_*`, `puzzle_attempts`, `user_game_stats`, `game_config`
+- Media mappings → `media_mappings`
+- Franchises catalog seed/read → `franchises`
 
-Staging rows (`stagedShows` / `stagedEpisodes`) stay in Firestore. Episode/watchlist merge reuses Phase 6–7 shadow writers after `importService.run`.
+Episode/watchlist merge reuses Phase 6–7 shadow writers after `importService.run`.
 
 ## Phase 9 — Native Supabase Auth (tooling only)
 
@@ -40,8 +45,8 @@ Prep flags (default off):
 Retirement order:
 
 1. Shadow writes stable; outbox drained  
-2. Historical import parity OK  
-3. Switch reads domain-by-domain (`SUPABASE_READ_PROFILES`, later `SUPABASE_READ_PRIMARY`)  
+2. Historical import parity OK (including `backfill-remaining-domains.mjs`)  
+3. Switch reads domain-by-domain (`SUPABASE_READ_PROFILES`, remaining-domain flags, later `SUPABASE_READ_PRIMARY`)  
 4. Phase 9 Auth cutover + soak  
 5. `FIRESTORE_WRITES_DISABLED` + Firebase read-only retention  
 6. Remove Functions Firestore dependency / retire Auth after window  

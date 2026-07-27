@@ -164,21 +164,24 @@ class LikesService {
           return item;
         }
 
-        await this.collection(userId).doc(item.itemId).update({
-          poster: merged.poster,
-          backdrop: merged.backdrop,
-        });
+        const {shouldPersistFirestore} = await import("../config/env");
+        if (shouldPersistFirestore()) {
+          await this.collection(userId).doc(item.itemId).update({
+            poster: merged.poster,
+            backdrop: merged.backdrop,
+          });
+        }
 
         const next = {...item, poster: merged.poster, backdrop: merged.backdrop};
-        const {shadowWrite} = await import("../migration/shadow");
+        const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
         const {upsertLikeShadow} = await import("../migration/supabaseWriters");
-        await shadowWrite({
+        await writeSupabasePrimaryOrShadow({
           domain: "likes",
           operation: "backfillImages",
           firebaseUid: userId,
           operationId: `likes:images:${userId}:${item.itemId}:${Date.now()}`,
           payload: next,
-          secondary: () => upsertLikeShadow(userId, next),
+          write: () => upsertLikeShadow(userId, next),
         });
 
         return next;
@@ -192,55 +195,72 @@ class LikesService {
   }
 
   async add(userId: string, input: AddLikedItemInput): Promise<LikedItem> {
+    const {shouldPersistFirestore} = await import("../config/env");
     const itemId = itemIdFor(input.mediaType, input.tmdbId);
     const ref = this.collection(userId).doc(itemId);
+    const nowIso = new Date().toISOString();
 
-    await getFirestore().runTransaction(async (transaction) => {
-      const existing = await transaction.get(ref);
-      transaction.set(
-        ref,
-        {
-          tmdbId: input.tmdbId,
-          mediaType: input.mediaType,
-          title: input.title,
-          poster: normalizeImageUrl(input.poster),
-          backdrop: normalizeImageUrl(input.backdrop),
-          likedAt: existing.exists ?
-            existing.get("likedAt") ?? FieldValue.serverTimestamp() :
-            FieldValue.serverTimestamp(),
-        },
-        {merge: true},
-      );
-    });
+    if (shouldPersistFirestore()) {
+      await getFirestore().runTransaction(async (transaction) => {
+        const existing = await transaction.get(ref);
+        transaction.set(
+          ref,
+          {
+            tmdbId: input.tmdbId,
+            mediaType: input.mediaType,
+            title: input.title,
+            poster: normalizeImageUrl(input.poster),
+            backdrop: normalizeImageUrl(input.backdrop),
+            likedAt: existing.exists ?
+              existing.get("likedAt") ?? FieldValue.serverTimestamp() :
+              FieldValue.serverTimestamp(),
+          },
+          {merge: true},
+        );
+      });
+    }
 
-    const item = await this.get(userId, itemId);
+    const item = shouldPersistFirestore()
+      ? await this.get(userId, itemId)
+      : {
+        itemId,
+        tmdbId: input.tmdbId,
+        mediaType: input.mediaType,
+        title: input.title,
+        poster: normalizeImageUrl(input.poster),
+        backdrop: normalizeImageUrl(input.backdrop),
+        likedAt: nowIso,
+      };
     await derivedCacheService.invalidateUserLibraryCaches(userId);
-    const {shadowWrite} = await import("../migration/shadow");
+    const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
     const {upsertLikeShadow} = await import("../migration/supabaseWriters");
-    await shadowWrite({
+    await writeSupabasePrimaryOrShadow({
       domain: "likes",
       operation: "upsert",
       firebaseUid: userId,
       operationId: `likes:upsert:${userId}:${itemId}:${Date.now()}`,
       payload: item,
-      secondary: () => upsertLikeShadow(userId, item),
+      write: () => upsertLikeShadow(userId, item),
     });
     return item;
   }
 
   async remove(userId: string, itemId: string): Promise<void> {
+    const {shouldPersistFirestore} = await import("../config/env");
     const parsed = parseItemId(itemId);
-    await this.collection(userId).doc(itemId).delete();
+    if (shouldPersistFirestore()) {
+      await this.collection(userId).doc(itemId).delete();
+    }
     await derivedCacheService.invalidateUserLibraryCaches(userId);
-    const {shadowWrite} = await import("../migration/shadow");
+    const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
     const {removeLikeShadow} = await import("../migration/supabaseWriters");
-    await shadowWrite({
+    await writeSupabasePrimaryOrShadow({
       domain: "likes",
       operation: "remove",
       firebaseUid: userId,
       operationId: `likes:remove:${userId}:${itemId}:${Date.now()}`,
       payload: {itemId, mediaType: parsed.mediaType, tmdbId: parsed.tmdbId},
-      secondary: () => removeLikeShadow(userId, parsed.mediaType, parsed.tmdbId),
+      write: () => removeLikeShadow(userId, parsed.mediaType, parsed.tmdbId),
     });
   }
 

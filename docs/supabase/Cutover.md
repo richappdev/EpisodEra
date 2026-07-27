@@ -29,7 +29,7 @@ SUPABASE_WRITE_PRIMARY=true
 # keep FIRESTORE_WRITES_DISABLED unset so Firestore still mirrors during soak
 ```
 
-Progress mutations use `mark_episodes_watched` RPC. Profiles/settings/derived write Supabase first.
+Progress mutations use `mark_episodes_watched` RPC. Profiles/settings/derived/watchlist/likes/history/friends/imports write Supabase first when this flag is on. Remaining domains (discussions, puzzles, franchises, media mappings, import staging) also honor write-primary via `writeSupabasePrimaryOrShadow`.
 
 **Status:** enable `SUPABASE_WRITE_PRIMARY` in prod when library reads look good; do **not** set `FIRESTORE_WRITES_DISABLED` until outbox stays clean for a soak window.
 
@@ -42,7 +42,7 @@ SUPABASE_WRITE_PRIMARY=true
 FIRESTORE_WRITES_DISABLED=true
 ```
 
-**Status:** enable after write-primary soak. Library mutations then persist to Supabase only (puzzles/discussions/franchises/import staging may still touch Firestore until those domains are migrated).
+**Status:** enable after write-primary soak. All product writers that honor `shouldPersistFirestore()` then persist to Supabase only.
 
 To catch up Firestore after a period with mirror off:
 
@@ -53,9 +53,29 @@ node scripts/supabase/sync-supabase-to-firestore.mjs
 
 Then set `FIRESTORE_WRITES_DISABLED=false` (keep `SUPABASE_WRITE_PRIMARY=true`) and redeploy so new writes mirror again.
 
-## Still on Firestore (not cut over yet)
+## Remaining-domain reads (after backfill)
 
-Puzzles, discussions, franchises catalog, media mappings, import **staging** rows (progress/watchlist merges from import follow write-primary). Auth remains Firebase until Phase 9.
+```env
+SUPABASE_READ_DISCUSSIONS=true
+SUPABASE_READ_PUZZLES=true
+SUPABASE_READ_FRANCHISES=true
+SUPABASE_READ_MEDIA_MAPPINGS=true
+SUPABASE_READ_IMPORT_STAGING=true
+# or SUPABASE_READ_PRIMARY=true once library + remaining domains are soaked
+```
+
+Backfill first:
+
+```bash
+node scripts/supabase/backfill-remaining-domains.mjs --dry-run
+node scripts/supabase/backfill-remaining-domains.mjs
+```
+
+Apply migration `20260727120001_remaining_domain_cutover.sql` (discussion columns + private-schema RPCs) before writers/backfill.
+
+## Auth
+
+Auth remains Firebase until Phase 9.
 
 ## Not automatic
 

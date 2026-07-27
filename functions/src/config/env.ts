@@ -89,6 +89,22 @@ export const isSupabaseReadFriends = () =>
 export const isSupabaseReadDerived = () =>
   booleanFromEnv("SUPABASE_READ_DERIVED") || isSupabaseReadPrimary();
 
+/** Remaining Firestore domains — read from Supabase when true. */
+export const isSupabaseReadDiscussions = () =>
+  booleanFromEnv("SUPABASE_READ_DISCUSSIONS") || isSupabaseReadPrimary();
+
+export const isSupabaseReadPuzzles = () =>
+  booleanFromEnv("SUPABASE_READ_PUZZLES") || isSupabaseReadPrimary();
+
+export const isSupabaseReadFranchises = () =>
+  booleanFromEnv("SUPABASE_READ_FRANCHISES") || isSupabaseReadPrimary();
+
+export const isSupabaseReadMediaMappings = () =>
+  booleanFromEnv("SUPABASE_READ_MEDIA_MAPPINGS") || isSupabaseReadPrimary();
+
+export const isSupabaseReadImportStaging = () =>
+  booleanFromEnv("SUPABASE_READ_IMPORT_STAGING") || isSupabaseReadPrimary();
+
 /**
  * Phase 10 prep: when true, mutation routes should refuse Firestore writes
  * after Supabase has become primary (see Phase10Retirement.md).
