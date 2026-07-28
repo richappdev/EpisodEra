@@ -12,7 +12,7 @@ import {
   UpsertPuzzleInput,
   UserGameStatsDoc,
 } from "../models/puzzle";
-import {computeStreakUpdate, hintForAttempt, nextUtcMidnightIso, utcPuzzleDate} from "./puzzleLogic";
+import {computeStreakUpdate, nextUtcMidnightIso, utcPuzzleDate, applyGuessToAttempt} from "./puzzleLogic";
 
 const attemptDocId = (playerId: string, puzzleId: string) =>
   `${playerId.replace(/[^a-zA-Z0-9_-]/g, "_")}__${puzzleId}`;
@@ -198,6 +198,144 @@ class PuzzleService {
     };
   }
 
+  private async getPublishedPuzzleFromSupabase(
+    puzzleId: string,
+  ): Promise<{publicPuzzle: PublicPuzzleDoc; privatePuzzle: PrivatePuzzleDoc} | null> {
+    const {getSupabaseEnvOrNull, supabaseRest, supabaseRpc} = await import("../db/supabaseClient");
+    const env = getSupabaseEnvOrNull();
+    if (!env) {
+      return null;
+    }
+
+    try {
+      const publicRows = (await supabaseRest(
+        env,
+        `puzzles_public?puzzle_id=eq.${encodeURIComponent(puzzleId)}&select=*&limit=1`,
+        {method: "GET", prefer: "return=representation"},
+      )) as Array<Record<string, unknown>> | null;
+      const publicRow = Array.isArray(publicRows) && publicRows[0] ? publicRows[0] : null;
+      if (!publicRow) {
+        return null;
+      }
+
+      const privateRow = (await supabaseRpc(
+        env,
+        "get_puzzle_private",
+        {p_puzzle_id: puzzleId},
+        "return=representation",
+      )) as Record<string, unknown> | null;
+      if (!privateRow || privateRow.status !== "published") {
+        return null;
+      }
+
+      const answer = (privateRow.answer as Record<string, unknown>) ?? {};
+      const publicPuzzle = this.mapPublic(puzzleId, (publicRow.payload as Record<string, unknown>) ?? {});
+      const privatePuzzle: PrivatePuzzleDoc = {
+        puzzleId,
+        correctChoiceId: String(answer.correctChoiceId ?? ""),
+        correctShowId: Number(answer.correctShowId ?? 0),
+        hints: (privateRow.hints as PuzzleHint[]) ?? [],
+        status: "published",
+        difficulty: "medium",
+        seasonNumber: (answer.seasonNumber as number | null) ?? null,
+        episodeNumber: (answer.episodeNumber as number | null) ?? null,
+        createdAt: String(privateRow.updated_at ?? ""),
+        updatedAt: String(privateRow.updated_at ?? ""),
+        publishedAt: typeof privateRow.updated_at === "string" ? privateRow.updated_at : null,
+      };
+
+      if (!privatePuzzle.correctChoiceId) {
+        return null;
+      }
+
+      return {publicPuzzle, privatePuzzle};
+    } catch {
+      return null;
+    }
+  }
+
+  private async resolvePublishedPuzzle(
+    puzzleId: string,
+  ): Promise<{publicPuzzle: PublicPuzzleDoc; privatePuzzle: PrivatePuzzleDoc}> {
+    const {isSupabaseReadPuzzles} = await import("../config/env");
+    if (isSupabaseReadPuzzles()) {
+      const fromSupabase = await this.getPublishedPuzzleFromSupabase(puzzleId);
+      if (fromSupabase) {
+        return fromSupabase;
+      }
+    }
+
+    const publicSnap = await this.publicCollection().doc(puzzleId).get();
+    const privateSnap = await this.privateCollection().doc(puzzleId).get();
+    if (publicSnap.exists && privateSnap.exists) {
+      const privatePuzzle = privateSnap.data() as PrivatePuzzleDoc;
+      if (privatePuzzle.status === "published") {
+        return {
+          publicPuzzle: this.mapPublic(publicSnap.id, publicSnap.data() as Record<string, unknown>),
+          privatePuzzle,
+        };
+      }
+    }
+
+    // Partial cutover: puzzle may exist only in Supabase even when the read flag is off.
+    const fromSupabase = await this.getPublishedPuzzleFromSupabase(puzzleId);
+    if (fromSupabase) {
+      return fromSupabase;
+    }
+
+    throw new HttpError(404, "Puzzle not found.", "puzzle_not_found");
+  }
+
+  private async getAttemptFromSupabase(
+    playerId: string,
+    puzzleId: string,
+  ): Promise<PuzzleAttemptDoc | null> {
+    const {getSupabaseEnvOrNull, supabaseRest} = await import("../db/supabaseClient");
+    const env = getSupabaseEnvOrNull();
+    if (!env) {
+      return null;
+    }
+
+    try {
+      const attemptRows = (await supabaseRest(
+        env,
+        `puzzle_attempts?player_id=eq.${encodeURIComponent(playerId)}` +
+          `&puzzle_id=eq.${encodeURIComponent(puzzleId)}&select=*&limit=1`,
+        {method: "GET", prefer: "return=representation"},
+      )) as Array<Record<string, unknown>> | null;
+      const attemptRow = Array.isArray(attemptRows) && attemptRows[0] ? attemptRows[0] : null;
+      if (!attemptRow) {
+        return null;
+      }
+      const data = (attemptRow.attempt_state as Record<string, unknown>) ?? {};
+      return {
+        puzzleId,
+        playerId,
+        selectedChoiceIds: Array.isArray(data.selectedChoiceIds) ? (data.selectedChoiceIds as string[]) : [],
+        attemptCount: Number(data.attemptCount ?? 0),
+        completed: Boolean(data.completed),
+        won: Boolean(data.won),
+        startedAt: String(data.startedAt ?? new Date().toISOString()),
+        updatedAt: String(data.updatedAt ?? attemptRow.updated_at ?? new Date().toISOString()),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private emptyAttempt(puzzleId: string, playerId: string, nowIso: string): PuzzleAttemptDoc {
+    return {
+      puzzleId,
+      playerId,
+      selectedChoiceIds: [],
+      attemptCount: 0,
+      completed: false,
+      won: false,
+      startedAt: nowIso,
+      updatedAt: nowIso,
+    };
+  }
+
   async submitGuess(input: {
     puzzleId: string;
     choiceId: string;
@@ -205,142 +343,109 @@ class PuzzleService {
     uid?: string | null;
   }): Promise<GuessResponse> {
     const puzzleId = input.puzzleId;
-    const publicSnap = await this.publicCollection().doc(puzzleId).get();
-    const privateSnap = await this.privateCollection().doc(puzzleId).get();
-    if (!publicSnap.exists || !privateSnap.exists) {
-      throw new HttpError(404, "Puzzle not found.", "puzzle_not_found");
-    }
-
-    const publicPuzzle = this.mapPublic(publicSnap.id, publicSnap.data() as Record<string, unknown>);
-    const privatePuzzle = privateSnap.data() as PrivatePuzzleDoc;
-    if (privatePuzzle.status !== "published") {
-      throw new HttpError(404, "Puzzle not found.", "puzzle_not_found");
-    }
-
-    if (publicPuzzle.puzzleDate !== utcPuzzleDate() && privatePuzzle.status === "published") {
-      // Allow playing today's published id only; historical ids OK if published.
-    }
+    const {publicPuzzle, privatePuzzle} = await this.resolvePublishedPuzzle(puzzleId);
 
     const choice = publicPuzzle.choices.find((item) => item.choiceId === input.choiceId);
     if (!choice) {
       throw new HttpError(400, "Unknown choice.", "invalid_choice");
     }
 
-    const attemptRef = this.attemptsCollection().doc(attemptDocId(input.playerId, puzzleId));
+    const {isSupabaseReadPuzzles, shouldPersistFirestore} = await import("../config/env");
     const nowIso = new Date().toISOString();
 
-    const result = await getFirestore().runTransaction(async (transaction) => {
-      // Firestore requires all reads before any writes in a transaction.
-      const existing = await transaction.get(attemptRef);
-      const current: PuzzleAttemptDoc = existing.exists
-        ? (existing.data() as PuzzleAttemptDoc)
-        : {
-            puzzleId,
-            playerId: input.playerId,
-            selectedChoiceIds: [],
-            attemptCount: 0,
-            completed: false,
-            won: false,
-            startedAt: nowIso,
-            updatedAt: nowIso,
-          };
+    let result: GuessResponse;
+    let nextAttempt: PuzzleAttemptDoc;
+    let updatedStats: UserGameStatsDoc | null = null;
 
-      if (current.completed) {
-        throw new HttpError(409, "This puzzle is already completed.", "puzzle_completed");
-      }
-      if (current.selectedChoiceIds.includes(input.choiceId)) {
-        throw new HttpError(400, "That choice was already selected.", "duplicate_choice");
-      }
-      if (current.attemptCount >= publicPuzzle.maxAttempts) {
-        throw new HttpError(400, "No attempts remaining.", "no_attempts_remaining");
-      }
+    if (!shouldPersistFirestore()) {
+      const existing =
+        (await this.getAttemptFromSupabase(input.playerId, puzzleId)) ??
+        this.emptyAttempt(puzzleId, input.playerId, nowIso);
+      const applied = applyGuessToAttempt({
+        publicPuzzle,
+        privatePuzzle,
+        current: existing,
+        choiceId: input.choiceId,
+        nowIso,
+      });
+      nextAttempt = applied.nextAttempt;
+      result = applied.response;
 
-      const selectedChoiceIds = [...current.selectedChoiceIds, input.choiceId];
-      const attemptCount = selectedChoiceIds.length;
-      const correct = input.choiceId === privatePuzzle.correctChoiceId;
-      const completed = correct || attemptCount >= publicPuzzle.maxAttempts;
-      const won = correct;
-      const hint = correct ? null : hintForAttempt(privatePuzzle.hints, attemptCount);
-      const correctChoice = publicPuzzle.choices.find((item) => item.choiceId === privatePuzzle.correctChoiceId);
-
-      const statsRef = completed && input.uid ? this.statsCollection().doc(input.uid) : null;
-      const statsSnap = statsRef ? await transaction.get(statsRef) : null;
-
-      const nextAttempt: PuzzleAttemptDoc = {
-        ...current,
-        selectedChoiceIds,
-        attemptCount,
-        completed,
-        won,
-        updatedAt: nowIso,
-        startedAt: current.startedAt || nowIso,
-      };
-      transaction.set(attemptRef, nextAttempt);
-
-      if (statsRef) {
-        const stats = statsSnap?.exists
-          ? (statsSnap.data() as UserGameStatsDoc)
-          : emptyUserGameStats();
-        const updated = computeStreakUpdate({
+      if (input.uid && result.completed) {
+        const stats = await this.getStats(input.uid);
+        updatedStats = computeStreakUpdate({
           stats,
           puzzleDate: publicPuzzle.puzzleDate,
-          won,
-          attemptCount,
+          won: result.won,
+          attemptCount: result.attempt,
         });
-        transaction.set(statsRef, {...updated, updatedAt: FieldValue.serverTimestamp()}, {merge: true});
       }
+    } else {
+      const attemptRef = this.attemptsCollection().doc(attemptDocId(input.playerId, puzzleId));
+      const supabaseSeed =
+        isSupabaseReadPuzzles() ? await this.getAttemptFromSupabase(input.playerId, puzzleId) : null;
 
-      if (!completed) {
-        return {
-          correct: false as const,
-          attempt: attemptCount,
-          attemptsRemaining: publicPuzzle.maxAttempts - attemptCount,
-          hint,
-          selectedChoiceIds,
-          completed: false as const,
-          won: false as const,
-        };
-      }
+      const applied = await getFirestore().runTransaction(async (transaction) => {
+        const existingSnap = await transaction.get(attemptRef);
+        const current: PuzzleAttemptDoc = existingSnap.exists
+          ? (existingSnap.data() as PuzzleAttemptDoc)
+          : (supabaseSeed ?? this.emptyAttempt(puzzleId, input.playerId, nowIso));
 
-      return {
-        correct,
-        attempt: attemptCount,
-        attemptsRemaining: publicPuzzle.maxAttempts - attemptCount,
-        selectedChoiceIds,
-        completed: true as const,
-        won,
-        answer: {
-          showId: privatePuzzle.correctShowId,
-          title: correctChoice?.title ?? "Unknown",
-          seasonNumber: privatePuzzle.seasonNumber,
-          episodeNumber: privatePuzzle.episodeNumber,
-        },
-        showPath: `/tv/${privatePuzzle.correctShowId}`,
-        hint,
-      };
-    });
+        const guess = applyGuessToAttempt({
+          publicPuzzle,
+          privatePuzzle,
+          current,
+          choiceId: input.choiceId,
+          nowIso,
+        });
+
+        const statsRef = guess.nextAttempt.completed && input.uid ? this.statsCollection().doc(input.uid) : null;
+        const statsSnap = statsRef ? await transaction.get(statsRef) : null;
+
+        transaction.set(attemptRef, guess.nextAttempt);
+
+        let statsDoc: UserGameStatsDoc | null = null;
+        if (statsRef) {
+          const stats = statsSnap?.exists
+            ? (statsSnap.data() as UserGameStatsDoc)
+            : emptyUserGameStats();
+          statsDoc = computeStreakUpdate({
+            stats,
+            puzzleDate: publicPuzzle.puzzleDate,
+            won: guess.nextAttempt.won,
+            attemptCount: guess.nextAttempt.attemptCount,
+          });
+          transaction.set(statsRef, {...statsDoc, updatedAt: FieldValue.serverTimestamp()}, {merge: true});
+        }
+
+        return {guess, statsDoc};
+      });
+
+      nextAttempt = applied.guess.nextAttempt;
+      result = applied.guess.response;
+      updatedStats = applied.statsDoc;
+    }
 
     const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
     const {upsertPuzzleAttemptShadow, upsertUserGameStatsShadow} = await import("../migration/supabaseWriters");
 
-    const attemptSnap = await attemptRef.get();
-    if (attemptSnap.exists) {
-      const attemptData = attemptSnap.data() as PuzzleAttemptDoc;
-      await writeSupabasePrimaryOrShadow({
-        domain: "puzzleAttempts",
-        operation: "submitGuess",
-        firebaseUid: input.uid ?? input.playerId,
-        operationId: `puzzleAttempts:submitGuess:${input.playerId}:${puzzleId}:${Date.now()}`,
-        payload: attemptData,
-        write: () =>
-          upsertPuzzleAttemptShadow(input.playerId, puzzleId, attemptData as unknown as Record<string, unknown>),
-      });
-    }
+    await writeSupabasePrimaryOrShadow({
+      domain: "puzzleAttempts",
+      operation: "submitGuess",
+      firebaseUid: input.uid ?? input.playerId,
+      operationId: `puzzleAttempts:submitGuess:${input.playerId}:${puzzleId}:${Date.now()}`,
+      payload: nextAttempt,
+      write: () =>
+        upsertPuzzleAttemptShadow(input.playerId, puzzleId, nextAttempt as unknown as Record<string, unknown>),
+    });
 
     if (input.uid && result.completed) {
-      const statsSnap = await this.statsCollection().doc(input.uid).get();
-      if (statsSnap.exists) {
-        const stats = statsSnap.data() as UserGameStatsDoc;
+      const stats =
+        updatedStats ??
+        (shouldPersistFirestore()
+          ? ((await this.statsCollection().doc(input.uid).get()).data() as UserGameStatsDoc | undefined) ?? null
+          : null);
+      if (stats) {
         const uid = input.uid;
         await writeSupabasePrimaryOrShadow({
           domain: "puzzleStats",

@@ -1,4 +1,12 @@
-import {PuzzleHint, UserGameStatsDoc} from "../models/puzzle";
+import {
+  GuessResponse,
+  PrivatePuzzleDoc,
+  PublicPuzzleDoc,
+  PuzzleAttemptDoc,
+  PuzzleHint,
+  UserGameStatsDoc,
+} from "../models/puzzle";
+import {HttpError} from "../lib/httpError";
 
 export const utcPuzzleDate = (now = new Date()): string => {
   const year = now.getUTCFullYear();
@@ -32,6 +40,83 @@ export const nextUtcMidnightIso = (puzzleDate: string): string => {
 
 export const hintForAttempt = (hints: PuzzleHint[], attemptCount: number): PuzzleHint | null =>
   hints.find((hint) => hint.revealAfterAttempt === attemptCount) ?? null;
+
+/** Apply one guess to an in-progress attempt and build the API response. */
+export const applyGuessToAttempt = (input: {
+  publicPuzzle: Pick<PublicPuzzleDoc, "maxAttempts" | "choices">;
+  privatePuzzle: Pick<
+    PrivatePuzzleDoc,
+    "correctChoiceId" | "correctShowId" | "hints" | "seasonNumber" | "episodeNumber"
+  >;
+  current: PuzzleAttemptDoc;
+  choiceId: string;
+  nowIso: string;
+}): {nextAttempt: PuzzleAttemptDoc; response: GuessResponse} => {
+  if (input.current.completed) {
+    throw new HttpError(409, "This puzzle is already completed.", "puzzle_completed");
+  }
+  if (input.current.selectedChoiceIds.includes(input.choiceId)) {
+    throw new HttpError(400, "That choice was already selected.", "duplicate_choice");
+  }
+  if (input.current.attemptCount >= input.publicPuzzle.maxAttempts) {
+    throw new HttpError(400, "No attempts remaining.", "no_attempts_remaining");
+  }
+
+  const selectedChoiceIds = [...input.current.selectedChoiceIds, input.choiceId];
+  const attemptCount = selectedChoiceIds.length;
+  const correct = input.choiceId === input.privatePuzzle.correctChoiceId;
+  const completed = correct || attemptCount >= input.publicPuzzle.maxAttempts;
+  const won = correct;
+  const hint = correct ? null : hintForAttempt(input.privatePuzzle.hints, attemptCount);
+  const correctChoice = input.publicPuzzle.choices.find(
+    (item) => item.choiceId === input.privatePuzzle.correctChoiceId,
+  );
+
+  const nextAttempt: PuzzleAttemptDoc = {
+    ...input.current,
+    selectedChoiceIds,
+    attemptCount,
+    completed,
+    won,
+    updatedAt: input.nowIso,
+    startedAt: input.current.startedAt || input.nowIso,
+  };
+
+  if (!completed) {
+    return {
+      nextAttempt,
+      response: {
+        correct: false,
+        attempt: attemptCount,
+        attemptsRemaining: input.publicPuzzle.maxAttempts - attemptCount,
+        hint,
+        selectedChoiceIds,
+        completed: false,
+        won: false,
+      },
+    };
+  }
+
+  return {
+    nextAttempt,
+    response: {
+      correct,
+      attempt: attemptCount,
+      attemptsRemaining: input.publicPuzzle.maxAttempts - attemptCount,
+      selectedChoiceIds,
+      completed: true,
+      won,
+      answer: {
+        showId: input.privatePuzzle.correctShowId,
+        title: correctChoice?.title ?? "Unknown",
+        seasonNumber: input.privatePuzzle.seasonNumber,
+        episodeNumber: input.privatePuzzle.episodeNumber,
+      },
+      showPath: `/tv/${input.privatePuzzle.correctShowId}`,
+      hint,
+    },
+  };
+};
 
 export const computeStreakUpdate = (input: {
   stats: UserGameStatsDoc;

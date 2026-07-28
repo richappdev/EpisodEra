@@ -5,6 +5,7 @@ import {
   buildOpaqueImageUrls,
   calendarDateInTimeZone,
   computeStreakUpdate,
+  applyGuessToAttempt,
   hintForAttempt,
   nextUtcMidnightIso,
   rankDistractors,
@@ -30,6 +31,63 @@ test("hintForAttempt returns matching hint", () => {
   ];
   assert.equal(hintForAttempt(hints, 1)?.value, "2008");
   assert.equal(hintForAttempt(hints, 3), null);
+});
+
+test("applyGuessToAttempt wins on correct choice and reveals hint on miss", () => {
+  const publicPuzzle = {
+    maxAttempts: 3,
+    choices: [
+      {choiceId: "a", title: "A"},
+      {choiceId: "b", title: "B"},
+      {choiceId: "c", title: "C"},
+      {choiceId: "d", title: "D"},
+    ],
+  };
+  const privatePuzzle = {
+    correctChoiceId: "b",
+    correctShowId: 42,
+    hints: [{revealAfterAttempt: 1, type: "year" as const, value: "2008"}],
+    seasonNumber: 1,
+    episodeNumber: 2,
+  };
+  const baseAttempt = {
+    puzzleId: "2026-07-28",
+    playerId: "uid:test",
+    selectedChoiceIds: [] as string[],
+    attemptCount: 0,
+    completed: false,
+    won: false,
+    startedAt: "2026-07-28T00:00:00.000Z",
+    updatedAt: "2026-07-28T00:00:00.000Z",
+  };
+
+  const miss = applyGuessToAttempt({
+    publicPuzzle,
+    privatePuzzle,
+    current: baseAttempt,
+    choiceId: "a",
+    nowIso: "2026-07-28T01:00:00.000Z",
+  });
+  assert.equal(miss.response.correct, false);
+  assert.equal(miss.response.completed, false);
+  assert.equal(miss.response.hint?.value, "2008");
+  assert.deepEqual(miss.nextAttempt.selectedChoiceIds, ["a"]);
+
+  const win = applyGuessToAttempt({
+    publicPuzzle,
+    privatePuzzle,
+    current: miss.nextAttempt,
+    choiceId: "b",
+    nowIso: "2026-07-28T01:01:00.000Z",
+  });
+  assert.equal(win.response.correct, true);
+  assert.equal(win.response.completed, true);
+  assert.equal(win.response.won, true);
+  if (!win.response.completed) {
+    assert.fail("expected completed response");
+  }
+  assert.equal(win.response.answer.title, "B");
+  assert.equal(win.response.showPath, "/tv/42");
 });
 
 test("computeStreakUpdate increments consecutive wins", () => {
