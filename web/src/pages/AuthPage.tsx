@@ -122,6 +122,7 @@ export const AuthPage = ({initialMode = "signin", onDone, onProfileLoaded}: Auth
             Email
             <input
               autoComplete="email"
+              data-testid="login-email"
               inputMode="email"
               onChange={(event) => setEmail(event.target.value)}
               required
@@ -133,6 +134,7 @@ export const AuthPage = ({initialMode = "signin", onDone, onProfileLoaded}: Auth
             Password
             <input
               autoComplete={isSignup ? "new-password" : "current-password"}
+              data-testid="login-password"
               minLength={6}
               onChange={(event) => setPassword(event.target.value)}
               required
@@ -143,7 +145,7 @@ export const AuthPage = ({initialMode = "signin", onDone, onProfileLoaded}: Auth
 
           {error && <div className="state-panel error">{error}</div>}
 
-          <button disabled={submitting || Boolean(configError)} type="submit">
+          <button data-testid={isSignup ? "signup-submit" : "login-submit"} disabled={submitting || Boolean(configError)} type="submit">
             {isSignup ? <UserPlus size={18} aria-hidden="true" /> : <LogIn size={18} aria-hidden="true" />}
             {submitting ? "Working..." : isSignup ? "Create account" : "Sign in"}
           </button>

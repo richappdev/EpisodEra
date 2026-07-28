@@ -13,6 +13,11 @@
     "test:components": "vitest run --config vitest.config.ts",
     "test:coverage": "vitest run --config vitest.config.ts --coverage",
     "test:e2e": "playwright test",
+    "test:smoke": "playwright test --config=playwright.smoke.config.ts public-smoke.spec.ts authenticated-movie-lover.spec.ts",
+    "test:smoke:public": "playwright test --config=playwright.smoke.config.ts public-smoke.spec.ts",
+    "test:smoke:auth": "playwright test --config=playwright.smoke.config.ts authenticated-movie-lover.spec.ts",
+    "test:smoke:comment": "playwright test --config=playwright.smoke.config.ts comment-journey.spec.ts",
+    "test:smoke:headed": "playwright test --config=playwright.smoke.config.ts --headed",
     "smoke:prod": "node scripts/production-smoke.mjs",
     "smoke:prod:local": "node scripts/run-smoke-local.mjs",
     "smoke:rc": "node ../scripts/trigger-production-smoke.mjs"
