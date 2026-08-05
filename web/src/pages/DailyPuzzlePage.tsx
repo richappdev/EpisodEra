@@ -17,6 +17,7 @@ import {
   UserGameStats,
 } from "../types/dailyPuzzle";
 import {SectionError} from "../components/SectionError";
+import {useLocale} from "../routes/LocaleContext";
 
 type PlayMode = "api" | "sample";
 
@@ -40,6 +41,7 @@ const hintLabel = (hint: PuzzleHint) => {
 };
 
 export const DailyPuzzlePage = () => {
+  const {urlLocale} = useLocale();
   const navigate = useNavigate();
   const {user} = useAuth();
   const {addToWatchlist, openAuth} = useAppContext();
@@ -74,7 +76,7 @@ export const DailyPuzzlePage = () => {
       setWon(Boolean(payload.attempt?.won));
       setHint(payload.attempt?.hints?.[payload.attempt.hints.length - 1] ?? null);
       setAnswer(payload.attempt?.answer ?? null);
-      setShowPath(payload.attempt?.answer ? paths.tv(payload.attempt.answer.showId) : null);
+      setShowPath(payload.attempt?.answer ? paths.tv(urlLocale, payload.attempt.answer.showId) : null);
       trackEvent("daily_game_viewed", {puzzle_id: payload.puzzleId, mode: "api"});
       if (user) {
         try {
@@ -233,7 +235,7 @@ export const DailyPuzzlePage = () => {
       return;
     }
     trackEvent("answer_show_opened", {show_id: answer.showId});
-    navigate(paths.tv(answer.showId), {state: {nav: "play"}});
+    navigate(paths.tv(urlLocale, answer.showId), {state: {nav: "play"}});
   };
 
   const handleAddToWatchlist = async () => {
@@ -283,7 +285,7 @@ export const DailyPuzzlePage = () => {
           <p>One scene, four titles, three attempts. Progressive hints after each miss.</p>
           {isPuzzleAdmin && (
             <p className="daily-puzzle-admin-link">
-              <Link className="text-button" data-testid="open-puzzle-studio" to={paths.adminPuzzles}>
+              <Link className="text-button" data-testid="open-puzzle-studio" to={paths.adminPuzzles(urlLocale)}>
                 <Clapperboard size={16} aria-hidden="true" /> Manage puzzles
               </Link>
             </p>

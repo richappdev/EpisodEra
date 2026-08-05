@@ -28,6 +28,10 @@ Firebase Analytics/Performance/Crashlytics → monitoring
 
 Production Steps A/B/C are documented complete: mapped product domains read and write through Supabase, and Firestore persistence is disabled. Firebase Auth, Functions/API runtime, Hosting, App Check, monitoring, and scheduled jobs remain active.
 
+## Localized web delivery
+
+Web routes use `/en-us` and `/zh-tw` prefixes. The route prefix determines UI and TMDb metadata language; the user setting stores only the preferred default used by bare and legacy URLs. Fixed public routes receive generated localized HTML shells. Dynamic movie, TV, franchise, and list requests are rewritten to the Firebase `web` function, which injects canonical, `hreflang`, Open Graph, and Twitter metadata before the Vite SPA boots. Private and resolver shells default to `noindex`.
+
 ## Current Structure
 
 ```text

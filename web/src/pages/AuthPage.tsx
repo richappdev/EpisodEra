@@ -9,6 +9,7 @@ import {auth} from "../firebase";
 import {paths} from "../routes/paths";
 import {legalCopy} from "../types/legal";
 import {UserProfile} from "../types/profile";
+import {useLocale} from "../routes/LocaleContext";
 
 type AuthMode = "signin" | "signup";
 
@@ -19,6 +20,7 @@ interface AuthPageProps {
 }
 
 export const AuthPage = ({initialMode = "signin", onDone, onProfileLoaded}: AuthPageProps) => {
+  const {urlLocale} = useLocale();
   const {configError} = useAuth();
   const {language} = useAppContext();
   const navigate = useNavigate();
@@ -155,7 +157,7 @@ export const AuthPage = ({initialMode = "signin", onDone, onProfileLoaded}: Auth
           className="text-button"
           type="button"
           onClick={() => {
-            navigate(isSignup ? paths.login : paths.signup, {replace: true, state: location.state});
+            navigate(isSignup ? paths.login(urlLocale) : paths.signup(urlLocale), {replace: true, state: location.state});
             setError(null);
             setFirstName("");
             setLastName("");
@@ -167,7 +169,7 @@ export const AuthPage = ({initialMode = "signin", onDone, onProfileLoaded}: Auth
         {isSignup && (
           <p className="auth-legal-notice">
             {authLegal.privacyNotice}{" "}
-            <Link to={paths.privacy}>{authLegal.privacyLink}</Link>.
+            <Link to={paths.privacy(urlLocale)}>{authLegal.privacyLink}</Link>.
           </p>
         )}
       </section>

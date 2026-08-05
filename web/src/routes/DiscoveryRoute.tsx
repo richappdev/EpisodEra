@@ -3,7 +3,8 @@ import {useMemo} from "react";
 import {useAppContext} from "../AppContext";
 import {buildContinuationGroups} from "../lib/continuation";
 import {DiscoveryPage} from "../pages/DiscoveryPage";
-import {navFromPath, paths, type NavView} from "./paths";
+import {navFromPath, paths, routePaths, type NavView} from "./paths";
+import {useLocale} from "./LocaleContext";
 
 interface DiscoveryRouteProps {
   view: "trending" | "search";
@@ -11,6 +12,7 @@ interface DiscoveryRouteProps {
 
 export const DiscoveryRoute = ({view}: DiscoveryRouteProps) => {
   const navigate = useNavigate();
+  const {urlLocale} = useLocale();
   const [searchParams] = useSearchParams();
   const {
     language,
@@ -25,7 +27,7 @@ export const DiscoveryRoute = ({view}: DiscoveryRouteProps) => {
     watchRegion,
   } = useAppContext();
   const initialSearchQuery = view === "search" ? searchParams.get("q") : null;
-  const nav: NavView = navFromPath(view === "search" ? paths.search : paths.home);
+  const nav: NavView = navFromPath(view === "search" ? routePaths.search : routePaths.home);
 
   const continueWatching = useMemo(
     () => buildContinuationGroups(watchlistItems, progressItems).continueWatching,
@@ -44,7 +46,7 @@ export const DiscoveryRoute = ({view}: DiscoveryRouteProps) => {
       onNextEpisodeWatched={(entry) => {
         void markContinuationEpisodeWatched(entry);
       }}
-      onSearchQueryChange={(query) => navigate(paths.searchQuery(query), {replace: true})}
+      onSearchQueryChange={(query) => navigate(paths.searchQuery(urlLocale, query), {replace: true})}
       onSelect={(item) => openMediaDetail(item, nav)}
       onSelectContinuation={(entry) => openContinuationDetail(entry, "trending")}
       onRemoveContinuation={(entry) => {

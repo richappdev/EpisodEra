@@ -7,6 +7,7 @@ import {SectionError} from "../components/SectionError";
 import {paths} from "../routes/paths";
 import {AdminPuzzleDetail, AdminPuzzleDraft, PuzzleHint} from "../types/dailyPuzzle";
 import {utcPuzzleDate} from "../lib/dailyPuzzleLogic";
+import {useLocale} from "../routes/LocaleContext";
 
 interface SearchHit {
   id: number;
@@ -43,6 +44,7 @@ const stillFromSavedUrls = (imageUrl: string, mobileImageUrl: string | null): St
 });
 
 export const AdminPuzzleStudioPage = () => {
+  const {urlLocale} = useLocale();
   const {user} = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -89,7 +91,7 @@ export const AdminPuzzleStudioPage = () => {
     return (
       <main className="page-shell admin-puzzle-studio">
         <div className="state-panel">Sign in with an allowlisted admin account to use Puzzle Studio.</div>
-        <Link className="text-button" to={paths.login}>
+        <Link className="text-button" to={paths.login(urlLocale)}>
           Sign in
         </Link>
       </main>
@@ -365,7 +367,7 @@ export const AdminPuzzleStudioPage = () => {
             <button className="text-button" type="button" disabled={loading} onClick={() => void publishScheduled()}>
               Publish due scheduled
             </button>
-            <Link className="text-button" to={paths.dailyPuzzle}>
+            <Link className="text-button" to={paths.dailyPuzzle(urlLocale)}>
               Open daily puzzle
             </Link>
           </div>

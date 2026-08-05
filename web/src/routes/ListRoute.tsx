@@ -7,11 +7,13 @@ import {ListPage} from "../pages/ListPage";
 import {MediaSummary} from "../types/media";
 import {SupportedLanguage} from "../types/settings";
 import {mediaPath} from "./paths";
+import {useLocale} from "./LocaleContext";
 
 const listFallbackTitle = (language: SupportedLanguage) =>
   language === "zh-TW" ? "清單" : "List";
 
 export const ListRoute = () => {
+  const {urlLocale} = useLocale();
   const {listId = ""} = useParams();
   const navigate = useNavigate();
   const {language, preferredProviderIds, watchRegion} = useAppContext();
@@ -86,7 +88,7 @@ export const ListRoute = () => {
       title={title}
       onLoadMore={() => void load(page + 1, true)}
       onRetry={() => void load(1, false)}
-      onSelect={(item) => navigate(mediaPath(item), {state: {nav: "trending"}})}
+      onSelect={(item) => navigate(mediaPath(urlLocale, item), {state: {nav: "trending"}})}
     />
   );
 };

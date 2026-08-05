@@ -12,6 +12,6 @@ describe("PrivacyPage", () => {
     );
 
     expect(screen.getByRole("heading", {level: 2, name: "Privacy Policy"})).toBeInTheDocument();
-    expect(screen.getByRole("link", {name: "Back to settings"})).toHaveAttribute("href", "/settings");
+    expect(screen.getByRole("link", {name: "Back to settings"})).toHaveAttribute("href", "/en-us/settings");
   });
 });

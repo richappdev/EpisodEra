@@ -4,6 +4,7 @@ import {MediaCard} from "../components/MediaCard";
 import {SectionError} from "../components/SectionError";
 import {paths} from "../routes/paths";
 import {MediaSummary} from "../types/media";
+import {useLocale} from "../routes/LocaleContext";
 
 interface ListPageProps {
   title: string;
@@ -29,11 +30,13 @@ export const ListPage = ({
   onLoadMore,
   onRetry,
   onSelect,
-}: ListPageProps) => (
+}: ListPageProps) => {
+  const {urlLocale} = useLocale();
+  return (
   <main className="page-shell">
     <section className="profile-header">
       <div>
-        <Link className="text-button list-back-link" data-testid="list-back" to={paths.home}>
+        <Link className="text-button list-back-link" data-testid="list-back" to={paths.home(urlLocale)}>
           <ArrowLeft size={16} aria-hidden="true" />
           Back to Home
         </Link>
@@ -71,4 +74,5 @@ export const ListPage = ({
       </div>
     )}
   </main>
-);
+  );
+};

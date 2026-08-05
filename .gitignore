@@ -1,6 +1,7 @@
 node_modules/
 /lib/
 functions/lib/
+functions/generated/
 dist/
 .env
 .env.*

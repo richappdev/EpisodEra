@@ -7,6 +7,7 @@ import {FranchiseListPage} from "../pages/FranchiseListPage";
 import {FranchiseDetailPage} from "../pages/FranchiseDetailPage";
 import {FranchiseOrder, FranchiseProgress, FranchiseSummary} from "../types/franchise";
 import {mediaPath} from "./paths";
+import {useLocale} from "./LocaleContext";
 
 export const FranchiseListRoute = () => {
   const [items, setItems] = useState<FranchiseSummary[]>([]);
@@ -34,6 +35,7 @@ export const FranchiseListRoute = () => {
 };
 
 export const FranchiseDetailRoute = () => {
+  const {urlLocale} = useLocale();
   const {slug = ""} = useParams();
   const {user} = useAuth();
   const navigate = useNavigate();
@@ -119,7 +121,7 @@ export const FranchiseDetailRoute = () => {
       onOrderChange={setOrder}
       onRetry={() => void load()}
       onSelectTitle={(item) =>
-        navigate(mediaPath({mediaType: item.mediaType, id: item.id}), {state: {nav: "franchises"}})
+        navigate(mediaPath(urlLocale, {mediaType: item.mediaType, id: item.id}), {state: {nav: "franchises"}})
       }
     />
   );

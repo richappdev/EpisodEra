@@ -2,18 +2,13 @@ import {useCallback, useEffect, useState} from "react";
 import type {User} from "firebase/auth";
 import {api} from "../api/client";
 import {trackEvent} from "../firebase";
-import {SupportedLanguage, UserSettings, isSupportedLanguage} from "../types/settings";
+import {SupportedLanguage, UserSettings} from "../types/settings";
+import {languageStorageKey, localPreferredLanguage} from "../routes/locale";
 import {toErrorMessage} from "./errorMessage";
 
-const languageStorageKey = "episodera.language";
 const autoMarkPreviousEpisodesWatchedStorageKey = "episodera.autoMarkPreviousEpisodesWatched";
 const preferredProvidersStorageKey = "episodera.preferredProviderIds";
 const watchRegionStorageKey = "episodera.watchRegion";
-
-const initialLanguage = (): SupportedLanguage => {
-  const stored = window.localStorage.getItem(languageStorageKey);
-  return isSupportedLanguage(stored) ? stored : "en-US";
-};
 
 const initialAutoMarkPreviousEpisodesWatched = () =>
   window.localStorage.getItem(autoMarkPreviousEpisodesWatchedStorageKey) === "true";
@@ -60,7 +55,7 @@ const applySettingsState = (
 };
 
 export const useSettings = (user: User | null) => {
-  const [language, setLanguage] = useState<SupportedLanguage>(initialLanguage);
+  const [preferredLanguage, setPreferredLanguage] = useState<SupportedLanguage>(localPreferredLanguage);
   const [autoMarkPreviousEpisodesWatched, setAutoMarkPreviousEpisodesWatched] = useState(
     initialAutoMarkPreviousEpisodesWatched,
   );
@@ -73,9 +68,10 @@ export const useSettings = (user: User | null) => {
   const [hideSpoilersUntilWatched, setHideSpoilersUntilWatched] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadedForUserId, setLoadedForUserId] = useState<string | null>(null);
 
   const setters = {
-    setLanguage,
+    setLanguage: setPreferredLanguage,
     setAutoMarkPreviousEpisodesWatched,
     setPreferredProviderIds,
     setWatchRegion,
@@ -87,8 +83,8 @@ export const useSettings = (user: User | null) => {
   };
 
   useEffect(() => {
-    window.localStorage.setItem(languageStorageKey, language);
-  }, [language]);
+    window.localStorage.setItem(languageStorageKey, preferredLanguage);
+  }, [preferredLanguage]);
 
   useEffect(() => {
     window.localStorage.setItem(autoMarkPreviousEpisodesWatchedStorageKey, String(autoMarkPreviousEpisodesWatched));
@@ -105,6 +101,7 @@ export const useSettings = (user: User | null) => {
   const reset = useCallback(() => {
     setLoading(false);
     setError(null);
+    setLoadedForUserId(null);
   }, []);
 
   const reload = useCallback(async () => {
@@ -122,6 +119,7 @@ export const useSettings = (user: User | null) => {
       setError(toErrorMessage(reason, "Could not load settings."));
     } finally {
       setLoading(false);
+      setLoadedForUserId(user.uid);
     }
   }, [reset, user]);
 
@@ -171,7 +169,8 @@ export const useSettings = (user: User | null) => {
   );
 
   return {
-    language,
+    preferredLanguage,
+    initialized: !user || loadedForUserId === user.uid,
     autoMarkPreviousEpisodesWatched,
     preferredProviderIds,
     watchRegion,
@@ -183,8 +182,8 @@ export const useSettings = (user: User | null) => {
     loading,
     error,
     reload,
-    changeLanguage: (nextLanguage: SupportedLanguage) =>
-      trackAndPersist("language", nextLanguage, {language: nextLanguage}, () => setLanguage(nextLanguage)),
+    changePreferredLanguage: (nextLanguage: SupportedLanguage) =>
+      trackAndPersist("language", nextLanguage, {language: nextLanguage}, () => setPreferredLanguage(nextLanguage)),
     changeAutoMarkPreviousEpisodesWatched: (enabled: boolean) =>
       trackAndPersist("auto_mark_previous_episodes_watched", String(enabled), {autoMarkPreviousEpisodesWatched: enabled}, () =>
         setAutoMarkPreviousEpisodesWatched(enabled),

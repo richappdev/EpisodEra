@@ -3,6 +3,7 @@ import {Link} from "react-router-dom";
 import {MediaCard} from "./MediaCard";
 import {paths} from "../routes/paths";
 import {MediaSummary} from "../types/media";
+import {useLocale} from "../routes/LocaleContext";
 
 const RAIL_MAX_ITEMS = 10;
 
@@ -15,6 +16,7 @@ interface MediaSectionProps {
 }
 
 export const MediaSection = ({title, items, layout = "grid", listId, onSelect}: MediaSectionProps) => {
+  const {urlLocale} = useLocale();
   const visibleItems = layout === "rail" ? items.slice(0, RAIL_MAX_ITEMS) : items;
   const showMore = layout === "rail" && Boolean(listId) && visibleItems.length > 0;
 
@@ -32,7 +34,7 @@ export const MediaSection = ({title, items, layout = "grid", listId, onSelect}: 
           <Link
             className="media-rail-more"
             data-testid={`list-more-${listId}`}
-            to={paths.list(listId)}
+            to={paths.list(urlLocale, listId)}
             aria-label={`More from ${title}`}
           >
             <span>More</span>

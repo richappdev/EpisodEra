@@ -3,21 +3,21 @@ import {canvasFromPath, isLandingPath, navFromPath, paths} from "../paths";
 
 describe("canvasFromPath", () => {
   it("uses cinema canvas for every product route", () => {
-    expect(canvasFromPath(paths.landing)).toBe("cinema");
-    expect(canvasFromPath(paths.home)).toBe("cinema");
-    expect(canvasFromPath(paths.search)).toBe("cinema");
-    expect(canvasFromPath(paths.login)).toBe("cinema");
-    expect(canvasFromPath(paths.signup)).toBe("cinema");
-    expect(canvasFromPath(paths.franchises)).toBe("cinema");
-    expect(canvasFromPath(paths.movie(1))).toBe("cinema");
-    expect(canvasFromPath(paths.tv(2))).toBe("cinema");
-    expect(canvasFromPath(paths.watchlist)).toBe("cinema");
-    expect(canvasFromPath(paths.likes)).toBe("cinema");
-    expect(canvasFromPath(paths.timeline)).toBe("cinema");
-    expect(canvasFromPath(paths.profile)).toBe("cinema");
-    expect(canvasFromPath(paths.settings)).toBe("cinema");
-    expect(canvasFromPath(paths.privacy)).toBe("cinema");
-    expect(canvasFromPath(paths.social)).toBe("cinema");
+    expect(canvasFromPath(paths.landing("en-us"))).toBe("cinema");
+    expect(canvasFromPath(paths.home("en-us"))).toBe("cinema");
+    expect(canvasFromPath(paths.search("en-us"))).toBe("cinema");
+    expect(canvasFromPath(paths.login("en-us"))).toBe("cinema");
+    expect(canvasFromPath(paths.signup("en-us"))).toBe("cinema");
+    expect(canvasFromPath(paths.franchises("en-us"))).toBe("cinema");
+    expect(canvasFromPath(paths.movie("en-us", 1))).toBe("cinema");
+    expect(canvasFromPath(paths.tv("en-us", 2))).toBe("cinema");
+    expect(canvasFromPath(paths.watchlist("en-us"))).toBe("cinema");
+    expect(canvasFromPath(paths.likes("en-us"))).toBe("cinema");
+    expect(canvasFromPath(paths.timeline("en-us"))).toBe("cinema");
+    expect(canvasFromPath(paths.profile("en-us"))).toBe("cinema");
+    expect(canvasFromPath(paths.settings("en-us"))).toBe("cinema");
+    expect(canvasFromPath(paths.privacy("en-us"))).toBe("cinema");
+    expect(canvasFromPath(paths.social("en-us"))).toBe("cinema");
   });
 });
 
@@ -32,7 +32,7 @@ describe("landing and home paths", () => {
     expect(navFromPath("/home")).toBe("trending");
     expect(navFromPath("/continue-watching")).toBe("watchlist");
     expect(navFromPath("/likes")).toBe("likes");
-    expect(paths.landing).toBe("/");
-    expect(paths.home).toBe("/home");
+    expect(paths.landing("en-us")).toBe("/en-us");
+    expect(paths.home("zh-tw")).toBe("/zh-tw/home");
   });
 });

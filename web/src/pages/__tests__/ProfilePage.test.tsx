@@ -121,9 +121,9 @@ describe("ProfilePage", () => {
     expect(screen.getByTestId("year-recap-card")).toHaveTextContent("2026 Recap");
     expect(screen.getByTestId("history-row-tv_1001_s01e01")).toHaveTextContent("Critical Flow Show");
     expect(screen.getByTestId("history-row-tv_1001_s01e01")).toHaveTextContent("S1 E1");
-    expect(screen.getByTestId("profile-open-timeline")).toHaveAttribute("href", "/timeline");
-    expect(screen.getByTestId("profile-open-settings")).toHaveAttribute("href", "/settings");
-    expect(screen.getByTestId("profile-open-social")).toHaveAttribute("href", "/social");
+    expect(screen.getByTestId("profile-open-timeline")).toHaveAttribute("href", "/en-us/timeline");
+    expect(screen.getByTestId("profile-open-settings")).toHaveAttribute("href", "/en-us/settings");
+    expect(screen.getByTestId("profile-open-social")).toHaveAttribute("href", "/en-us/social");
     await waitFor(() => expect(screen.getByTestId("achievements-panel")).toHaveTextContent("Detective"));
     await waitFor(() => expect(screen.getByTestId("puzzle-stats")).toHaveTextContent("2"));
     expect(screen.getByTestId("puzzle-stats")).toHaveTextContent("3/4");

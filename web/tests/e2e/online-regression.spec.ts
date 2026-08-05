@@ -122,7 +122,7 @@ const signIn = async (page: Page) => {
     return;
   }
 
-  await page.goto("/login");
+  await page.goto("/en-us/login");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.locator("form.auth-form button[type='submit']").click();
@@ -130,7 +130,7 @@ const signIn = async (page: Page) => {
 };
 
 const signOut = async (page: Page) => {
-  await page.goto("/home");
+  await page.goto("/en-us/home");
   if (await isSignedIn(page)) {
     await page.getByTestId("account-button").click();
     await expect(page.getByText(/^Welcome,/)).toHaveCount(0, {timeout: 15_000}).catch(() => undefined);
@@ -138,7 +138,7 @@ const signOut = async (page: Page) => {
 
   // Firebase IndexedDB persistence can restore the session after a plain UI sign-out.
   await clearAuthPersistence(page);
-  await page.goto("/home");
+  await page.goto("/en-us/home");
   await expectSignedOut(page);
 };
 
@@ -362,7 +362,7 @@ test("online UI regression soak — 10 minutes, no repeated media clicks", async
   const deadline = startedAt + DURATION_MS;
 
   await runStep("P0 load deployed app and trending shell", async () => {
-    await page.goto("/home");
+    await page.goto("/en-us/home");
     await expect(page.getByRole("heading", {name: "Episodera"})).toBeVisible();
     await expect(page.getByTestId("nav-trending")).toBeVisible();
     await expect(page.getByRole("heading", {name: "Trending TV Shows"})).toBeVisible({timeout: 30_000});
@@ -451,28 +451,30 @@ test("online UI regression soak — 10 minutes, no repeated media clicks", async
     const languageSelect = await waitForSettingsReady(page);
     await languageSelect.selectOption("zh-TW");
     await waitForSettingsReady(page);
+    await expect(page).toHaveURL(/\/zh-tw\/settings$/);
     await expect(page.getByRole("heading", {name: "設定"})).toBeVisible({timeout: 15_000});
     await languageSelect.selectOption("en-US");
     await waitForSettingsReady(page);
+    await expect(page).toHaveURL(/\/en-us\/settings$/);
     await expect(page.getByRole("heading", {name: "Settings"})).toBeVisible({timeout: 15_000});
   });
 
   await runOptionalStep("P1 privacy page renders signed in", async () => {
-    await page.goto("/privacy");
+    await page.goto("/en-us/privacy");
     await expect(page.getByRole("heading")).toBeVisible();
     await expect(page.getByRole("link", {name: "app.developer.rich@gmail.com"})).toBeVisible();
   });
 
   await runStep("P1 responsive desktop shell", async () => {
     await page.setViewportSize({width: 1280, height: 800});
-    await page.goto("/home");
+    await page.goto("/en-us/home");
     await expect(page.getByTestId("nav-trending")).toBeVisible();
     await expect(page.getByRole("heading", {name: "Episodera"})).toBeVisible();
   });
 
   await runOptionalStep("P1 responsive mobile shell", async () => {
     await page.setViewportSize({width: 390, height: 844});
-    await page.goto("/home");
+    await page.goto("/en-us/home");
     await expect(page.getByTestId("nav-trending")).toBeVisible();
     await expect(page.getByRole("heading", {name: "Episodera"})).toBeVisible();
   });
@@ -487,6 +489,7 @@ test("online UI regression soak — 10 minutes, no repeated media clicks", async
 
   await runStep("P0 signed-out root shows marketing landing", async () => {
     await page.goto("/");
+    await expect(page).toHaveURL(/\/en-us$/);
     await expect(page.getByTestId("nav-trending")).toHaveCount(0);
     await expect(page.locator(".landing-brand-mark")).toBeVisible();
     await expect(page.getByRole("link", {name: /Create free account|免費建立帳號/})).toBeVisible();
@@ -502,7 +505,7 @@ test("online UI regression soak — 10 minutes, no repeated media clicks", async
     try {
       attachTelemetry(signedOutPage);
       await attachAppCheckSmokeBypass(signedOutPage);
-      await signedOutPage.goto("/home");
+      await signedOutPage.goto("/en-us/home");
       await expectSignedOut(signedOutPage);
       await assertTrendingCards(signedOutPage, "tv");
       const opened = await openUniqueMediaCardOrLoadMore(signedOutPage, "signed-out detail", "tv");

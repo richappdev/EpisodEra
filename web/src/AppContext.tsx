@@ -21,6 +21,8 @@ import {UserProfile} from "./types/profile";
 import {ShowProgressSummary} from "./types/progress";
 import {mediaPath, paths, type NavView} from "./routes/paths";
 import {SupportedLanguage} from "./types/settings";
+import type {UrlLocale} from "./types/settings";
+import {useLocale} from "./routes/LocaleContext";
 import {YearRecap} from "./types/stats";
 import {WatchlistItem, WatchlistStatus} from "./types/watchlist";
 
@@ -33,12 +35,14 @@ interface AppContextValue {
   historyLoadingMore: boolean;
   historyTotalCount: number;
   language: SupportedLanguage;
+  urlLocale: UrlLocale;
   likedError: string | null;
   likedItems: LikedItem[];
   likedLoading: boolean;
   likedTotalCount: number;
   pendingShowIds: ReadonlySet<number>;
   preferredProviderIds: number[];
+  preferredLanguage: SupportedLanguage;
   profile: UserProfile | null;
   progressItems: ShowProgressSummary[];
   achievementsEnabled: boolean;
@@ -52,6 +56,7 @@ interface AppContextValue {
   recapYear: number;
   settingsError: string | null;
   settingsLoading: boolean;
+  settingsInitialized: boolean;
   stats: ReturnType<typeof useProfileStats>["stats"];
   statsError: string | null;
   statsLoading: boolean;
@@ -115,6 +120,7 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const locale = useLocale();
   const profileStats = useProfileStats(user);
   const profileState = useProfile(user);
   const settings = useSettings(user);
@@ -135,20 +141,20 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
   const openMediaDetail = (item: MediaSummary | WatchlistItem | LikedItem, nav: NavView) => {
     const mediaType = item.mediaType;
     const id = "tmdbId" in item ? item.tmdbId : item.id;
-    navigate(mediaPath({mediaType, id}), {state: {nav}});
+    navigate(mediaPath(locale.urlLocale, {mediaType, id}), {state: {nav}});
   };
 
   const openContinuationDetail = (entry: ContinuationEntry, nav: NavView) => {
-    navigate(mediaPath({mediaType: "tv", id: entry.tmdbId}), {state: {nav}});
+    navigate(mediaPath(locale.urlLocale, {mediaType: "tv", id: entry.tmdbId}), {state: {nav}});
   };
 
   const openAuth = () => {
-    navigate(paths.login, {state: {from: `${location.pathname}${location.search}`}});
+    navigate(paths.login(locale.urlLocale), {state: {from: `${location.pathname}${location.search}`}});
   };
 
   const signOutAndReset = async () => {
     await signOutUser();
-    navigate(paths.landing);
+    navigate(paths.landing(locale.urlLocale));
   };
 
   const addToWatchlist = (selectedDetail: MediaDetail) => {
@@ -228,9 +234,11 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
       historyLoading: profileStats.historyLoading,
       historyLoadingMore: profileStats.historyLoadingMore,
       historyTotalCount: profileStats.historyTotalCount,
-      language: settings.language,
+      language: locale.activeLanguage,
+      urlLocale: locale.urlLocale,
       pendingShowIds: progress.pendingShowIds,
       preferredProviderIds: settings.preferredProviderIds,
+      preferredLanguage: settings.preferredLanguage,
       achievementsEnabled: settings.achievementsEnabled,
       showAchievementsOnProfile: settings.showAchievementsOnProfile,
       shareActivityWithFriends: settings.shareActivityWithFriends,
@@ -244,6 +252,7 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
       recapYear: profileStats.recapYear,
       settingsError: settings.error,
       settingsLoading: settings.loading,
+      settingsInitialized: settings.initialized,
       stats: profileStats.stats,
       statsError: profileStats.statsError,
       statsLoading: profileStats.statsLoading,
@@ -260,7 +269,10 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
       watchRegion: settings.watchRegion,
       addToWatchlist,
       changeAutoMarkPreviousEpisodesWatched: settings.changeAutoMarkPreviousEpisodesWatched,
-      changeLanguage: settings.changeLanguage,
+      changeLanguage: (nextLanguage: SupportedLanguage) => {
+        settings.changePreferredLanguage(nextLanguage);
+        locale.navigateToLanguage(nextLanguage);
+      },
       changePreferredProviderIds: settings.changePreferredProviderIds,
       changeWatchRegion: settings.changeWatchRegion,
       changeAchievementsEnabled: settings.changeAchievementsEnabled,
@@ -309,7 +321,7 @@ export const AppProvider = ({children}: {children: ReactNode}) => {
       upsertProgressItem: progress.upsertProgressItem,
       removeProgressItem: progress.removeProgressItem,
     }),
-    [likes, profileState.profile, profileStats, progress, settings, watchlist, user],
+    [likes, locale, profileState.profile, profileStats, progress, settings, watchlist, user],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

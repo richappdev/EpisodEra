@@ -3,12 +3,14 @@ import {Shield} from "lucide-react";
 import {legalCopy, supportEmail} from "../types/legal";
 import {SupportedLanguage} from "../types/settings";
 import {paths} from "../routes/paths";
+import {useLocale} from "../routes/LocaleContext";
 
 interface PrivacyPageProps {
   language: SupportedLanguage;
 }
 
 export const PrivacyPage = ({language}: PrivacyPageProps) => {
+  const {urlLocale} = useLocale();
   const copy = legalCopy[language].privacy;
 
   return (
@@ -36,7 +38,7 @@ export const PrivacyPage = ({language}: PrivacyPageProps) => {
           <a href={`mailto:${supportEmail}`}>{supportEmail}</a>
         </p>
 
-        <Link className="text-button" to={paths.settings}>
+        <Link className="text-button" to={paths.settings(urlLocale)}>
           {language === "zh-TW" ? "返回設定" : "Back to settings"}
         </Link>
       </section>

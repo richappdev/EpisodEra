@@ -1,5 +1,5 @@
 import {useEffect, useState} from "react";
-import {Navigate, Route, Routes, useLocation, useNavigate} from "react-router-dom";
+import {Navigate, Outlet, Route, Routes, useLocation, useNavigate, useParams} from "react-router-dom";
 import {useAuth} from "../auth/AuthContext";
 import {useAppContext} from "../AppContext";
 import {api} from "../api/client";
@@ -18,7 +18,10 @@ import {MediaDetailRoute} from "./DetailRoute";
 import {DiscoveryRoute} from "./DiscoveryRoute";
 import {FranchiseDetailRoute, FranchiseListRoute} from "./FranchiseRoute";
 import {ListRoute} from "./ListRoute";
-import {isDetailPath, isLandingPath, navFromPath, paths} from "./paths";
+import {isDetailPath, isLandingPath, navFromPath, paths, routePaths} from "./paths";
+import {isUrlLocale, urlLocaleForLanguage} from "../types/settings";
+import {localizePath, stripLocalePrefix} from "./locale";
+import {useLocale} from "./LocaleContext";
 import {DailyPuzzlePage} from "../pages/DailyPuzzlePage";
 import {AdminPuzzleStudioPage} from "../pages/AdminPuzzleStudioPage";
 
@@ -30,11 +33,12 @@ const ScreenAnalytics = () => {
       return;
     }
 
-    const screen = location.pathname.startsWith(paths.login)
+    const routePath = stripLocalePrefix(location.pathname);
+    const screen = routePath.startsWith(routePaths.login)
       ? "auth"
-      : location.pathname.startsWith(paths.signup)
+      : routePath.startsWith(routePaths.signup)
         ? "auth"
-        : location.pathname.startsWith(paths.privacy)
+        : routePath.startsWith(routePaths.privacy)
           ? "privacy"
           : isLandingPath(location.pathname)
             ? "landing"
@@ -51,10 +55,34 @@ const ScreenAnalytics = () => {
 
 const RootRoute = () => {
   const {user} = useAuth();
+  const {urlLocale} = useLocale();
   if (user) {
-    return <Navigate replace to={paths.home} />;
+    return <Navigate replace to={paths.home(urlLocale)} />;
   }
   return <LandingPage />;
+};
+
+const LocaleBoundary = () => {
+  const {locale} = useParams();
+  if (!isUrlLocale(locale)) {
+    return <LegacyEntryRoute />;
+  }
+  return <Outlet />;
+};
+
+const LegacyEntryRoute = () => {
+  const location = useLocation();
+  const {preferredLanguage, settingsInitialized} = useAppContext();
+  if (!settingsInitialized) {
+    return <div className="state-panel">Loading settings...</div>;
+  }
+  const target = `${localizePath(location.pathname, urlLocaleForLanguage(preferredLanguage))}${location.search}${location.hash}`;
+  return <Navigate replace to={target} />;
+};
+
+const LocalizedRedirect = ({to}: {to: (locale: "en-us" | "zh-tw") => string}) => {
+  const {urlLocale} = useLocale();
+  return <Navigate replace to={to(urlLocale)} />;
 };
 
 const LikesRoute = () => {
@@ -288,6 +316,7 @@ const SocialRoute = () => {
 
 const SettingsRoute = () => {
   const navigate = useNavigate();
+  const {urlLocale} = useLocale();
   const {signOutUser, user} = useAuth();
   const {
     achievementsEnabled,
@@ -322,7 +351,7 @@ const SettingsRoute = () => {
       await api.deleteAccount();
       setAnalyticsUserId(null);
       await signOutUser();
-      navigate(paths.landing);
+      navigate(paths.landing(urlLocale));
     } catch (err) {
       const message = err instanceof Error ? err.message : "Could not delete account.";
       setAccountDeletionError(message);
@@ -371,30 +400,34 @@ export const AppRoutes = () => (
   <>
     <ScreenAnalytics />
     <Routes>
-      <Route element={<RootRoute />} path={paths.landing} />
-      <Route element={<Navigate replace to={paths.landing} />} path={paths.landingLegacy} />
-      <Route element={<DiscoveryRoute view="trending" />} path={paths.home} />
-      <Route element={<DiscoveryRoute view="search" />} path={paths.search} />
-      <Route element={<MediaDetailRoute mediaType="movie" />} path="/movie/:id" />
-      <Route element={<MediaDetailRoute mediaType="tv" />} path="/tv/:id" />
-      <Route element={<MediaDetailRoute mediaType="tv" />} path="/tv/:id/season/:seasonNumber" />
-      <Route element={<WatchlistRoute />} path={paths.watchlist} />
-      <Route element={<LikesRoute />} path={paths.likes} />
-      <Route element={<ContinueWatchingRoute />} path={paths.continueWatching} />
-      <Route element={<TimelineRoute />} path={paths.timeline} />
-      <Route element={<FranchiseListRoute />} path={paths.franchises} />
-      <Route element={<FranchiseDetailRoute />} path="/franchises/:slug" />
-      <Route element={<ListRoute />} path="/list/:listId" />
-      <Route element={<Navigate replace to={paths.dailyPuzzle} />} path={paths.play} />
-      <Route element={<DailyPuzzlePage />} path={paths.dailyPuzzle} />
-      <Route element={<AdminPuzzleStudioPage />} path={paths.adminPuzzles} />
-      <Route element={<ProfileRoute />} path={paths.profile} />
-      <Route element={<SocialRoute />} path={paths.social} />
-      <Route element={<SettingsRoute />} path={paths.settings} />
-      <Route element={<PrivacyRoute />} path={paths.privacy} />
-      <Route element={<AuthRoute mode="signin" />} path={paths.login} />
-      <Route element={<AuthRoute mode="signup" />} path={paths.signup} />
-      <Route element={<Navigate replace to={paths.landing} />} path="*" />
+      <Route element={<LegacyEntryRoute />} path="/" />
+      <Route element={<LocaleBoundary />} path="/:locale">
+        <Route element={<RootRoute />} index />
+        <Route element={<LocalizedRedirect to={paths.landing} />} path="landing" />
+        <Route element={<DiscoveryRoute view="trending" />} path="home" />
+        <Route element={<DiscoveryRoute view="search" />} path="search" />
+        <Route element={<MediaDetailRoute mediaType="movie" />} path="movie/:id" />
+        <Route element={<MediaDetailRoute mediaType="tv" />} path="tv/:id" />
+        <Route element={<MediaDetailRoute mediaType="tv" />} path="tv/:id/season/:seasonNumber" />
+        <Route element={<WatchlistRoute />} path="watchlist" />
+        <Route element={<LikesRoute />} path="likes" />
+        <Route element={<ContinueWatchingRoute />} path="continue-watching" />
+        <Route element={<TimelineRoute />} path="timeline" />
+        <Route element={<FranchiseListRoute />} path="franchises" />
+        <Route element={<FranchiseDetailRoute />} path="franchises/:slug" />
+        <Route element={<ListRoute />} path="list/:listId" />
+        <Route element={<LocalizedRedirect to={paths.dailyPuzzle} />} path="play" />
+        <Route element={<DailyPuzzlePage />} path="play/daily-puzzle" />
+        <Route element={<AdminPuzzleStudioPage />} path="admin/puzzles" />
+        <Route element={<ProfileRoute />} path="profile" />
+        <Route element={<SocialRoute />} path="social" />
+        <Route element={<SettingsRoute />} path="settings" />
+        <Route element={<PrivacyRoute />} path="privacy" />
+        <Route element={<AuthRoute mode="signin" />} path="login" />
+        <Route element={<AuthRoute mode="signup" />} path="signup" />
+        <Route element={<LocalizedRedirect to={paths.landing} />} path="*" />
+      </Route>
+      <Route element={<LegacyEntryRoute />} path="*" />
     </Routes>
   </>
 );

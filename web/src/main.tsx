@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import {BrowserRouter} from "react-router-dom";
 import {App} from "./App";
 import {AuthProvider} from "./auth/AuthContext";
+import {LocaleProvider} from "./routes/LocaleContext";
 import {
   initializeAnalytics,
   initializePerformance,
@@ -27,9 +28,11 @@ window.addEventListener("unhandledrejection", (event) => {
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <LocaleProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </LocaleProvider>
     </BrowserRouter>
   </React.StrictMode>,
 );

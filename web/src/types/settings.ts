@@ -2,6 +2,29 @@ export const supportedLanguages = ["en-US", "zh-TW"] as const;
 
 export type SupportedLanguage = (typeof supportedLanguages)[number];
 
+export const urlLocales = ["en-us", "zh-tw"] as const;
+
+export type UrlLocale = (typeof urlLocales)[number];
+
+export const languageByUrlLocale: Record<UrlLocale, SupportedLanguage> = {
+  "en-us": "en-US",
+  "zh-tw": "zh-TW",
+};
+
+export const urlLocaleByLanguage: Record<SupportedLanguage, UrlLocale> = {
+  "en-US": "en-us",
+  "zh-TW": "zh-tw",
+};
+
+export const isUrlLocale = (value: string | null | undefined): value is UrlLocale =>
+  urlLocales.includes(value?.toLowerCase() as UrlLocale);
+
+export const languageForUrlLocale = (locale: UrlLocale): SupportedLanguage =>
+  languageByUrlLocale[locale];
+
+export const urlLocaleForLanguage = (language: SupportedLanguage): UrlLocale =>
+  urlLocaleByLanguage[language];
+
 export interface UserSettings {
   autoMarkPreviousEpisodesWatched: boolean;
   language: SupportedLanguage;

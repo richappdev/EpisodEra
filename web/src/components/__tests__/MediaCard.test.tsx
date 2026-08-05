@@ -63,7 +63,7 @@ describe("MediaSection", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByTestId("list-more-relaxing")).toHaveAttribute("href", "/list/relaxing");
+    expect(screen.getByTestId("list-more-relaxing")).toHaveAttribute("href", "/en-us/list/relaxing");
   });
 
   it("hides the More link when a rail has no items", () => {

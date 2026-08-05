@@ -9,7 +9,7 @@ import {MediaSummary} from "../types/media";
 const HERO_POSTER_COUNT = 18;
 
 export const LandingPage = () => {
-  const {language} = useAppContext();
+  const {language, urlLocale} = useAppContext();
   const copy = landingCopy[language];
   const [posters, setPosters] = useState<MediaSummary[]>([]);
 
@@ -45,14 +45,14 @@ export const LandingPage = () => {
   return (
     <main className="landing-page">
       <header className="landing-nav">
-        <Link className="landing-brand" to={paths.landing}>
+        <Link className="landing-brand" to={paths.landing(urlLocale)}>
           {copy.brand}
         </Link>
         <div className="landing-nav-actions">
-          <Link className="landing-nav-link" to={paths.home}>
+          <Link className="landing-nav-link" to={paths.home(urlLocale)}>
             {copy.openApp}
           </Link>
-          <Link className="landing-nav-cta" to={paths.login}>
+          <Link className="landing-nav-cta" to={paths.login(urlLocale)}>
             {copy.signIn}
           </Link>
         </div>
@@ -81,10 +81,10 @@ export const LandingPage = () => {
           <h1 id="landing-hero-title">{copy.heroHeadline}</h1>
           <p className="landing-hero-support">{copy.heroSupport}</p>
           <div className="landing-cta-row">
-            <Link className="landing-cta-primary" to={paths.signup}>
+            <Link className="landing-cta-primary" to={paths.signup(urlLocale)}>
               {copy.primaryCta}
             </Link>
-            <Link className="landing-cta-secondary" to={paths.home}>
+            <Link className="landing-cta-secondary" to={paths.home(urlLocale)}>
               {copy.secondaryCta}
             </Link>
           </div>
@@ -105,7 +105,7 @@ export const LandingPage = () => {
         <div className="landing-close-inner">
           <h2>{copy.closeHeadline}</h2>
           <p>{copy.closeSupport}</p>
-          <Link className="landing-cta-primary" to={paths.signup}>
+          <Link className="landing-cta-primary" to={paths.signup(urlLocale)}>
             {copy.closeCta}
           </Link>
         </div>

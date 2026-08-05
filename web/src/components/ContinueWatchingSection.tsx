@@ -7,6 +7,7 @@ import {
 } from "../lib/continuation";
 import {DEFAULT_EPISODE_RUNTIME_MINUTES} from "../lib/seasonProgress";
 import {paths} from "../routes/paths";
+import {useLocale} from "../routes/LocaleContext";
 
 interface ContinueWatchingSectionProps {
   id?: string;
@@ -129,13 +130,14 @@ export const ContinueWatchingSection = ({
   subtitle,
   testIdPrefix = "continue",
   variant = "grid",
-  seeAllHref = paths.watchlist + "#continue-watching",
+  seeAllHref,
   entries,
   pendingShowIds,
   onSelect,
   onNextEpisodeWatched,
   onRemove,
 }: ContinueWatchingSectionProps) => {
+  const {urlLocale} = useLocale();
   if (entries.length === 0) {
     return null;
   }
@@ -155,7 +157,11 @@ export const ContinueWatchingSection = ({
           <h2>{title}</h2>
         </div>
         {showSeeAll ? (
-          <Link className="text-button" data-testid={`${testIdPrefix}-see-all`} to={seeAllHref}>
+          <Link
+            className="text-button"
+            data-testid={`${testIdPrefix}-see-all`}
+            to={seeAllHref ?? `${paths.watchlist(urlLocale)}#continue-watching`}
+          >
             See all
           </Link>
         ) : (

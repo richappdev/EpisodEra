@@ -1,5 +1,6 @@
-import {isLandingPath, paths} from "../routes/paths";
-import {SupportedLanguage} from "../types/settings";
+import {isLandingPath, routePaths} from "../routes/paths";
+import {localizePath, parseLocalizedPath, stripLocalePrefix} from "../routes/locale";
+import {SupportedLanguage, urlLocaleForLanguage} from "../types/settings";
 
 export const siteOrigin = "https://episodera.web.app";
 
@@ -21,36 +22,36 @@ export const defaultSeoCopy: Record<
 
 const pageTitles: Record<SupportedLanguage, Partial<Record<string, string>>> = {
   "en-US": {
-    [paths.home]: "Home",
-    [paths.search]: "Search",
-    [paths.watchlist]: "Watchlist",
-    [paths.continueWatching]: "Continue watching",
-    [paths.timeline]: "Timeline",
-    [paths.franchises]: "Franchises",
-    [paths.dailyPuzzle]: "Daily puzzle",
-    [paths.adminPuzzles]: "Puzzle studio",
-    [paths.social]: "Social",
-    [paths.profile]: "Profile",
-    [paths.settings]: "Settings",
-    [paths.privacy]: "Privacy",
-    [paths.login]: "Sign in",
-    [paths.signup]: "Create account",
+    [routePaths.home]: "Home",
+    [routePaths.search]: "Search",
+    [routePaths.watchlist]: "Watchlist",
+    [routePaths.continueWatching]: "Continue watching",
+    [routePaths.timeline]: "Timeline",
+    [routePaths.franchises]: "Franchises",
+    [routePaths.dailyPuzzle]: "Daily puzzle",
+    [routePaths.adminPuzzles]: "Puzzle studio",
+    [routePaths.social]: "Social",
+    [routePaths.profile]: "Profile",
+    [routePaths.settings]: "Settings",
+    [routePaths.privacy]: "Privacy",
+    [routePaths.login]: "Sign in",
+    [routePaths.signup]: "Create account",
   },
   "zh-TW": {
-    [paths.home]: "首頁",
-    [paths.search]: "搜尋",
-    [paths.watchlist]: "待看清單",
-    [paths.continueWatching]: "繼續觀看",
-    [paths.timeline]: "時間軸",
-    [paths.franchises]: "片單宇宙",
-    [paths.dailyPuzzle]: "每日謎題",
-    [paths.adminPuzzles]: "謎題工作室",
-    [paths.social]: "社群",
-    [paths.profile]: "個人檔案",
-    [paths.settings]: "設定",
-    [paths.privacy]: "隱私權",
-    [paths.login]: "登入",
-    [paths.signup]: "建立帳號",
+    [routePaths.home]: "首頁",
+    [routePaths.search]: "搜尋",
+    [routePaths.watchlist]: "待看清單",
+    [routePaths.continueWatching]: "繼續觀看",
+    [routePaths.timeline]: "時間軸",
+    [routePaths.franchises]: "片單宇宙",
+    [routePaths.dailyPuzzle]: "每日謎題",
+    [routePaths.adminPuzzles]: "謎題工作室",
+    [routePaths.social]: "社群",
+    [routePaths.profile]: "個人檔案",
+    [routePaths.settings]: "設定",
+    [routePaths.privacy]: "隱私權",
+    [routePaths.login]: "登入",
+    [routePaths.signup]: "建立帳號",
   },
 };
 
@@ -60,7 +61,7 @@ const siteBlockedTitles: Record<SupportedLanguage, string> = {
 };
 
 export const htmlLangFor = (language: SupportedLanguage): string =>
-  language === "zh-TW" ? "zh-Hant" : "en";
+  language === "zh-TW" ? "zh-Hant-TW" : "en-US";
 
 export const brandedPageTitle = (label: string): string => `${label} · Episodera`;
 
@@ -80,33 +81,34 @@ export const mediaDetailPageLabel = (
 };
 
 export const titleForPath = (pathname: string, language: SupportedLanguage): string => {
+  const routePath = stripLocalePrefix(pathname);
   const defaults = defaultSeoCopy[language];
-  if (isLandingPath(pathname)) {
+  if (isLandingPath(routePath)) {
     return defaults.title;
   }
 
-  const exact = pageTitles[language][pathname];
+  const exact = pageTitles[language][routePath];
   if (exact) {
     return brandedPageTitle(exact);
   }
 
-  if (pathname.startsWith("/list/")) {
+  if (routePath.startsWith("/list/")) {
     return brandedPageTitle(language === "zh-TW" ? "清單" : "List");
   }
 
-  if (pathname.startsWith("/movie/")) {
+  if (routePath.startsWith("/movie/")) {
     return brandedPageTitle(language === "zh-TW" ? "電影" : "Movie");
   }
 
-  if (pathname.startsWith("/tv/")) {
+  if (routePath.startsWith("/tv/")) {
     return brandedPageTitle(language === "zh-TW" ? "影集" : "TV show");
   }
 
-  if (pathname.startsWith(`${paths.franchises}/`)) {
+  if (routePath.startsWith(`${routePaths.franchises}/`)) {
     return brandedPageTitle(language === "zh-TW" ? "片單宇宙" : "Franchise");
   }
 
-  if (pathname.startsWith(`${paths.play}/`)) {
+  if (routePath.startsWith(`${routePaths.play}/`)) {
     return brandedPageTitle(language === "zh-TW" ? "遊戲" : "Play");
   }
 
@@ -118,6 +120,51 @@ const setMetaContent = (selector: string, content: string) => {
   if (el) {
     el.setAttribute("content", content);
   }
+};
+
+const ensureMeta = (selector: string, attributes: Record<string, string>) => {
+  let element = document.querySelector<HTMLMetaElement>(selector);
+  if (!element) {
+    element = document.createElement("meta");
+    document.head.appendChild(element);
+  }
+  Object.entries(attributes).forEach(([name, value]) => element?.setAttribute(name, value));
+};
+
+const ensureLink = (key: string, attributes: Record<string, string>) => {
+  const semanticSelector = key === "canonical"
+    ? 'link[rel="canonical"]'
+    : key.startsWith("alternate-")
+      ? `link[rel="alternate"][hreflang="${key.slice("alternate-".length)}"]`
+      : `link[data-seo-key="${key}"]`;
+  let element = document.querySelector<HTMLLinkElement>(semanticSelector);
+  if (!element) {
+    element = document.createElement("link");
+    element.dataset.seoKey = key;
+    document.head.appendChild(element);
+  }
+  element.dataset.seoKey = key;
+  Object.entries(attributes).forEach(([name, value]) => element?.setAttribute(name, value));
+};
+
+const removeLocalizedLinks = () => {
+  document.querySelectorAll('link[rel="alternate"][hreflang]').forEach((element) => element.remove());
+};
+
+export const isIndexablePath = (pathname: string): boolean => {
+  if (!parseLocalizedPath(pathname)) return false;
+  const routePath = stripLocalePrefix(pathname);
+  return (
+    routePath === routePaths.landing ||
+    routePath === routePaths.home ||
+    routePath === routePaths.franchises ||
+    routePath.startsWith(`${routePaths.franchises}/`) ||
+    routePath.startsWith("/movie/") ||
+    routePath.startsWith("/tv/") ||
+    routePath.startsWith("/list/") ||
+    routePath === routePaths.dailyPuzzle ||
+    routePath === routePaths.privacy
+  );
 };
 
 const setDocumentTitle = (title: string) => {
@@ -148,4 +195,38 @@ export const applyDocumentSeo = (
   setMetaContent('meta[property="og:description"]', defaults.description);
   setMetaContent('meta[property="og:locale"]', language === "zh-TW" ? "zh_TW" : "en_US");
   setMetaContent('meta[name="twitter:description"]', defaults.description);
+  const indexable = isIndexablePath(pathname) && !options.siteBlocked;
+  ensureMeta('meta[name="robots"]', {name: "robots", content: indexable ? "index,follow" : "noindex,follow"});
+
+  if (!parseLocalizedPath(pathname)) {
+    document.querySelector('link[data-seo-key="canonical"]')?.remove();
+    removeLocalizedLinks();
+    return;
+  }
+
+  const canonicalUrl = `${siteOrigin}${pathname}`;
+  ensureLink("canonical", {rel: "canonical", href: canonicalUrl});
+  ensureMeta('meta[property="og:url"]', {property: "og:url", content: canonicalUrl});
+  if (!indexable) {
+    removeLocalizedLinks();
+    return;
+  }
+
+  const basePath = stripLocalePrefix(pathname);
+  const alternates: Array<[string, SupportedLanguage]> = [
+    ["en-US", "en-US"],
+    ["zh-TW", "zh-TW"],
+  ];
+  alternates.forEach(([hreflang, alternateLanguage]) => {
+    ensureLink(`alternate-${hreflang}`, {
+      rel: "alternate",
+      hreflang,
+      href: `${siteOrigin}${localizePath(basePath, urlLocaleForLanguage(alternateLanguage))}`,
+    });
+  });
+  ensureLink("alternate-x-default", {
+    rel: "alternate",
+    hreflang: "x-default",
+    href: `${siteOrigin}${localizePath(basePath, "en-us")}`,
+  });
 };

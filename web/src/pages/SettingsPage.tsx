@@ -12,6 +12,7 @@ import {
   uiCopy,
 } from "../types/settings";
 import {paths} from "../routes/paths";
+import {useLocale} from "../routes/LocaleContext";
 
 interface SettingsPageProps {
   accountDeletionError: string | null;
@@ -66,6 +67,7 @@ export const SettingsPage = ({
   onAllowFriendRequestsChange,
   onHideSpoilersUntilWatchedChange,
 }: SettingsPageProps) => {
+  const {urlLocale} = useLocale();
   const copy = uiCopy[language].settings;
   const legal = legalCopy[language].settings;
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -250,7 +252,7 @@ export const SettingsPage = ({
             <h3 id="privacy-settings-title">{legal.privacyTitle}</h3>
           </div>
           <p className="settings-note">{legal.privacyDescription}</p>
-          <Link className="text-button settings-inline-link" to={paths.privacy}>
+          <Link className="text-button settings-inline-link" to={paths.privacy(urlLocale)}>
             {legal.privacyLink}
           </Link>
         </section>

@@ -16,6 +16,7 @@ import {
 import {EpisodeSummary, MediaDetail, MediaType, TvSeasonDetail} from "../types/media";
 import {ShowProgress} from "../types/progress";
 import {paths} from "./paths";
+import {useLocale} from "./LocaleContext";
 
 const parsePositiveInt = (value: string | undefined) => {
   const parsed = Number(value);
@@ -27,6 +28,7 @@ interface MediaDetailRouteProps {
 }
 
 export const MediaDetailRoute = ({mediaType}: MediaDetailRouteProps) => {
+  const {urlLocale} = useLocale();
   const {id, seasonNumber: seasonNumberParam} = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -155,7 +157,7 @@ export const MediaDetailRoute = ({mediaType}: MediaDetailRouteProps) => {
       return;
     }
 
-    navigate(paths.tvSeason(mediaId, nextSeason), {replace: true, state: location.state});
+    navigate(paths.tvSeason(urlLocale, mediaId, nextSeason), {replace: true, state: location.state});
   };
 
   const applyProgressUpdate = (latestProgress: ShowProgress | null) => {

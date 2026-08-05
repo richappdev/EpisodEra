@@ -137,7 +137,7 @@ describe("DailyPuzzlePage", () => {
     );
 
     await waitFor(() => expect(screen.getByTestId("open-puzzle-studio")).toBeInTheDocument());
-    expect(screen.getByTestId("open-puzzle-studio")).toHaveAttribute("href", "/admin/puzzles");
+    expect(screen.getByTestId("open-puzzle-studio")).toHaveAttribute("href", "/en-us/admin/puzzles");
     expect(screen.getByTestId("open-puzzle-studio")).toHaveTextContent(/Manage puzzles/i);
   });
 

@@ -33,8 +33,7 @@ export const signOut = async (page: Page) => {
     await accountButton.click();
   }
   await expect(page.getByText(/^Welcome,/)).toHaveCount(0, {timeout: 20_000});
-  await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole("link", {name: /Sign in/i})).toBeVisible();
+  await expect(page.getByTestId("account-button").or(page.getByRole("link", {name: /Sign in/i})).first()).toBeVisible();
 };
 
 export const expectSignedInShell = async (page: Page) => {

@@ -77,7 +77,7 @@ describe("Franchise pages", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByTestId("franchise-card-star-wars")).toHaveAttribute("href", "/franchises/star-wars");
+    expect(screen.getByTestId("franchise-card-star-wars")).toHaveAttribute("href", "/en-us/franchises/star-wars");
     expect(screen.getByTestId("franchise-card-star-wars")).toHaveTextContent("11 titles");
   });
 

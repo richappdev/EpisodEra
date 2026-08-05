@@ -3,6 +3,7 @@
     "source": "functions",
     "runtime": "nodejs22",
     "predeploy": [
+      "npm --prefix web run build:prod",
       "npm --prefix \"$RESOURCE_DIR\" run build"
     ]
   },
@@ -15,12 +16,45 @@
   },
   "hosting": {
     "public": "web/dist",
+    "cleanUrls": true,
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
     ],
     "rewrites": [
+      {
+        "source": "/en-us/movie/**",
+        "function": {"functionId": "web", "region": "us-central1"}
+      },
+      {
+        "source": "/zh-tw/movie/**",
+        "function": {"functionId": "web", "region": "us-central1"}
+      },
+      {
+        "source": "/en-us/tv/**",
+        "function": {"functionId": "web", "region": "us-central1"}
+      },
+      {
+        "source": "/zh-tw/tv/**",
+        "function": {"functionId": "web", "region": "us-central1"}
+      },
+      {
+        "source": "/en-us/franchises/**",
+        "function": {"functionId": "web", "region": "us-central1"}
+      },
+      {
+        "source": "/zh-tw/franchises/**",
+        "function": {"functionId": "web", "region": "us-central1"}
+      },
+      {
+        "source": "/en-us/list/**",
+        "function": {"functionId": "web", "region": "us-central1"}
+      },
+      {
+        "source": "/zh-tw/list/**",
+        "function": {"functionId": "web", "region": "us-central1"}
+      },
       {
         "source": "**",
         "destination": "/index.html"

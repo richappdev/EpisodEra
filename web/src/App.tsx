@@ -26,16 +26,16 @@ const resolveActiveView = (pathname: string, state: unknown): NavView => {
 };
 
 const SiteFooter = () => {
-  const {language} = useAppContext();
+  const {language, urlLocale} = useAppContext();
   const footer = legalCopy[language].footer;
   const aboutLabel = language === "zh-TW" ? "介紹" : "About";
 
   return (
     <footer className="site-footer">
       <p className="site-footer-links">
-        <Link to={paths.landing}>{aboutLabel}</Link>
+        <Link to={paths.landing(urlLocale)}>{aboutLabel}</Link>
         <span aria-hidden="true"> · </span>
-        <Link to={paths.privacy}>{footer.privacy}</Link>
+        <Link to={paths.privacy(urlLocale)}>{footer.privacy}</Link>
         <span aria-hidden="true"> · </span>
         <a href={`mailto:${supportEmail}`}>{supportEmail}</a>
       </p>

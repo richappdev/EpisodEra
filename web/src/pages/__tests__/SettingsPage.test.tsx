@@ -105,6 +105,6 @@ describe("SettingsPage", () => {
   it("links to the privacy policy", () => {
     renderSettings();
 
-    expect(screen.getByRole("link", {name: "View privacy policy"})).toHaveAttribute("href", "/privacy");
+    expect(screen.getByRole("link", {name: "View privacy policy"})).toHaveAttribute("href", "/en-us/privacy");
   });
 });

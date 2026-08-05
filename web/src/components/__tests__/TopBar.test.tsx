@@ -91,13 +91,13 @@ describe("TopBar", () => {
     );
 
     expect(screen.getByText("Welcome, Ada")).toBeVisible();
-    expect(screen.getByTestId("nav-search")).toHaveAttribute("href", "/search");
-    expect(screen.getByTestId("nav-timeline")).toHaveAttribute("href", "/timeline");
-    expect(screen.getByTestId("nav-likes")).toHaveAttribute("href", "/likes");
-    expect(screen.getByTestId("nav-franchises")).toHaveAttribute("href", "/franchises");
+    expect(screen.getByTestId("nav-search")).toHaveAttribute("href", "/en-us/search");
+    expect(screen.getByTestId("nav-timeline")).toHaveAttribute("href", "/en-us/timeline");
+    expect(screen.getByTestId("nav-likes")).toHaveAttribute("href", "/en-us/likes");
+    expect(screen.getByTestId("nav-franchises")).toHaveAttribute("href", "/en-us/franchises");
     expect(screen.getByTestId("nav-trending")).toHaveTextContent("Home");
     expect(screen.getByTestId("nav-settings")).toHaveClass("nav-secondary");
-    expect(screen.getByTestId("top-search")).toHaveAttribute("href", "/search");
+    expect(screen.getByTestId("top-search")).toHaveAttribute("href", "/en-us/search");
 
     await userEventApi.click(screen.getByTestId("account-button"));
     expect(signOutAndReset).toHaveBeenCalled();

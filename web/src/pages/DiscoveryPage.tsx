@@ -12,6 +12,7 @@ import {discoveryMoodShortLabels, discoveryMoods} from "../lib/discoveryMoods";
 import {DiscoveryMood, DiscoverySuggestionsResponse} from "../types/discovery";
 import {DiscoveryResponse, MediaSummary, MediaType, PagedResult} from "../types/media";
 import {SupportedLanguage, uiCopy} from "../types/settings";
+import {useLocale} from "../routes/LocaleContext";
 
 interface DiscoveryPageProps {
   view: "trending" | "search";
@@ -55,6 +56,7 @@ export const DiscoveryPage = ({
   onNextEpisodeWatched,
   onRemoveContinuation,
 }: DiscoveryPageProps) => {
+  const {urlLocale} = useLocale();
   const copy = uiCopy[language].search;
   const [query, setQuery] = useState("");
   const [searchData, setSearchData] = useState<DiscoveryResponse | null>(null);
@@ -264,7 +266,7 @@ export const DiscoveryPage = ({
       {view === "trending" && (
         <div className="home-discovery">
           <p className="daily-puzzle-home-promo">
-            <Link className="text-button" data-testid="home-daily-puzzle" to={paths.dailyPuzzle}>
+            <Link className="text-button" data-testid="home-daily-puzzle" to={paths.dailyPuzzle(urlLocale)}>
               Play today&apos;s daily puzzle
             </Link>
           </p>
@@ -291,7 +293,7 @@ export const DiscoveryPage = ({
                 <span className="media-kind">Discover by mood</span>
                 <h2>Match a mood or time budget</h2>
               </div>
-              <Link className="text-button" data-testid="home-franchises-link" to={paths.franchises}>
+              <Link className="text-button" data-testid="home-franchises-link" to={paths.franchises(urlLocale)}>
                 Browse franchises
               </Link>
             </div>

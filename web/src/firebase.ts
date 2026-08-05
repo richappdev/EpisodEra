@@ -73,6 +73,9 @@ if (app && appCheckSiteKey) {
 }
 
 export const getAppCheckToken = async (): Promise<string | null> => {
+  if (import.meta.env.MODE === "e2e") {
+    return null;
+  }
   if (!appCheck) {
     return null;
   }

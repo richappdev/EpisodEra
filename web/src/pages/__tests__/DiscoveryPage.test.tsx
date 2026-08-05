@@ -106,7 +106,7 @@ describe("DiscoveryPage", () => {
     expect(screen.getByTestId("continue-card-1001")).toBeVisible();
     expect(screen.getByTestId("continue-watched-1001")).toBeVisible();
     expect(screen.getByLabelText("Open Critical Flow Show")).toBeVisible();
-    expect(screen.getByTestId("continue-see-all")).toHaveAttribute("href", "/watchlist#continue-watching");
+    expect(screen.getByTestId("continue-see-all")).toHaveAttribute("href", "/en-us/watchlist#continue-watching");
     expect(screen.getByTestId("continue-next-1001")).toHaveTextContent("S1 · E2 — The Gap");
     expect(screen.getByRole("list")).toBeVisible();
   });
@@ -122,7 +122,7 @@ describe("DiscoveryPage", () => {
     renderDiscovery(<DiscoveryPage view="trending" language="en-US" onSelect={vi.fn()} />);
 
     expect(await screen.findByTestId("discovery-smart")).toBeVisible();
-    expect(screen.getByTestId("home-franchises-link")).toHaveAttribute("href", "/franchises");
+    expect(screen.getByTestId("home-franchises-link")).toHaveAttribute("href", "/en-us/franchises");
     expect(await screen.findByRole("heading", {name: "Something relaxing"})).toBeVisible();
     expect(screen.getByTestId("media-card-movie-2001")).toBeVisible();
     await user.click(screen.getByTestId("mood-relaxing"));

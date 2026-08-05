@@ -17,18 +17,18 @@ describe("documentSeo", () => {
   });
 
   it("maps language to html lang", () => {
-    expect(htmlLangFor("en-US")).toBe("en");
-    expect(htmlLangFor("zh-TW")).toBe("zh-Hant");
+    expect(htmlLangFor("en-US")).toBe("en-US");
+    expect(htmlLangFor("zh-TW")).toBe("zh-Hant-TW");
   });
 
   it("uses landing SEO title on landing paths", () => {
-    expect(titleForPath(paths.landing, "en-US")).toBe(defaultSeoCopy["en-US"].title);
-    expect(titleForPath(paths.landingLegacy, "zh-TW")).toBe(defaultSeoCopy["zh-TW"].title);
+    expect(titleForPath(paths.landing("en-us"), "en-US")).toBe(defaultSeoCopy["en-US"].title);
+    expect(titleForPath(paths.landingLegacy("zh-tw"), "zh-TW")).toBe(defaultSeoCopy["zh-TW"].title);
   });
 
   it("prefixes in-app pages with brand", () => {
-    expect(titleForPath(paths.home, "en-US")).toBe("Home · Episodera");
-    expect(titleForPath(paths.settings, "zh-TW")).toBe("設定 · Episodera");
+    expect(titleForPath(paths.home("en-us"), "en-US")).toBe("Home · Episodera");
+    expect(titleForPath(paths.settings("zh-tw"), "zh-TW")).toBe("設定 · Episodera");
   });
 
   it("uses typed fallbacks for dynamic routes", () => {
@@ -66,10 +66,10 @@ describe("documentSeo", () => {
   });
 
   it("applies site-blocked title", () => {
-    applyDocumentSeo(paths.settings, "en-US", {siteBlocked: true});
+    applyDocumentSeo(paths.settings("en-us"), "en-US", {siteBlocked: true});
     expect(document.title).toBe("Under optimization · Episodera");
 
-    applyDocumentSeo(paths.settings, "zh-TW", {siteBlocked: true});
+    applyDocumentSeo(paths.settings("zh-tw"), "zh-TW", {siteBlocked: true});
     expect(document.title).toBe("網站優化中 · Episodera");
   });
 
@@ -83,15 +83,38 @@ describe("documentSeo", () => {
       <meta name="twitter:description" content="" />
     `;
 
-    applyDocumentSeo(paths.landing, "zh-TW");
+    applyDocumentSeo(paths.landing("zh-tw"), "zh-TW");
 
-    expect(document.documentElement.lang).toBe("zh-Hant");
+    expect(document.documentElement.lang).toBe("zh-Hant-TW");
     expect(document.title).toBe(defaultSeoCopy["zh-TW"].title);
     expect(document.querySelector('meta[name="description"]')?.getAttribute("content")).toBe(
       defaultSeoCopy["zh-TW"].description,
     );
     expect(document.querySelector('meta[property="og:locale"]')?.getAttribute("content")).toBe(
       "zh_TW",
+    );
+    expect(document.querySelector('link[rel="canonical"]')?.getAttribute("href")).toBe(
+      "https://episodera.web.app/zh-tw",
+    );
+    expect(document.querySelector('link[hreflang="en-US"]')?.getAttribute("href")).toBe(
+      "https://episodera.web.app/en-us",
+    );
+  });
+
+  it("reuses server-generated canonical and alternate tags", () => {
+    document.head.innerHTML = `
+      <link rel="canonical" href="https://episodera.web.app/en-us/home" />
+      <link rel="alternate" hreflang="en-US" href="https://episodera.web.app/en-us/home" />
+      <meta name="robots" content="index,follow" />
+      <meta property="og:url" content="" />
+    `;
+
+    applyDocumentSeo("/zh-tw/home", "zh-TW");
+
+    expect(document.querySelectorAll('link[rel="canonical"]')).toHaveLength(1);
+    expect(document.querySelectorAll('link[rel="alternate"][hreflang="en-US"]')).toHaveLength(1);
+    expect(document.querySelector('link[rel="canonical"]')?.getAttribute("href")).toBe(
+      "https://episodera.web.app/zh-tw/home",
     );
   });
 });

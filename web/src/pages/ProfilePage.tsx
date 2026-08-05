@@ -21,6 +21,7 @@ import {SectionError} from "../components/SectionError";
 import {YearRecapCard} from "../components/YearRecapCard";
 import {formatWatchTime} from "../lib/seasonProgress";
 import {paths} from "../routes/paths";
+import {useLocale} from "../routes/LocaleContext";
 import {AchievementProgress, AchievementsResponse} from "../types/achievement";
 import {UserGameStats} from "../types/dailyPuzzle";
 import {HistoryEntry} from "../types/history";
@@ -91,6 +92,7 @@ export const ProfilePage = ({
   onRetryRecap,
   onRetryStats,
 }: ProfilePageProps) => {
+  const {urlLocale} = useLocale();
   const [achievements, setAchievements] = useState<AchievementsResponse | null>(null);
   const [achievementsError, setAchievementsError] = useState<string | null>(null);
   const [puzzleStats, setPuzzleStats] = useState<UserGameStats | null>(null);
@@ -137,11 +139,11 @@ export const ProfilePage = ({
           <h2>{heading}</h2>
           {profileEmail && <p>{profileEmail}</p>}
           <div className="profile-hub-links">
-            <Link className="text-button" data-testid="profile-open-settings" to={paths.settings}>
+            <Link className="text-button" data-testid="profile-open-settings" to={paths.settings(urlLocale)}>
               <Settings size={16} aria-hidden="true" />
               Settings
             </Link>
-            <Link className="text-button" data-testid="profile-open-social" to={paths.social}>
+            <Link className="text-button" data-testid="profile-open-social" to={paths.social(urlLocale)}>
               <Users size={16} aria-hidden="true" />
               Social
             </Link>
@@ -241,7 +243,7 @@ export const ProfilePage = ({
                 </strong>
               </article>
               <article className="stat-figure">
-                <Link className="text-button" to={paths.dailyPuzzle}>
+                <Link className="text-button" to={paths.dailyPuzzle(urlLocale)}>
                   Play today&apos;s puzzle
                 </Link>
               </article>
@@ -338,7 +340,7 @@ export const ProfilePage = ({
         <div className="section-header">
           <div>
             <h2>Recent history</h2>
-            <Link className="text-button timeline-link" data-testid="profile-open-timeline" to={paths.timeline}>
+            <Link className="text-button timeline-link" data-testid="profile-open-timeline" to={paths.timeline(urlLocale)}>
               Open timeline
             </Link>
           </div>

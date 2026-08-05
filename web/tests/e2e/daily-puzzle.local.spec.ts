@@ -2,7 +2,7 @@ import {expect, test} from "@playwright/test";
 
 test.describe("daily puzzle local sample mode", () => {
   test("loads and completes a sample puzzle", async ({page}) => {
-    await page.goto("/play/daily-puzzle");
+    await page.goto("/en-us/play/daily-puzzle");
     await expect(page.getByRole("heading", {name: /which show is this/i})).toBeVisible({timeout: 30_000});
 
     const sampleBanner = page.getByText(/playing sample puzzle/i);

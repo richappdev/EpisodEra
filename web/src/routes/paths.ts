@@ -1,4 +1,6 @@
 import {MediaSummary} from "../types/media";
+import type {UrlLocale} from "../types/settings";
+import {localizePath, stripLocalePrefix} from "./locale";
 
 export type NavView =
   | "trending"
@@ -15,26 +17,18 @@ export type NavView =
 /** Single product canvas — dark cinema across all routes. */
 export type CanvasMode = "cinema";
 
-export const paths = {
+export const routePaths = {
   landing: "/",
   home: "/home",
-  /** Legacy bookmark; redirects to `/`. */
   landingLegacy: "/landing",
   search: "/search",
-  searchQuery: (query: string) => `/search?q=${encodeURIComponent(query)}`,
-  movie: (id: number | string) => `/movie/${id}`,
-  tv: (id: number | string) => `/tv/${id}`,
-  tvSeason: (id: number | string, seasonNumber: number | string) => `/tv/${id}/season/${seasonNumber}`,
   watchlist: "/watchlist",
   likes: "/likes",
   continueWatching: "/continue-watching",
   timeline: "/timeline",
   franchises: "/franchises",
-  franchise: (slug: string) => `/franchises/${encodeURIComponent(slug)}`,
-  list: (listId: string) => `/list/${encodeURIComponent(listId)}`,
   play: "/play",
   dailyPuzzle: "/play/daily-puzzle",
-  playGame: (slug: string) => `/play/${encodeURIComponent(slug)}`,
   adminPuzzles: "/admin/puzzles",
   social: "/social",
   profile: "/profile",
@@ -44,50 +38,64 @@ export const paths = {
   signup: "/signup",
 } as const;
 
-export const mediaPath = (item: Pick<MediaSummary, "mediaType" | "id">) =>
-  item.mediaType === "movie" ? paths.movie(item.id) : paths.tv(item.id);
+export const paths = {
+  landing: (locale: UrlLocale) => localizePath(routePaths.landing, locale),
+  home: (locale: UrlLocale) => localizePath(routePaths.home, locale),
+  landingLegacy: (locale: UrlLocale) => localizePath(routePaths.landingLegacy, locale),
+  search: (locale: UrlLocale) => localizePath(routePaths.search, locale),
+  searchQuery: (locale: UrlLocale, query: string) =>
+    `${localizePath(routePaths.search, locale)}?q=${encodeURIComponent(query)}`,
+  movie: (locale: UrlLocale, id: number | string) => localizePath(`/movie/${id}`, locale),
+  tv: (locale: UrlLocale, id: number | string) => localizePath(`/tv/${id}`, locale),
+  tvSeason: (locale: UrlLocale, id: number | string, seasonNumber: number | string) =>
+    localizePath(`/tv/${id}/season/${seasonNumber}`, locale),
+  watchlist: (locale: UrlLocale) => localizePath(routePaths.watchlist, locale),
+  likes: (locale: UrlLocale) => localizePath(routePaths.likes, locale),
+  continueWatching: (locale: UrlLocale) => localizePath(routePaths.continueWatching, locale),
+  timeline: (locale: UrlLocale) => localizePath(routePaths.timeline, locale),
+  franchises: (locale: UrlLocale) => localizePath(routePaths.franchises, locale),
+  franchise: (locale: UrlLocale, slug: string) =>
+    localizePath(`/franchises/${encodeURIComponent(slug)}`, locale),
+  list: (locale: UrlLocale, listId: string) => localizePath(`/list/${encodeURIComponent(listId)}`, locale),
+  play: (locale: UrlLocale) => localizePath(routePaths.play, locale),
+  dailyPuzzle: (locale: UrlLocale) => localizePath(routePaths.dailyPuzzle, locale),
+  playGame: (locale: UrlLocale, slug: string) => localizePath(`/play/${encodeURIComponent(slug)}`, locale),
+  adminPuzzles: (locale: UrlLocale) => localizePath(routePaths.adminPuzzles, locale),
+  social: (locale: UrlLocale) => localizePath(routePaths.social, locale),
+  profile: (locale: UrlLocale) => localizePath(routePaths.profile, locale),
+  settings: (locale: UrlLocale) => localizePath(routePaths.settings, locale),
+  privacy: (locale: UrlLocale) => localizePath(routePaths.privacy, locale),
+  login: (locale: UrlLocale) => localizePath(routePaths.login, locale),
+  signup: (locale: UrlLocale) => localizePath(routePaths.signup, locale),
+} as const;
 
-export const isLandingPath = (pathname: string) =>
-  pathname === paths.landing || pathname === paths.landingLegacy;
+export const mediaPath = (locale: UrlLocale, item: Pick<MediaSummary, "mediaType" | "id">) =>
+  item.mediaType === "movie" ? paths.movie(locale, item.id) : paths.tv(locale, item.id);
+
+export const isLandingPath = (pathname: string) => {
+  const routePath = stripLocalePrefix(pathname);
+  return routePath === routePaths.landing || routePath === routePaths.landingLegacy;
+};
 
 export const navFromPath = (pathname: string): NavView => {
-  if (pathname.startsWith("/search")) {
-    return "search";
-  }
-  if (pathname === paths.home || pathname.startsWith(`${paths.home}/`)) {
-    return "trending";
-  }
-  if (pathname.startsWith("/continue-watching") || pathname.startsWith("/watchlist")) {
-    return "watchlist";
-  }
-  if (pathname.startsWith("/likes")) {
-    return "likes";
-  }
-  if (pathname.startsWith("/timeline")) {
-    return "timeline";
-  }
-  if (pathname.startsWith("/franchises")) {
-    return "franchises";
-  }
-  if (pathname.startsWith("/play") || pathname.startsWith("/admin/puzzles")) {
-    return "play";
-  }
-  if (pathname.startsWith("/list/")) {
-    return "trending";
-  }
-  if (pathname.startsWith("/social")) {
-    return "social";
-  }
-  if (pathname.startsWith("/profile")) {
-    return "profile";
-  }
-  if (pathname.startsWith("/settings")) {
-    return "settings";
-  }
+  const routePath = stripLocalePrefix(pathname);
+  if (routePath.startsWith("/search")) return "search";
+  if (routePath === routePaths.home || routePath.startsWith(`${routePaths.home}/`)) return "trending";
+  if (routePath.startsWith("/continue-watching") || routePath.startsWith("/watchlist")) return "watchlist";
+  if (routePath.startsWith("/likes")) return "likes";
+  if (routePath.startsWith("/timeline")) return "timeline";
+  if (routePath.startsWith("/franchises")) return "franchises";
+  if (routePath.startsWith("/play") || routePath.startsWith("/admin/puzzles")) return "play";
+  if (routePath.startsWith("/list/")) return "trending";
+  if (routePath.startsWith("/social")) return "social";
+  if (routePath.startsWith("/profile")) return "profile";
+  if (routePath.startsWith("/settings")) return "settings";
   return "trending";
 };
 
-export const isDetailPath = (pathname: string) =>
-  pathname.startsWith("/movie/") || pathname.startsWith("/tv/");
+export const isDetailPath = (pathname: string) => {
+  const routePath = stripLocalePrefix(pathname);
+  return routePath.startsWith("/movie/") || routePath.startsWith("/tv/");
+};
 
 export const canvasFromPath = (_pathname: string): CanvasMode => "cinema";

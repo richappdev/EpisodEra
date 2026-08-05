@@ -3,6 +3,7 @@ import {Clapperboard, Loader2} from "lucide-react";
 import {SectionError} from "../components/SectionError";
 import {paths} from "../routes/paths";
 import {FranchiseSummary} from "../types/franchise";
+import {useLocale} from "../routes/LocaleContext";
 
 interface FranchiseListPageProps {
   error: string | null;
@@ -11,7 +12,9 @@ interface FranchiseListPageProps {
   onRetry: () => void;
 }
 
-export const FranchiseListPage = ({error, items, loading, onRetry}: FranchiseListPageProps) => (
+export const FranchiseListPage = ({error, items, loading, onRetry}: FranchiseListPageProps) => {
+  const {urlLocale} = useLocale();
+  return (
   <main className="page-shell">
     <section className="profile-header">
       <div>
@@ -41,7 +44,7 @@ export const FranchiseListPage = ({error, items, loading, onRetry}: FranchiseLis
             className="franchise-card"
             data-testid={`franchise-card-${franchise.slug}`}
             key={franchise.slug}
-            to={paths.franchise(franchise.slug)}
+            to={paths.franchise(urlLocale, franchise.slug)}
           >
             <h3>{franchise.name}</h3>
             <p>{franchise.description}</p>
@@ -53,4 +56,5 @@ export const FranchiseListPage = ({error, items, loading, onRetry}: FranchiseLis
       </section>
     )}
   </main>
-);
+  );
+};

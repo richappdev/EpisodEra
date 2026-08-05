@@ -41,56 +41,56 @@ const navClassName =
 
 export const TopBar = ({activeView}: TopBarProps) => {
   const {user} = useAuth();
-  const {openAuth, profile, signOutAndReset, language} = useAppContext();
+  const {openAuth, profile, signOutAndReset, language, urlLocale = "en-us"} = useAppContext();
   const copy = uiCopy[language].topBar;
   const accountLabel = profile?.firstName || user?.displayName || user?.email;
 
   const navItems: NavItem[] = [
     {
       view: "trending",
-      to: paths.home,
+      to: paths.home(urlLocale),
       testId: "nav-trending",
       label: copy.home,
       icon: <Home size={18} aria-hidden="true" />,
     },
     {
       view: "search",
-      to: paths.search,
+      to: paths.search(urlLocale),
       testId: "nav-search",
       label: copy.search,
       icon: <Search size={18} aria-hidden="true" />,
     },
     {
       view: "timeline",
-      to: paths.timeline,
+      to: paths.timeline(urlLocale),
       testId: "nav-timeline",
       label: copy.timeline,
       icon: <History size={18} aria-hidden="true" />,
     },
     {
       view: "watchlist",
-      to: paths.watchlist,
+      to: paths.watchlist(urlLocale),
       testId: "nav-watchlist",
       label: copy.watchlist,
       icon: <Bookmark size={18} aria-hidden="true" />,
     },
     {
       view: "likes",
-      to: paths.likes,
+      to: paths.likes(urlLocale),
       testId: "nav-likes",
       label: copy.likes,
       icon: <Heart size={18} aria-hidden="true" />,
     },
     {
       view: "profile",
-      to: paths.profile,
+      to: paths.profile(urlLocale),
       testId: "nav-profile",
       label: copy.profile,
       icon: <BarChart3 size={18} aria-hidden="true" />,
     },
     {
       view: "franchises",
-      to: paths.franchises,
+      to: paths.franchises(urlLocale),
       testId: "nav-franchises",
       label: copy.franchises,
       icon: <Clapperboard size={18} aria-hidden="true" />,
@@ -98,7 +98,7 @@ export const TopBar = ({activeView}: TopBarProps) => {
     },
     {
       view: "play",
-      to: paths.dailyPuzzle,
+      to: paths.dailyPuzzle(urlLocale),
       testId: "nav-daily-puzzle",
       label: copy.play,
       icon: <Gamepad2 size={18} aria-hidden="true" />,
@@ -106,7 +106,7 @@ export const TopBar = ({activeView}: TopBarProps) => {
     },
     {
       view: "social",
-      to: paths.social,
+      to: paths.social(urlLocale),
       testId: "nav-social",
       label: copy.social,
       icon: <Users size={18} aria-hidden="true" />,
@@ -114,7 +114,7 @@ export const TopBar = ({activeView}: TopBarProps) => {
     },
     {
       view: "settings",
-      to: paths.settings,
+      to: paths.settings(urlLocale),
       testId: "nav-settings",
       label: copy.settings,
       icon: <Settings size={18} aria-hidden="true" />,
@@ -145,7 +145,7 @@ export const TopBar = ({activeView}: TopBarProps) => {
           }
           data-testid="top-search"
           title={copy.search}
-          to={paths.search}
+          to={paths.search(urlLocale)}
           aria-label={copy.search}
         >
           <Search size={18} aria-hidden="true" />

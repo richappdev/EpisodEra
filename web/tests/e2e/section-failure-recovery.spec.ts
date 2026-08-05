@@ -8,7 +8,7 @@ test("watchlist failure does not block profile stats and recovers on retry", asy
     initialWatchedEpisodes: [1],
   });
 
-  await page.goto("/home");
+  await page.goto("/en-us/home");
   await expect(page.getByText("Welcome, E2E")).toBeVisible();
 
   await page.getByTestId("nav-watchlist").click();
@@ -32,7 +32,7 @@ test("history failure preserves profile stats and recovers on retry", async ({pa
     initialWatchedEpisodes: [1],
   });
 
-  await page.goto("/profile");
+  await page.goto("/en-us/profile");
   await expect(page.getByTestId("stat-watched-episodes")).toHaveText("1");
   await expect(page.getByTestId("stat-watchlist-count")).toHaveText("1");
   await expect(page.getByRole("alert").filter({hasText: "Temporary history outage."})).toBeVisible();

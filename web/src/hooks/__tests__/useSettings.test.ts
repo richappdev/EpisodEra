@@ -53,7 +53,8 @@ describe("useSettings", () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(result.current.language).toBe("zh-TW");
+    expect(result.current.preferredLanguage).toBe("zh-TW");
+    expect(result.current.initialized).toBe(true);
     expect(result.current.autoMarkPreviousEpisodesWatched).toBe(true);
     expect(result.current.preferredProviderIds).toEqual([8]);
     expect(result.current.watchRegion).toBe("TW");
@@ -65,7 +66,7 @@ describe("useSettings", () => {
     const {result} = renderHook(() => useSettings(null));
 
     act(() => {
-      result.current.changeLanguage("zh-TW");
+      result.current.changePreferredLanguage("zh-TW");
       result.current.changeAutoMarkPreviousEpisodesWatched(true);
       result.current.changePreferredProviderIds([337]);
       result.current.changeWatchRegion("gb");
@@ -78,7 +79,7 @@ describe("useSettings", () => {
       content_type: "language",
       item_id: "zh-TW",
     });
-    expect(result.current.language).toBe("zh-TW");
+    expect(result.current.preferredLanguage).toBe("zh-TW");
     expect(result.current.autoMarkPreviousEpisodesWatched).toBe(true);
     expect(result.current.preferredProviderIds).toEqual([337]);
     expect(result.current.watchRegion).toBe("GB");
@@ -99,11 +100,11 @@ describe("useSettings", () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     act(() => {
-      result.current.changeLanguage("zh-TW");
+      result.current.changePreferredLanguage("zh-TW");
     });
 
     await waitFor(() => expect(api.updateMeSettings).toHaveBeenCalledWith({language: "zh-TW"}));
-    expect(result.current.language).toBe("zh-TW");
+    expect(result.current.preferredLanguage).toBe("zh-TW");
   });
 
   it("surfaces load errors", async () => {

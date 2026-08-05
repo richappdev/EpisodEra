@@ -4,6 +4,7 @@ import {onSchedule} from "firebase-functions/v2/scheduler";
 import {app} from "./api/app";
 import {autoPuzzleService} from "./services/autoPuzzleService";
 import {puzzleService} from "./services/puzzleService";
+export {web} from "./webRenderer";
 
 initializeApp();
 

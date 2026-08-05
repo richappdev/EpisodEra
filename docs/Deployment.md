@@ -98,7 +98,7 @@ Optional App Check: set `VITE_FIREBASE_APP_CHECK_RECAPTCHA_SITE_KEY` in `web/.en
 
 ## Web hosting deployment
 
-Firebase Hosting serves the built Vite app from `web/dist`.
+Firebase Hosting serves the built Vite app and generated localized HTML shells from `web/dist`. The web build also copies the hashed-asset-aware base shell into `functions/generated/web/index.html` for the dynamic metadata renderer.
 
 Deploy the web app with:
 
@@ -108,7 +108,7 @@ firebase deploy --only hosting
 
 Use `npm run build:prod` (not plain `npm run build`) before hosting deploy so `VITE_FIREBASE_*` and `VITE_API_BASE_URL` are embedded in the bundle.
 
-The app is an SPA, so all routes rewrite to `index.html`.
+The app remains an SPA. Fixed `/en-us` and `/zh-tw` routes use generated clean-URL shells; dynamic public detail paths rewrite to the `web` Function; remaining routes fall back to `index.html`. Run the web build before the Functions build so the renderer shell is packaged.
 
 ## Firebase app monitoring
 

@@ -2,9 +2,11 @@
 
 ## Current navigation model
 
-The MVP uses **React Router 6** (`react-router-dom`) with browser history and shareable URLs. Top-level screens are route-driven; movie and TV detail pages have dedicated paths with optional season deep links.
+The MVP uses **React Router 6** (`react-router-dom`) with browser history and shareable URLs. Every application route is nested beneath `/en-us` or `/zh-tw`; movie and TV detail pages have dedicated localized paths with optional season deep links. Bare `/` and legacy unprefixed paths resolve to the account, local, browser, then English preference.
 
 ## Route map
+
+Routes below are shown without the required `/:locale` prefix for readability. For example, `/home` means `/en-us/home` or `/zh-tw/home`, while `/` means `/en-us` or `/zh-tw`.
 
 | Route | Screen | Auth | Canvas | Notes |
 | --- | --- | --- | --- | --- |
@@ -65,7 +67,9 @@ Unknown paths redirect to `/` (signed-in users then bounce to `/home`).
 - Trending uses TV Shows and Movies tabs. TV Shows is always the first-load default.
 - Sign-out and account deletion return to `/`.
 - Auth success defaults to `/home` (or `location.state.from` when present).
-- Language support is limited to English (`en-US`) and Traditional Chinese (`zh-TW`) for MVP.
+- Language support is limited to English (`en-US`, URL `/en-us`) and Traditional Chinese (`zh-TW`, URL `/zh-tw`) for MVP.
+- An explicit locale prefix is authoritative for the current page. The saved account/local language is only the default for `/` and legacy unprefixed entries.
+- Changing language in Settings saves the preference and replaces the current URL prefix without losing its query string or hash.
 - Search query persists in the URL via `?q=` while navigating within the app.
 - Detail routes preserve the originating nav highlight through router location state (`nav`).
 - Browser back from detail uses history (`navigate(-1)`).
@@ -74,7 +78,8 @@ Unknown paths redirect to `/` (signed-in users then bounce to `/home`).
 
 ## Implementation files
 
-- `web/src/main.tsx` — `BrowserRouter` wrapper
+- `web/src/main.tsx` — `BrowserRouter` and locale-provider wrapper
+- `web/src/routes/LocaleContext.tsx` — active URL locale and equivalent-route navigation
 - `web/src/routes/paths.ts` — canonical path helpers
 - `web/src/routes/AppRoutes.tsx` — route table
 - `web/src/routes/DetailRoute.tsx` — movie/TV detail loading from URL params
@@ -85,7 +90,7 @@ Unknown paths redirect to `/` (signed-in users then bounce to `/home`).
 
 ## Hosting
 
-Firebase Hosting already rewrites unknown paths to `/index.html`, so direct loads of `/tv/:id`, `/search`, and other MVP routes work in production.
+Firebase Hosting serves generated locale-aware HTML shells for fixed routes, sends dynamic public detail routes through the `web` metadata function, and falls back to `/index.html` for private, legacy, and unknown SPA routes.
 
 ## Remaining polish
 

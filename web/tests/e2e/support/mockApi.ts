@@ -69,6 +69,7 @@ export interface MockApiState {
   likedItem: Record<string, unknown> | null;
   progressBatchBodies: EpisodeWriteBody[];
   releaseProgressWrite: (() => void) | null;
+  settingsLanguage: "en-US" | "zh-TW";
   watchlistItem: Record<string, unknown> | null;
   watchedEpisodeNumbers: Set<number>;
 }
@@ -80,6 +81,7 @@ export const createMockApiState = (options: MockApiStateOptions = {}): MockApiSt
   likedItem: null,
   progressBatchBodies: [],
   releaseProgressWrite: null,
+  settingsLanguage: "en-US",
   watchlistItem: options.initialWatchlistStatus ? watchlistItemFor(options.initialWatchlistStatus) : null,
   watchedEpisodeNumbers: new Set(options.initialWatchedEpisodes ?? []),
 });
@@ -119,7 +121,24 @@ export const installMockApi = async (page: Page, options: MockApiOptions = {}) =
     if (method === "GET" && path === "/me/settings") {
       return json(route, {
         autoMarkPreviousEpisodesWatched: options.autoMarkPreviousEpisodesWatched ?? false,
-        language: "en-US",
+        language: state.settingsLanguage,
+        preferredProviderIds: [],
+        watchRegion: "US",
+        achievementsEnabled: true,
+        showAchievementsOnProfile: true,
+        shareActivityWithFriends: false,
+        allowFriendRequests: true,
+        hideSpoilersUntilWatched: true,
+        updatedAt: now,
+      });
+    }
+
+    if (method === "PATCH" && path === "/me/settings") {
+      const body = request.postDataJSON() as {language?: "en-US" | "zh-TW"};
+      state.settingsLanguage = body.language ?? state.settingsLanguage;
+      return json(route, {
+        autoMarkPreviousEpisodesWatched: options.autoMarkPreviousEpisodesWatched ?? false,
+        language: state.settingsLanguage,
         preferredProviderIds: [],
         watchRegion: "US",
         achievementsEnabled: true,

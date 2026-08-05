@@ -4,6 +4,7 @@ import {SectionError} from "../components/SectionError";
 import {paths} from "../routes/paths";
 import {FranchiseOrder, FranchiseProgress} from "../types/franchise";
 import {MediaSummary} from "../types/media";
+import {useLocale} from "../routes/LocaleContext";
 
 interface FranchiseDetailPageProps {
   error: string | null;
@@ -35,11 +36,13 @@ export const FranchiseDetailPage = ({
   onOrderChange,
   onRetry,
   onSelectTitle,
-}: FranchiseDetailPageProps) => (
+}: FranchiseDetailPageProps) => {
+  const {urlLocale} = useLocale();
+  return (
   <main className="page-shell">
     <div className="section-header">
       <div>
-        <Link className="text-button" data-testid="franchise-back" to={paths.franchises}>
+        <Link className="text-button" data-testid="franchise-back" to={paths.franchises(urlLocale)}>
           All franchises
         </Link>
         <span className="media-kind">Franchise</span>
@@ -170,4 +173,5 @@ export const FranchiseDetailPage = ({
       </>
     )}
   </main>
-);
+  );
+};
