@@ -461,6 +461,10 @@ export async function upsertImportShadow(
     createdAt?: string | null;
     updatedAt?: string | null;
     completedAt?: string | null;
+    stagingClearedAt?: string | null;
+    stagingDocsDeleted?: number;
+    mappingSkippedShows?: unknown[];
+    report?: unknown | null;
   },
 ): Promise<void> {
   await ensureProfileStubShadow(firebaseUid);
@@ -480,6 +484,10 @@ export async function upsertImportShadow(
         episodesFailed: job.episodesFailed ?? 0,
         errorMessage: job.errorMessage ?? null,
         completedAt: job.completedAt ?? null,
+        stagingClearedAt: job.stagingClearedAt ?? null,
+        stagingDocsDeleted: job.stagingDocsDeleted ?? 0,
+        mappingSkippedShows: job.mappingSkippedShows ?? [],
+        report: job.report ?? null,
       },
       created_at: job.createdAt ?? new Date().toISOString(),
       updated_at: job.updatedAt ?? new Date().toISOString(),
@@ -699,6 +707,38 @@ export async function deleteImportStagedShadow(importId: string): Promise<void> 
     throw new Error("Supabase is not configured");
   }
   await supabaseRpc(env, "delete_import_staged", {p_import_id: importId});
+}
+
+export async function listImportStagedShowsShadow(
+  importId: string,
+  importedOnly: boolean | null = null,
+): Promise<Array<Record<string, unknown>>> {
+  const env = getSupabaseEnvOrNull();
+  if (!env) {
+    throw new Error("Supabase is not configured");
+  }
+  const result = await supabaseRpc(env, "list_import_staged_shows", {
+    p_import_id: importId,
+    p_imported_only: importedOnly,
+  });
+  return Array.isArray(result) ? result.filter((row): row is Record<string, unknown> => Boolean(row && typeof row === "object")) : [];
+}
+
+export async function listImportStagedEpisodesShadow(
+  importId: string,
+  status: string | null = null,
+  limit = 500,
+): Promise<Array<Record<string, unknown>>> {
+  const env = getSupabaseEnvOrNull();
+  if (!env) {
+    throw new Error("Supabase is not configured");
+  }
+  const result = await supabaseRpc(env, "list_import_staged_episodes", {
+    p_import_id: importId,
+    p_status: status,
+    p_limit: limit,
+  });
+  return Array.isArray(result) ? result.filter((row): row is Record<string, unknown> => Boolean(row && typeof row === "object")) : [];
 }
 
 export async function deleteUserOwnedOrphansShadow(firebaseUid: string): Promise<void> {

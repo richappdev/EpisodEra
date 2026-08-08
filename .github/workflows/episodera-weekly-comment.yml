@@ -2,6 +2,12 @@ name: Episodera Weekly Comment Journey
 
 on:
   workflow_dispatch:
+    inputs:
+      enable_comment:
+        description: Post or verify one persistent account comment
+        required: false
+        type: boolean
+        default: false
   schedule:
     - cron: "30 12 * * 0"
 
@@ -20,12 +26,12 @@ jobs:
     env:
       EPISODERA_HOSTING_URL: https://episodera.web.app
       EPISODERA_PROD_API_BASE_URL: ${{ vars.EPISODERA_PROD_API_BASE_URL || 'https://api-m74gmd4u4a-uc.a.run.app' }}
-      EPISODERA_TEST_EMAIL: ${{ secrets.EPISODERA_TEST_EMAIL }}
-      EPISODERA_TEST_PASSWORD: ${{ secrets.EPISODERA_TEST_PASSWORD }}
+      EPISODERA_TEST_EMAIL: ${{ secrets.EPISODERA_TEST_EMAIL || secrets.EPISODERA_SMOKE_EMAIL }}
+      EPISODERA_TEST_PASSWORD: ${{ secrets.EPISODERA_TEST_PASSWORD || secrets.EPISODERA_SMOKE_PASSWORD }}
       EPISODERA_SMOKE_APP_CHECK_BYPASS: ${{ secrets.EPISODERA_SMOKE_APP_CHECK_BYPASS || secrets.SMOKE_BYPASS_APP_CHECK_SECRET }}
-      EPISODERA_ENABLE_COMMENTS: "true"
-      EPISODERA_FORCE_COMMENT: "true"
-      EPISODERA_COMMENT_PROBABILITY: "1"
+      EPISODERA_ENABLE_COMMENTS: ${{ (github.event_name == 'schedule' || inputs.enable_comment) && 'true' || 'false' }}
+      EPISODERA_FORCE_COMMENT: ${{ (github.event_name == 'schedule' || inputs.enable_comment) && 'true' || 'false' }}
+      EPISODERA_COMMENT_PROBABILITY: ${{ (github.event_name == 'schedule' || inputs.enable_comment) && '1' || '0' }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
@@ -54,6 +60,7 @@ jobs:
             episodera-smoke-account-state-
 
       - name: Validate comment credentials
+        if: github.event_name == 'schedule' || inputs.enable_comment
         run: |
           missing=0
           for name in EPISODERA_TEST_EMAIL EPISODERA_TEST_PASSWORD; do
@@ -65,8 +72,13 @@ jobs:
           exit "$missing"
 
       - name: Run weekly comment journey
+        if: github.event_name == 'schedule' || inputs.enable_comment
         working-directory: web
         run: npm run test:smoke:comment
+
+      - name: Skip manual comment journey without opt-in
+        if: github.event_name == 'workflow_dispatch' && !inputs.enable_comment
+        run: echo "::notice::Weekly comment journey skipped because enable_comment was not selected."
 
       - name: Write failure notification payload
         if: failure()

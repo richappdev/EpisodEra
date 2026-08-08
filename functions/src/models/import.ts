@@ -80,6 +80,8 @@ export interface ImportJobSummary {
   stagingDocsDeleted: number;
   /** Snapshot of skips/failures captured before staging cleanup. */
   report: ImportReport | null;
+  /** Mapping misses retained until the final import report is generated. */
+  mappingSkippedShows?: ImportMappingSkippedShow[];
 }
 
 export interface ImportRunResult {
