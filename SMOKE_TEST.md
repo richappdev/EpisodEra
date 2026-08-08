@@ -185,6 +185,10 @@ EPISODERA_TEST_EMAIL
 EPISODERA_TEST_PASSWORD
 ```
 
+The workflows fall back to the existing `EPISODERA_SMOKE_EMAIL` and
+`EPISODERA_SMOKE_PASSWORD` aliases. Scheduled runs fail instead of silently
+skipping authenticated coverage when neither credential pair is configured.
+
 Optional encrypted secret:
 
 ```text
@@ -205,7 +209,6 @@ Daily workflow:
 - Manual dispatch.
 - Pushes that modify smoke-test files.
 - Every day at 08:00 Asia/Taipei: `0 0 * * *`.
-- Every day at 20:00 Asia/Taipei: `0 12 * * *`.
 - Public smoke always runs.
 - Authenticated smoke runs only when credentials are configured.
 - Comment creation is disabled for manual runs unless explicitly enabled.
@@ -213,8 +216,9 @@ Daily workflow:
 Weekly comment workflow:
 
 - File: `.github/workflows/episodera-weekly-comment.yml`
-- Manual dispatch.
+- Manual dispatch with the `enable_comment` input selected.
 - Every Sunday at 20:30 Asia/Taipei: `30 12 * * 0`.
+- Manual dispatches without `enable_comment` selected only emit a notice and do not post or verify a comment.
 
 Both workflows use the `episodera-production-smoke` concurrency group so scheduled runs do not modify the shared account concurrently.
 

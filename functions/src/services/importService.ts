@@ -376,8 +376,224 @@ class ImportService {
     return summary;
   }
 
+  private async persistSupabaseImport(
+    userId: string,
+    summary: ImportJobSummary,
+    operation: string,
+  ): Promise<ImportJobSummary> {
+    const {writeSupabasePrimaryOrShadow} = await import("../migration/shadow");
+    const {upsertImportShadow} = await import("../migration/supabaseWriters");
+    await writeSupabasePrimaryOrShadow({
+      domain: "imports",
+      operation,
+      firebaseUid: userId,
+      operationId: `imports:${operation}:${userId}:${summary.importId}:${Date.now()}`,
+      payload: summary,
+      write: () => upsertImportShadow(userId, summary),
+    });
+    return summary;
+  }
+
+  private async runSupabase(userId: string, importId: string, budget: number): Promise<ImportRunResult> {
+    const {
+      deleteImportStagedShadow,
+      listImportStagedEpisodesShadow,
+      listImportStagedShowsShadow,
+      upsertImportStagedEpisodeShadow,
+      upsertImportStagedShowShadow,
+    } = await import("../migration/supabaseWriters");
+
+    const job = await this.get(userId, importId);
+    if (job.status !== "staged" && job.status !== "running") {
+      throw new HttpError(409, "Import job must be committed before run.", "import_not_ready");
+    }
+
+    let current = await this.persistSupabaseImport(userId, {
+      ...job,
+      status: "running",
+      errorMessage: null,
+      updatedAt: new Date().toISOString(),
+    }, "run:start");
+
+    const stagedShows = (await listImportStagedShowsShadow(importId, false)).slice(0, 50);
+    let watchlistImported = 0;
+    for (const row of stagedShows) {
+      const payload = isRecord(row.payload) ? row.payload : {};
+      const mediaType = (row.media_type ?? payload.mediaType) === "movie" ? "movie" : "tv";
+      const tmdbId = Number(row.tmdb_id ?? payload.tmdbId);
+      await watchlistService.mergeImport(userId, {
+        tmdbId,
+        mediaType,
+        title: String(payload.title ?? `TMDb ${tmdbId}`),
+        poster: optionalString(payload.poster),
+        backdrop: optionalString(payload.backdrop),
+        status: String(payload.status ?? row.status ?? (mediaType === "movie" ? "plan_to_watch" : "plan_to_watch")) as WatchlistStatus,
+      });
+      await upsertImportStagedShowShadow(importId, {
+        mediaType,
+        tmdbId,
+        status: String(row.status ?? payload.status ?? "pending"),
+        payload: {...payload, imported: true},
+      });
+      watchlistImported += 1;
+    }
+
+    const pendingEpisodes = await listImportStagedEpisodesShadow(importId, "pending", budget);
+    const byShow = new Map<number, Array<Record<string, unknown>>>();
+    for (const row of pendingEpisodes) {
+      const payload = isRecord(row.payload) ? row.payload : {};
+      const tmdbId = Number(row.show_tmdb_id ?? payload.tmdbId);
+      const bucket = byShow.get(tmdbId) ?? [];
+      bucket.push(row);
+      byShow.set(tmdbId, bucket);
+    }
+
+    let processedEpisodes = 0;
+    let episodesImported = 0;
+    let episodesSkipped = 0;
+    let episodesFailed = 0;
+
+    for (const [tmdbId, rows] of byShow) {
+      const episodes = rows.map((row) => {
+        const payload = isRecord(row.payload) ? row.payload : {};
+        return {
+          seasonNumber: Number(row.season_number ?? payload.seasonNumber),
+          episodeNumber: Number(row.episode_number ?? payload.episodeNumber),
+          watchedAt: optionalString(payload.watchedAt),
+        };
+      });
+
+      try {
+        const result = await progressService.importWatchedEpisodes(userId, String(tmdbId), tmdbId, {
+          importId,
+          source: "tv_time",
+          episodes,
+        });
+        episodesImported += result.imported;
+        episodesSkipped += result.skipped;
+        episodesFailed += result.failedKeys.length;
+        processedEpisodes += rows.length;
+
+        const failed = new Set(result.failedKeys);
+        const skipped = new Set(result.skippedKeys);
+        for (const row of rows) {
+          const payload = isRecord(row.payload) ? row.payload : {};
+          const seasonNumber = Number(row.season_number ?? payload.seasonNumber);
+          const episodeNumber = Number(row.episode_number ?? payload.episodeNumber);
+          const key = episodeKeyFor(seasonNumber, episodeNumber);
+          const status: StagedEpisodeStatus = failed.has(key) ? "failed" : skipped.has(key) ? "skipped" : "imported";
+          await upsertImportStagedEpisodeShadow(importId, {
+            showTmdbId: tmdbId,
+            seasonNumber,
+            episodeNumber,
+            status,
+            payload: {
+              ...payload,
+              status,
+              skipReason: failed.has(key) ? "episode_not_found_in_tmdb" : skipped.has(key) ? "already_watched" : null,
+            },
+          });
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Import batch failed.";
+        episodesFailed += rows.length;
+        processedEpisodes += rows.length;
+        for (const row of rows) {
+          const payload = isRecord(row.payload) ? row.payload : {};
+          await upsertImportStagedEpisodeShadow(importId, {
+            showTmdbId: tmdbId,
+            seasonNumber: Number(row.season_number ?? payload.seasonNumber),
+            episodeNumber: Number(row.episode_number ?? payload.episodeNumber),
+            status: "failed",
+            payload: {...payload, status: "failed", skipReason: message},
+          });
+        }
+      }
+    }
+
+    current = {
+      ...current,
+      watchlistImported: current.watchlistImported + watchlistImported,
+      episodesImported: current.episodesImported + episodesImported,
+      episodesSkipped: current.episodesSkipped + episodesSkipped,
+      episodesFailed: current.episodesFailed + episodesFailed,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const remainingEpisodes = await listImportStagedEpisodesShadow(importId, "pending", 1);
+    const remainingShows = await listImportStagedShowsShadow(importId, false);
+    const done = remainingEpisodes.length === 0 && remainingShows.length === 0;
+
+    if (done) {
+      const allShows = await listImportStagedShowsShadow(importId, null);
+      const allEpisodes = await listImportStagedEpisodesShadow(importId, null, maxReportRows);
+      const titleByTmdbId = new Map<number, string>();
+      for (const row of allShows) {
+        const payload = isRecord(row.payload) ? row.payload : {};
+        titleByTmdbId.set(Number(row.tmdb_id ?? payload.tmdbId), String(payload.title ?? ""));
+      }
+      const mappingRows: ImportReportRow[] = (current.mappingSkippedShows ?? []).map((show) => ({
+        kind: "skipped_show",
+        title: show.title,
+        tmdbId: null,
+        seasonNumber: null,
+        episodeNumber: null,
+        reason: show.reason,
+        sourceShowId: show.sourceShowId,
+      }));
+      const episodeRows: ImportReportRow[] = allEpisodes
+        .filter((row) => row.status === "failed" || row.status === "skipped")
+        .map((row) => {
+          const payload = isRecord(row.payload) ? row.payload : {};
+          const tmdbId = Number(row.show_tmdb_id ?? payload.tmdbId);
+          const failed = row.status === "failed";
+          return {
+            kind: failed ? "failed_episode" : "skipped_episode",
+            title: titleByTmdbId.get(tmdbId) ?? null,
+            tmdbId,
+            seasonNumber: Number(row.season_number ?? payload.seasonNumber),
+            episodeNumber: Number(row.episode_number ?? payload.episodeNumber),
+            reason: String(payload.skipReason ?? (failed ? "failed" : "already_watched")),
+            sourceShowId: optionalString(payload.sourceShowId),
+          };
+        });
+      const rows = [...mappingRows, ...episodeRows].slice(0, maxReportRows);
+      const now = new Date().toISOString();
+      await deleteImportStagedShadow(importId);
+      current = {
+        ...current,
+        status: "completed",
+        completedAt: now,
+        stagingClearedAt: now,
+        stagingDocsDeleted: allShows.length + allEpisodes.length,
+        report: {
+          generatedAt: now,
+          failedEpisodeCount: current.episodesFailed,
+          skippedEpisodeCount: current.episodesSkipped,
+          skippedShowCount: current.mappingSkippedShows?.length ?? 0,
+          truncated: mappingRows.length + episodeRows.length > rows.length,
+          rows,
+        },
+        updatedAt: now,
+      };
+    }
+
+    current = await this.persistSupabaseImport(userId, current, done ? "completed" : "run");
+    return {
+      import: current,
+      processedEpisodes,
+      remainingEpisodes: done ? 0 : Math.max(
+        0,
+        current.episodesStaged - current.episodesImported - current.episodesSkipped - current.episodesFailed,
+      ),
+      done,
+    };
+  }
+
   async create(userId: string, provider: ImportProvider, sourceHash: string | null): Promise<ImportJobSummary> {
-    if (sourceHash) {
+    const {shouldPersistFirestore} = await import("../config/env");
+    const persistFirestore = shouldPersistFirestore();
+    if (sourceHash && persistFirestore) {
       const existing = await this.collection(userId).where("sourceHash", "==", sourceHash).limit(5).get();
       const reusable = existing.docs.find((doc) => {
         const status = (doc.data() as ImportDocument).status;
@@ -389,7 +605,7 @@ class ImportService {
     }
 
     const importId = randomUUID();
-    const ref = this.collection(userId).doc(importId);
+    const ref = persistFirestore ? this.collection(userId).doc(importId) : null;
     const data: ImportDocument = {
       provider,
       status: "draft",
@@ -409,8 +625,7 @@ class ImportService {
       mappingSkippedShows: [],
       report: null,
     };
-    const {shouldPersistFirestore} = await import("../config/env");
-    if (shouldPersistFirestore()) {
+    if (ref) {
       await ref.set(data);
     }
     const summary = this.mapImport(importId, data);
@@ -458,9 +673,11 @@ class ImportService {
             createdAt: typeof row.created_at === "string" ? row.created_at : null,
             updatedAt: typeof row.updated_at === "string" ? row.updated_at : null,
             completedAt: (summary.completedAt as string | null) ?? null,
-            stagingClearedAt: null,
-            stagingDocsDeleted: 0,
-            report: null,
+            stagingClearedAt: (summary.stagingClearedAt as string | null) ?? null,
+            stagingDocsDeleted: Number(summary.stagingDocsDeleted ?? 0),
+            report: (summary.report as ImportReport | null) ?? null,
+            mappingSkippedShows: Array.isArray(summary.mappingSkippedShows) ?
+              summary.mappingSkippedShows as ImportMappingSkippedShow[] : [],
           };
         }
       }
@@ -479,24 +696,26 @@ class ImportService {
 
   async stageWatchlist(userId: string, importId: string, items: ImportWatchlistItemInput[]): Promise<ImportJobSummary> {
     const {shouldPersistFirestore} = await import("../config/env");
-    const ref = this.collection(userId).doc(importId);
+    const ref = shouldPersistFirestore() ? this.collection(userId).doc(importId) : null;
     let status: ImportJobSummary["status"];
+    let supabaseJob: ImportJobSummary | null = null;
 
-    if (shouldPersistFirestore()) {
+    if (ref) {
       const snapshot = await ref.get();
       if (!snapshot.exists) {
         throw new HttpError(404, "Import job was not found.", "import_not_found");
       }
       status = (snapshot.data() as ImportDocument).status;
     } else {
-      status = (await this.get(userId, importId)).status;
+      supabaseJob = await this.get(userId, importId);
+      status = supabaseJob.status;
     }
 
     if (status !== "draft" && status !== "staged") {
       throw new HttpError(409, "Import job can no longer accept staging writes.", "import_not_staging");
     }
 
-    if (shouldPersistFirestore()) {
+    if (ref) {
       const batch = getFirestore().batch();
       for (const item of items) {
         const docId = stagedShowDocId(item.mediaType, item.tmdbId);
@@ -552,29 +771,40 @@ class ImportService {
       },
     });
 
+    if (supabaseJob) {
+      return this.persistSupabaseImport(userId, {
+        ...supabaseJob,
+        status: "draft",
+        watchlistStaged: supabaseJob.watchlistStaged + items.length,
+        updatedAt: new Date().toISOString(),
+      }, "stageWatchlist");
+    }
+
     return this.shadowImportJob(userId, importId, "stageWatchlist");
   }
 
   async stageEpisodes(userId: string, importId: string, episodes: ImportEpisodeInput[]): Promise<ImportJobSummary> {
     const {shouldPersistFirestore} = await import("../config/env");
-    const ref = this.collection(userId).doc(importId);
+    const ref = shouldPersistFirestore() ? this.collection(userId).doc(importId) : null;
     let status: ImportJobSummary["status"];
+    let supabaseJob: ImportJobSummary | null = null;
 
-    if (shouldPersistFirestore()) {
+    if (ref) {
       const snapshot = await ref.get();
       if (!snapshot.exists) {
         throw new HttpError(404, "Import job was not found.", "import_not_found");
       }
       status = (snapshot.data() as ImportDocument).status;
     } else {
-      status = (await this.get(userId, importId)).status;
+      supabaseJob = await this.get(userId, importId);
+      status = supabaseJob.status;
     }
 
     if (status !== "draft" && status !== "staged") {
       throw new HttpError(409, "Import job can no longer accept staging writes.", "import_not_staging");
     }
 
-    if (shouldPersistFirestore()) {
+    if (ref) {
       const batch = getFirestore().batch();
       for (const episode of episodes) {
         const docId = stagedEpisodeDocId(episode.tmdbId, episode.seasonNumber, episode.episodeNumber);
@@ -633,6 +863,15 @@ class ImportService {
       },
     });
 
+    if (supabaseJob) {
+      return this.persistSupabaseImport(userId, {
+        ...supabaseJob,
+        status: "draft",
+        episodesStaged: supabaseJob.episodesStaged + episodes.length,
+        updatedAt: new Date().toISOString(),
+      }, "stageEpisodes");
+    }
+
     return this.shadowImportJob(userId, importId, "stageEpisodes");
   }
 
@@ -641,6 +880,23 @@ class ImportService {
     importId: string,
     skippedShows: ImportMappingSkippedShow[] = [],
   ): Promise<ImportJobSummary> {
+    const {shouldPersistFirestore} = await import("../config/env");
+    if (!shouldPersistFirestore()) {
+      const job = await this.get(userId, importId);
+      if (job.status !== "draft" && job.status !== "staged") {
+        throw new HttpError(409, "Import job is not ready to commit.", "import_not_staging");
+      }
+      if (job.watchlistStaged === 0 && job.episodesStaged === 0) {
+        throw new HttpError(400, "Stage at least one watchlist or episode row before commit.", "import_empty");
+      }
+      return this.persistSupabaseImport(userId, {
+        ...job,
+        status: "staged",
+        mappingSkippedShows: skippedShows,
+        updatedAt: new Date().toISOString(),
+      }, "commit");
+    }
+
     const ref = this.collection(userId).doc(importId);
     const snapshot = await ref.get();
     if (!snapshot.exists) {
@@ -656,22 +912,23 @@ class ImportService {
       throw new HttpError(400, "Stage at least one watchlist or episode row before commit.", "import_empty");
     }
 
-    const {shouldPersistFirestore} = await import("../config/env");
-    if (shouldPersistFirestore()) {
-      await ref.set(
-        {
-          status: "staged",
-          mappingSkippedShows: skippedShows,
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        {merge: true},
-      );
-    }
+    await ref.set(
+      {
+        status: "staged",
+        mappingSkippedShows: skippedShows,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      {merge: true},
+    );
     return this.shadowImportJob(userId, importId, "commit");
   }
 
   async run(userId: string, importId: string, maxEpisodeWrites = maxRunEpisodeWrites): Promise<ImportRunResult> {
     const budget = Math.min(Math.max(maxEpisodeWrites, 1), maxRunEpisodeWrites);
+    const {shouldPersistFirestore} = await import("../config/env");
+    if (!shouldPersistFirestore()) {
+      return this.runSupabase(userId, importId, budget);
+    }
     const ref = this.collection(userId).doc(importId);
     const snapshot = await ref.get();
     if (!snapshot.exists) {
