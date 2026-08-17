@@ -23,6 +23,7 @@ on:
       - "web/src/pages/AuthPage.tsx"
   schedule:
     - cron: "0 0 * * *"
+    - cron: "0 12 * * *"
 
 permissions:
   contents: read

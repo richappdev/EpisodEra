@@ -104,15 +104,38 @@ export const captureDetail = async (page: Page, expectedType?: MediaType): Promi
 };
 
 export const addToWatchlistOrAcceptExisting = async (page: Page, media: SelectedMedia, testInfo: TestInfo) => {
-  const addButton = page.getByTestId("detail-add-watchlist");
-  if (await addButton.isVisible().catch(() => false)) {
-    await addButton.click();
-    await expect(page.getByTestId("detail-remove-watchlist")).toBeVisible({timeout: 30_000});
-    await testInfo.attach("watchlist-add", {body: `${media.title} was newly added.`, contentType: "text/plain"});
-    return "added";
+  const savedState = page.getByTestId("detail-remove-watchlist").or(page.getByTestId("detail-watchlist-status")).first();
+  await expect(page.getByText("Loading progress...")).toHaveCount(0, {timeout: 30_000}).catch(() => undefined);
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (await savedState.isVisible().catch(() => false)) {
+      await testInfo.attach("watchlist-add", {body: `${media.title} was already saved.`, contentType: "text/plain"});
+      return "already-saved";
+    }
+
+    const addButton = page.getByTestId("detail-add-watchlist");
+    if (await addButton.isVisible().catch(() => false)) {
+      try {
+        await addButton.click({timeout: 10_000});
+        await expect(savedState).toBeVisible({timeout: 30_000});
+        await testInfo.attach("watchlist-add", {body: `${media.title} was newly added.`, contentType: "text/plain"});
+        return "added";
+      } catch (error) {
+        if (await savedState.isVisible().catch(() => false)) {
+          await testInfo.attach("watchlist-add", {
+            body: `${media.title} reached saved state while the add button was rerendering.`,
+            contentType: "text/plain",
+          });
+          return "added";
+        }
+        if (attempt === 2) {
+          throw error;
+        }
+      }
+    }
   }
 
-  await expect(page.getByTestId("detail-remove-watchlist").or(page.getByTestId("detail-watchlist-status")).first()).toBeVisible();
+  await expect(savedState).toBeVisible();
   await testInfo.attach("watchlist-add", {body: `${media.title} was already saved.`, contentType: "text/plain"});
   return "already-saved";
 };

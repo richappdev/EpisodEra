@@ -6,9 +6,14 @@ export const getSmokeCredentials = () => {
   return {email, password};
 };
 
+const isConfiguredCredential = (value: string) => {
+  const normalized = value.trim().toLowerCase();
+  return Boolean(normalized) && !normalized.startsWith("replace-with-");
+};
+
 export const hasSmokeCredentials = () => {
   const {email, password} = getSmokeCredentials();
-  return Boolean(email && password);
+  return isConfiguredCredential(email) && isConfiguredCredential(password);
 };
 
 export const signIn = async (page: Page) => {

@@ -208,7 +208,7 @@ Daily workflow:
 - File: `.github/workflows/episodera-smoke-test.yml`
 - Manual dispatch.
 - Pushes that modify smoke-test files.
-- Every day at 08:00 Asia/Taipei: `0 0 * * *`.
+- Every day at 08:00 and 20:00 Asia/Taipei: `0 0 * * *` and `0 12 * * *`.
 - Public smoke always runs.
 - Authenticated smoke runs only when credentials are configured.
 - Comment creation is disabled for manual runs unless explicitly enabled.

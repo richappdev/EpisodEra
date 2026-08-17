@@ -39,14 +39,19 @@ export const maybeCreateComment = async (
 
   const userName = await currentUserName(page);
   const visibleBodies = await visibleCommentBodies(page);
-  const hasVisibleOwnComment = Boolean(
-    userName &&
-      visibleBodies.some((body) => body.includes(userName) && !/Hidden until you watch this title/i.test(body)),
-  );
-  if (hasVisibleOwnComment || titleHadRecentComment(media)) {
-    const reason = `${media.title} already appears to have a recent visible account comment.`;
+  const visibleOwnComment = userName
+    ? visibleBodies.find((body) => body.includes(userName) && !/Hidden until you watch this title/i.test(body))
+    : undefined;
+  if (visibleOwnComment) {
+    const reason = `${media.title} already has a visible account comment.`;
     await testInfo.attach("comment-existing", {body: reason, contentType: "text/plain"});
-    return {status: "verified-existing", reason};
+    return {status: "verified-existing", body: visibleOwnComment, reason};
+  }
+
+  if (titleHadRecentComment(media)) {
+    const reason = `${media.title} has a recent recorded account comment, but it was not visible enough to verify safely.`;
+    await testInfo.attach("comment-skip", {body: reason, contentType: "text/plain"});
+    return {status: "skipped", reason};
   }
 
   const body = buildComment(media, {episodeTitle: options.episodeTitle});

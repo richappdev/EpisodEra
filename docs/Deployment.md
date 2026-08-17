@@ -203,6 +203,8 @@ RC checklist:
 
 Weekly scheduled smoke is a regression probe only. It does **not** replace per-RC smoke after deploy.
 
+The persistent-account browser smoke at `.github/workflows/episodera-smoke-test.yml` runs every day at 00:00 and 12:00 UTC (08:00 and 20:00 Asia/Taipei). It exercises the public site and the authenticated movie-lover journey against production. Both scheduled runs share the `episodera-production-smoke` concurrency group with the weekly comment journey so they do not mutate the automation account concurrently. These scheduled probes also do **not** replace the per-RC smoke requirement above.
+
 ### Local / direct smoke
 
 For a laptop run against production (or pre-flight), use a dedicated automation account:
