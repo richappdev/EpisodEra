@@ -277,7 +277,7 @@ export const DiscoveryPage = ({
                 <ContinueWatchingSection
                   id="continue-watching"
                   title="Continue watching"
-                  variant="featured"
+                  variant="preview"
                   entries={continueWatching}
                   pendingShowIds={pendingShowIds}
                   onSelect={onSelectContinuation}

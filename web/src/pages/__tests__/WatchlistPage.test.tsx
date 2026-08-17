@@ -63,6 +63,33 @@ describe("WatchlistPage", () => {
     expect(screen.getByTestId("watchlist-tab-active")).toHaveAttribute("aria-selected", "true");
   });
 
+  it("renders the full Continue Watching grid without the Home preview cap", () => {
+    const items = Array.from({length: 7}, (_, index) => ({
+      ...watchlistItem,
+      itemId: `tv_${1001 + index}`,
+      tmdbId: 1001 + index,
+      title: `Continue Show ${index + 1}`,
+    }));
+    const progressItems = Array.from({length: 7}, (_, index) => ({
+      ...progressSummary,
+      showId: String(1001 + index),
+      tmdbId: 1001 + index,
+      title: `Continue Show ${index + 1}`,
+    }));
+
+    renderWatchlist({
+      items,
+      progressItems,
+      totalCount: 7,
+      onSelectContinuation: vi.fn(),
+      onNextEpisodeWatched: vi.fn(),
+    });
+
+    expect(screen.getAllByRole("listitem")).toHaveLength(7);
+    expect(screen.getByTestId("continue-card-1007")).toBeVisible();
+    expect(screen.queryByTestId("continue-see-all")).not.toBeInTheDocument();
+  });
+
   it("moves dormant and planned titles into the Library tab", async () => {
     const user = userEvent.setup();
     const dormantProgress = {

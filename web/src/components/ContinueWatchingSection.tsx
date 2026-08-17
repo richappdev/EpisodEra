@@ -14,7 +14,7 @@ interface ContinueWatchingSectionProps {
   title: string;
   subtitle?: string;
   testIdPrefix?: string;
-  variant?: "grid" | "featured";
+  variant?: "grid" | "preview";
   seeAllHref?: string;
   entries: ContinuationEntry[];
   pendingShowIds?: ReadonlySet<number>;
@@ -23,7 +23,7 @@ interface ContinueWatchingSectionProps {
   onRemove?: (entry: ContinuationEntry) => void;
 }
 
-const FEATURED_LIMIT = 8;
+const HOME_PREVIEW_LIMIT = 6;
 
 interface ContinueCardProps {
   entry: ContinuationEntry;
@@ -142,12 +142,12 @@ export const ContinueWatchingSection = ({
     return null;
   }
 
-  const visibleEntries = variant === "featured" ? entries.slice(0, FEATURED_LIMIT) : entries;
-  const showSeeAll = variant === "featured" || entries.length > visibleEntries.length;
+  const visibleEntries = variant === "preview" ? entries.slice(0, HOME_PREVIEW_LIMIT) : entries;
+  const showSeeAll = variant === "preview" && entries.length > visibleEntries.length;
 
   return (
     <section
-      className={`continue-panel${variant === "featured" ? " continue-panel--featured" : ""}`}
+      className={`continue-panel${variant === "preview" ? " continue-panel--preview" : ""}`}
       id={id}
       data-testid={`${testIdPrefix}-panel`}
     >
@@ -160,7 +160,7 @@ export const ContinueWatchingSection = ({
           <Link
             className="text-button"
             data-testid={`${testIdPrefix}-see-all`}
-            to={seeAllHref ?? `${paths.watchlist(urlLocale)}#continue-watching`}
+            to={seeAllHref ?? paths.watchlist(urlLocale)}
           >
             See all
           </Link>
@@ -170,7 +170,8 @@ export const ContinueWatchingSection = ({
       </div>
 
       <div
-        className={variant === "featured" ? "continue-rail" : "continue-stack"}
+        className="continue-grid"
+        data-testid={`${testIdPrefix}-grid`}
         role="list"
       >
         {visibleEntries.map((entry) => (
