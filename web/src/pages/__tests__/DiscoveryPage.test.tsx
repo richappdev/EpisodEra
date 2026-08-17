@@ -85,7 +85,7 @@ describe("DiscoveryPage", () => {
     expect(screen.queryByRole("heading", {name: "Continue watching"})).not.toBeInTheDocument();
   });
 
-  it("renders a featured Continue Watching card when continuation data is provided", async () => {
+  it("renders a Continue Watching preview without See all when every entry fits", async () => {
     const onSelectContinuation = vi.fn();
     const onNextEpisodeWatched = vi.fn();
     const continueWatching = buildContinuationGroups([watchlistItem], [progressSummary]).continueWatching;
@@ -106,9 +106,43 @@ describe("DiscoveryPage", () => {
     expect(screen.getByTestId("continue-card-1001")).toBeVisible();
     expect(screen.getByTestId("continue-watched-1001")).toBeVisible();
     expect(screen.getByLabelText("Open Critical Flow Show")).toBeVisible();
-    expect(screen.getByTestId("continue-see-all")).toHaveAttribute("href", "/en-us/watchlist#continue-watching");
+    expect(screen.queryByTestId("continue-see-all")).not.toBeInTheDocument();
     expect(screen.getByTestId("continue-next-1001")).toHaveTextContent("S1 · E2 — The Gap");
     expect(screen.getByRole("list")).toBeVisible();
+  });
+
+  it("caps the Continue Watching preview at six and links overflow to Watchlist", async () => {
+    const baseEntry = buildContinuationGroups([watchlistItem], [progressSummary]).continueWatching[0];
+    const continueWatching = Array.from({length: 7}, (_, index) => ({
+      ...baseEntry,
+      key: `continue-${index + 1}`,
+      tmdbId: 1001 + index,
+      title: `Continue Show ${index + 1}`,
+      progress: {
+        ...baseEntry.progress,
+        showId: String(1001 + index),
+        tmdbId: 1001 + index,
+        title: `Continue Show ${index + 1}`,
+      },
+    }));
+    vi.mocked(api.trendingShows).mockResolvedValue(paged([tvDetail]));
+
+    renderDiscovery(
+      <DiscoveryPage
+        view="trending"
+        language="en-US"
+        continueWatching={continueWatching}
+        onSelect={vi.fn()}
+        onSelectContinuation={vi.fn()}
+        onNextEpisodeWatched={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByTestId("continue-card-1001")).toBeVisible();
+    expect(screen.getByTestId("continue-card-1006")).toBeVisible();
+    expect(screen.queryByTestId("continue-card-1007")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")).toHaveLength(6);
+    expect(screen.getByTestId("continue-see-all")).toHaveAttribute("href", "/en-us/watchlist");
   });
 
   it("loads mood suggestions and lets the user pick a mood", async () => {

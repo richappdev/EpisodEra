@@ -1473,21 +1473,11 @@ html[data-chrome="landing"] body {
   margin: 4px 0 0;
 }
 
-.continue-rail {
-  display: flex;
-  gap: 14px;
-  margin: 0 calc(var(--page-pad) * -1);
-  max-width: calc(100% + var(--page-pad) * 2);
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  padding: 2px var(--page-pad) 6px;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: thin;
-}
-
-.continue-stack {
+.continue-grid {
   display: grid;
-  gap: 12px;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: 0;
 }
 
 .continue-card {
@@ -1498,21 +1488,9 @@ html[data-chrome="landing"] body {
   display: grid;
   gap: 16px;
   grid-template-columns: 110px minmax(0, 1fr);
-  max-width: 780px;
   min-width: 0;
   padding: 14px 16px;
-  scroll-snap-align: start;
-  width: min(100%, 780px);
-}
-
-.continue-rail .continue-card {
-  flex: 0 0 min(520px, calc(100vw - var(--page-pad) * 2));
-  max-width: 780px;
-  width: min(520px, calc(100vw - var(--page-pad) * 2));
-}
-
-.continue-stack .continue-card {
-  width: min(100%, 780px);
+  width: 100%;
 }
 
 .continue-poster {
@@ -2744,6 +2722,10 @@ html[data-chrome="landing"] body {
 }
 
 @media (max-width: 1023px) {
+  .continue-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .top-bar {
     align-items: stretch;
     flex-direction: column;
@@ -2914,6 +2896,10 @@ html[data-chrome="landing"] body {
   .media-grid {
     gap: 14px 12px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .continue-grid {
+    grid-template-columns: 1fr;
   }
 
   .media-meta {

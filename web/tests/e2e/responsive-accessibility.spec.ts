@@ -3,7 +3,7 @@ import {installMockApi, showId} from "./support/mockApi";
 
 const criticalNavIds = ["nav-trending", "nav-search", "nav-timeline", "nav-watchlist", "nav-profile"] as const;
 
-test("signed-in shell keeps critical controls accessible on desktop and mobile", async ({page}) => {
+test("signed-in shell keeps critical controls accessible on desktop, tablet, and mobile", async ({page}) => {
   await installMockApi(page, {
     initialWatchedEpisodes: [1],
     initialWatchlistStatus: "watching",
@@ -11,6 +11,7 @@ test("signed-in shell keeps critical controls accessible on desktop and mobile",
 
   for (const viewport of [
     {width: 1280, height: 900},
+    {width: 820, height: 900},
     {width: 390, height: 844},
   ]) {
     await page.setViewportSize(viewport);
@@ -36,9 +37,19 @@ test("signed-in shell keeps critical controls accessible on desktop and mobile",
     );
     await expect(page.getByRole("contentinfo").getByRole("img", {name: "The Movie Database (TMDB)"})).toBeVisible();
 
-    // Featured Continue Watching can appear on Home; full grid remains on Watchlist.
+    // The capped Continue Watching preview appears on Home; the full grid remains on Watchlist.
     await expect(page.getByTestId(`continue-card-${showId}`)).toBeVisible();
     await expect(page.getByTestId(`continue-watched-${showId}`)).toBeVisible();
+    const continueGrid = page.getByTestId("continue-grid");
+    const expectedColumns = viewport.width >= 1024 ? 3 : viewport.width > 760 ? 2 : 1;
+    await expect
+      .poll(() =>
+        continueGrid.evaluate((element) => ({
+          columns: getComputedStyle(element).gridTemplateColumns.split(" ").length,
+          fits: element.scrollWidth <= element.clientWidth,
+        })),
+      )
+      .toEqual({columns: expectedColumns, fits: true});
 
     await page.getByTestId("nav-watchlist").click();
     await expect(page.getByTestId("watchlist-header")).toBeVisible();
