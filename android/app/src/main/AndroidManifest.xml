@@ -24,17 +24,13 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="episodera" android:host="movie" android:pathPrefix="/" />
-                <data android:scheme="episodera" android:host="tv" android:pathPrefix="/" />
-                <data android:scheme="episodera" android:host="play" android:pathPrefix="/" />
+                <data android:scheme="episodera" />
             </intent-filter>
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="episodera.web.app" android:pathPrefix="/movie" />
-                <data android:scheme="https" android:host="episodera.web.app" android:pathPrefix="/tv" />
-                <data android:scheme="https" android:host="episodera.web.app" android:pathPrefix="/play" />
+                <data android:scheme="https" android:host="episodera.web.app" android:pathPrefix="/" />
             </intent-filter>
         </activity>
     </application>

@@ -9,11 +9,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.episodera.core.model.MediaSummary
+import com.episodera.core.design.R as DR
 import com.episodera.core.network.EpisodEraRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -36,11 +38,11 @@ import kotlinx.coroutines.flow.*
 @Composable fun SearchRoute(onOpenMedia: (String, Int) -> Unit, viewModel: SearchViewModel = hiltViewModel()) = SearchScreen(viewModel.text, viewModel.results, viewModel.loading, viewModel.error, viewModel::setQuery, onOpenMedia)
 @Composable fun SearchScreen(query: String, results: List<MediaSummary>, loading: Boolean, error: String?, onQuery: (String) -> Unit, onOpenMedia: (String, Int) -> Unit) {
     Column(Modifier.fillMaxSize().padding(16.dp)) {
-        OutlinedTextField(query, onQuery, Modifier.fillMaxWidth(), label = { Text("Search films and shows") }, singleLine = true)
+        OutlinedTextField(query, onQuery, Modifier.fillMaxWidth(), label = { Text(stringResource(DR.string.search_hint)) }, singleLine = true)
         Spacer(Modifier.height(12.dp))
         when { loading -> LinearProgressIndicator(Modifier.fillMaxWidth()); error != null -> Text(error, color = MaterialTheme.colorScheme.error)
-            query.length < 2 -> Text("Type at least two characters to search.")
-            results.isEmpty() -> Text("No titles found.")
+            query.length < 2 -> Text(stringResource(DR.string.search_minimum))
+            results.isEmpty() -> Text(stringResource(DR.string.no_titles))
             else -> LazyVerticalGrid(GridCells.Fixed(2), verticalArrangement = Arrangement.spacedBy(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(results) { item -> Column(Modifier.clickable { onOpenMedia(item.mediaType.wireValue, item.id) }) { AsyncImage(item.images.poster, item.title, Modifier.fillMaxWidth().height(230.dp)); Text(item.title, maxLines = 2) } }
             }

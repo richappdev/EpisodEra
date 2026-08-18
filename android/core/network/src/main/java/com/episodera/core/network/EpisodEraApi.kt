@@ -33,7 +33,7 @@ interface EpisodEraApi {
     @GET("me/profile") suspend fun profile(): ProfileResponse
     @PATCH("me/profile") suspend fun updateProfile(@Body input: UpdateUserProfileInput): UserProfile
     @GET("me/settings") suspend fun settings(): UserSettings
-    @PATCH("me/settings") suspend fun updateSettings(@Body settings: UserSettings): UserSettings
+    @PATCH("me/settings") suspend fun updateSettings(@Body settings: SettingsUpdateInput): UserSettings
     @GET("me/stats") suspend fun stats(): UserStats
     @GET("me/recap") suspend fun recap(@Query("year") year: Int? = null): YearRecap
     @GET("me/history") suspend fun history(@Query("pageSize") pageSize: Int? = null, @Query("pageToken") pageToken: String? = null): HistoryResponse
@@ -49,14 +49,6 @@ interface EpisodEraApi {
     @GET("me/franchises/{slug}/progress") suspend fun franchiseProgress(@Path("slug") slug: String, @Query("order") order: FranchiseOrder = FranchiseOrder.RELEASE): FranchiseProgress
     @GET("me/export") suspend fun export(): UserDataExport
     @DELETE("me/account") suspend fun deleteAccount(): Response<Unit>
-    @POST("me/imports/resolve-tv-time-shows") suspend fun resolveTvTime(@Body body: Map<String, @JvmSuppressWildcards List<ResolveTvTimeShowInput>>): ResolveTvTimeShowsResponse
-    @PUT("me/imports/media-mappings") suspend fun upsertMapping(@Body mapping: MediaMapping): MappingEnvelope
-    @POST("me/imports") suspend fun createImport(@Body body: Map<String, @JvmSuppressWildcards Any?>): ImportSummaryEnvelope
-    @GET("me/imports/{id}") suspend fun getImport(@Path("id") id: String): ImportSummaryEnvelope
-    @POST("me/imports/{id}/watchlist") suspend fun stageWatchlist(@Path("id") id: String, @Body body: Map<String, @JvmSuppressWildcards List<ImportWatchlistItemInput>>): ImportSummaryEnvelope
-    @POST("me/imports/{id}/episodes") suspend fun stageEpisodes(@Path("id") id: String, @Body body: Map<String, @JvmSuppressWildcards List<ImportEpisodeInput>>): ImportSummaryEnvelope
-    @POST("me/imports/{id}/commit") suspend fun commitImport(@Path("id") id: String): ImportSummaryEnvelope
-    @POST("me/imports/{id}/run") suspend fun runImport(@Path("id") id: String, @Body body: Map<String, Int>): ImportRunResult
     @GET("puzzles/today") suspend fun dailyPuzzle(): DailyPuzzlePayload
     @POST("puzzles/{id}/guess") suspend fun guessPuzzle(@Path("id") id: String, @Body request: GuessRequest): GuessResponse
     @GET("puzzles/stats") suspend fun puzzleStats(): UserGameStats

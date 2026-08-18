@@ -35,7 +35,40 @@ class EpisodEraRepository @Inject constructor(private val api: EpisodEraApi) {
     suspend fun profile() = api.profile()
     suspend fun updateProfile(input: UpdateUserProfileInput) = api.updateProfile(input)
     suspend fun settings() = api.settings()
-    suspend fun updateSettings(settings: UserSettings) = api.updateSettings(settings)
+    suspend fun updateSettings(settings: SettingsUpdateInput) = api.updateSettings(settings)
+
+    suspend fun allWatchlist(pageSize: Int = 100): List<WatchlistItem> {
+        val items = mutableListOf<WatchlistItem>()
+        var token: String? = null
+        do {
+            val page = watchlist(PaginationParams(pageSize = pageSize, pageToken = token))
+            items += page.items
+            token = page.nextPageToken
+        } while (page.hasMore && token != null)
+        return items.distinctBy { it.itemId }
+    }
+
+    suspend fun allLikes(pageSize: Int = 100): List<LikedItem> {
+        val items = mutableListOf<LikedItem>()
+        var token: String? = null
+        do {
+            val page = likes(PaginationParams(pageSize = pageSize, pageToken = token))
+            items += page.items
+            token = page.nextPageToken
+        } while (page.hasMore && token != null)
+        return items.distinctBy { it.itemId }
+    }
+
+    suspend fun allProgress(pageSize: Int = 100): List<ShowProgressSummary> {
+        val items = mutableListOf<ShowProgressSummary>()
+        var token: String? = null
+        do {
+            val page = progress(PaginationParams(pageSize = pageSize, pageToken = token))
+            items += page.items
+            token = page.nextPageToken
+        } while (page.hasMore && token != null)
+        return items.distinctBy { it.tmdbId }
+    }
     suspend fun stats() = api.stats()
     suspend fun recap(year: Int? = null) = api.recap(year)
     suspend fun history(pagination: PaginationParams = PaginationParams()) = api.history(pagination.pageSize, pagination.pageToken)
@@ -54,12 +87,4 @@ class EpisodEraRepository @Inject constructor(private val api: EpisodEraApi) {
     suspend fun puzzleStats() = api.puzzleStats()
     suspend fun export() = api.export()
     suspend fun deleteAccount() = api.deleteAccount()
-    suspend fun resolveTvTime(shows: List<ResolveTvTimeShowInput>) = api.resolveTvTime(mapOf("shows" to shows))
-    suspend fun upsertMapping(mapping: MediaMapping) = api.upsertMapping(mapping)
-    suspend fun createImport(provider: String = "tv_time", sourceHash: String? = null) = api.createImport(mapOf("provider" to provider, "sourceHash" to sourceHash))
-    suspend fun getImport(id: String) = api.getImport(id)
-    suspend fun stageWatchlist(id: String, items: List<ImportWatchlistItemInput>) = api.stageWatchlist(id, mapOf("items" to items))
-    suspend fun stageEpisodes(id: String, items: List<ImportEpisodeInput>) = api.stageEpisodes(id, mapOf("episodes" to items))
-    suspend fun commitImport(id: String) = api.commitImport(id)
-    suspend fun runImport(id: String, maxEpisodeWrites: Int = 100) = api.runImport(id, mapOf("maxEpisodeWrites" to maxEpisodeWrites))
 }

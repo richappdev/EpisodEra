@@ -6,11 +6,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.episodera.core.model.UpdateUserProfileInput
+import com.episodera.core.design.R as DR
 import com.episodera.core.network.EpisodEraRepository
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -79,24 +81,24 @@ fun AuthScreen(
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center) {
         Divider(color = Color(0xff00d9e8), thickness = 4.dp)
         Spacer(Modifier.height(20.dp))
-        Text("Episodera", style = MaterialTheme.typography.displayMedium)
-        Text("Cinema Memory", color = MaterialTheme.colorScheme.secondary)
+        Text(stringResource(DR.string.app_name), style = MaterialTheme.typography.displayMedium)
+        Text(stringResource(DR.string.cinema_memory), color = MaterialTheme.colorScheme.secondary)
         Spacer(Modifier.height(28.dp))
         if (signUp) {
-            OutlinedTextField(firstName, { firstName = it }, label = { Text("First name") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(lastName, { lastName = it }, label = { Text("Last name") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(firstName, { firstName = it }, label = { Text(stringResource(DR.string.first_name)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(lastName, { lastName = it }, label = { Text(stringResource(DR.string.last_name)) }, modifier = Modifier.fillMaxWidth())
         }
-        OutlinedTextField(email, { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(password, { password = it }, label = { Text("Password") }, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(email, { email = it }, label = { Text(stringResource(DR.string.email)) }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(password, { password = it }, label = { Text(stringResource(DR.string.password)) }, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         Spacer(Modifier.height(16.dp))
         Button(
             enabled = !state.loading && email.isNotBlank() && password.isNotBlank(),
             onClick = { if (signUp) onSignUp(email, password, firstName, lastName) else onSignIn(email, password) },
             modifier = Modifier.fillMaxWidth(),
-        ) { Text(if (state.loading) "Please wait…" else if (signUp) "Create your account" else "Enter Episodera") }
+        ) { Text(stringResource(if (state.loading) DR.string.please_wait else if (signUp) DR.string.create_account else DR.string.enter_episodera)) }
         TextButton(onClick = { signUp = !signUp }, modifier = Modifier.fillMaxWidth()) {
-            Text(if (signUp) "Already have an account? Sign in" else "New here? Create an account")
+            Text(stringResource(if (signUp) DR.string.existing_account else DR.string.new_account))
         }
     }
 }
