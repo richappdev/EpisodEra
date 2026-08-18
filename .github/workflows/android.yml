@@ -88,13 +88,13 @@ jobs:
           arch: x86_64
           profile: pixel_7
           working-directory: ./android
-          script: |
-            mkdir -p app/build/outputs/androidTest-artifacts
-            set +e
-            ./gradlew :app:connectedDebugAndroidTest --stacktrace
-            test_status=$?
-            adb logcat -d > app/build/outputs/androidTest-artifacts/logcat.txt
-            adb exec-out screencap -p > app/build/outputs/androidTest-artifacts/emulator.png
+          script: >-
+            mkdir -p app/build/outputs/androidTest-artifacts;
+            set +e;
+            ./gradlew :app:connectedDebugAndroidTest --stacktrace;
+            test_status=$?;
+            adb logcat -d > app/build/outputs/androidTest-artifacts/logcat.txt;
+            adb exec-out screencap -p > app/build/outputs/androidTest-artifacts/emulator.png;
             exit "$test_status"
 
       - name: Upload instrumentation test evidence

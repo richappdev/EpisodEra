@@ -64,6 +64,12 @@ android {
         buildConfig = true
     }
 
+    bundle {
+        language {
+            enableSplit = false
+        }
+    }
+
     testOptions {
         animationsDisabled = true
     }
@@ -133,4 +139,5 @@ dependencies {
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.ui.test.junit4)
+    testImplementation("junit:junit:4.13.2")
 }
