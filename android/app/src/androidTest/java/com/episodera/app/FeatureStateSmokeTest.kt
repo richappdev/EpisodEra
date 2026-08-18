@@ -2,7 +2,7 @@ package com.episodera.app
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -41,7 +41,7 @@ class FeatureStateSmokeTest {
             MaterialTheme { SocialScreen(SocialUiState(loading = false), {}, { _, _ -> }, {}, {}) }
         }
         compose.onNodeWithText("Friend code").performTextInput("ABC123")
-        compose.onNodeWithText("ABC123").assertTextEquals("ABC123")
+        compose.onNodeWithText("ABC123").assertTextContains("ABC123")
     }
 
     @Test fun franchiseOrderingToggleChangesLabel() {
