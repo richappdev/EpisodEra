@@ -3,12 +3,18 @@
 > **Status:** Active
 > **Authority:** Production data-plane flags, cutover state, and rollback procedure
 > **Owner role:** Engineering and release operations
-> **Last reviewed:** 2026-07-27
+> **Last reviewed:** 2026-08-19
 > **Current baseline:** See the Notion MVP Dashboard
 > **Notion counterpart:** [Supabase Post-Cutover Validation Record](https://app.notion.com/p/3aaa4181b628811e9621fc27c2a0df2a)
 > **Supersedes:** Archived Supabase phase plans
 
 ## Already on (prod) — Steps A/B/C complete (2026-07-27)
+
+Steps A/B/C remain the production state. Release governance now records Step B and
+Step C as a same-deploy accepted-risk cutover: `SUPABASE_WRITE_PRIMARY=true` and
+`FIRESTORE_WRITES_DISABLED=true` were enabled in the same 2026-07-27 production
+cycle before the documented soak-green and outbox-drained gate had complete
+evidence attached in Notion.
 
 ```env
 SUPABASE_SHADOW_WRITES=true
@@ -64,6 +70,20 @@ FIRESTORE_WRITES_DISABLED=true
 ```
 
 **Status:** done in prod (2026-07-27). All product writers that honor `shouldPersistFirestore()` persist to Supabase only.
+
+**Governance note:** Step C was accepted as production state before the soak and
+outbox evidence was fully documented. Do not mark the cutover governance-complete
+until the follow-up validation record links evidence for parity monitoring,
+Migration Outbox drained state, rollback proof, retention decision, and a
+current-tip Production Smoke for the active release candidate.
+
+Required backfill validation:
+
+- [ ] Parity monitoring evidence attached to the Supabase Post-Cutover Validation Record
+- [ ] Migration Outbox drained evidence attached or explicitly waived with owner/date
+- [ ] Rollback proof run or documented rollback rehearsal
+- [ ] Firestore retention decision recorded
+- [ ] Current-tip Production Smoke recorded for the active source SHA
 
 To catch up Firestore after a period with mirror off:
 

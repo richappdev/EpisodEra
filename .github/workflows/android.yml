@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   build:
-    name: Assemble Android debug
+    name: Android unit tests, lint, debug, and release bundle
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -42,13 +42,13 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Assemble debug and unit tests
+      - name: Run unit tests, lint, debug build, and release bundle
         run: |
           if [ ! -f ./gradlew ]; then
             gradle wrapper --gradle-version 8.9
           fi
           chmod +x ./gradlew
-          ./gradlew :app:assembleDebug :core:model:testDebugUnitTest --stacktrace
+          ./gradlew testDebugUnitTest lintDebug :app:assembleDebug :app:bundleRelease --stacktrace
 
   instrumentation-test:
     name: Android emulator smoke test

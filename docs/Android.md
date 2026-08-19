@@ -1,6 +1,6 @@
 # Android Client
 
-Last updated: 2026-07-23
+Last updated: 2026-08-19
 
 ## Overview
 
@@ -60,31 +60,41 @@ Shipped relative to web user features:
 
 - Auth (email/password), Home, Search, Movie/TV detail (+ progress / watchlist / likes / discussions)
 - Watchlist (Active / Continue Watching / Library), Likes, Timeline
-- Profile (stats, Year Recap, achievements), Settings (language, providers, privacy, export, delete, TV Time import staging)
+- Profile (stats, Year Recap, achievements), Settings (language, providers, privacy, export, delete, TV Time import web handoff)
 - Daily Puzzle (anonymous player id + signed-in stats), Franchises, Social
 - Remote Config `site_access_blocked`, deep links (`episodera://` + `https://episodera.web.app`)
 - Crashlytics / Analytics / Performance
 
-**Out of scope (web only):** Admin puzzle studio (`/admin/puzzles`).
+**Web-only:** Admin puzzle studio (`/admin/puzzles`) and TV Time Import staging/run. Android can view imported Timeline, Progress, and Watch History after the web import finishes, but it does not run the import flow directly.
 
 ## Build
 
 ```bash
 cd android
+./gradlew testDebugUnitTest
+./gradlew lintDebug
 ./gradlew :app:assembleDebug
-./gradlew :app:testDebugUnitTest
+./gradlew :app:bundleRelease
 ```
 
-On Windows: `gradlew.bat :app:assembleDebug`.
+CI runs the combined release-governance baseline:
+
+```bash
+./gradlew testDebugUnitTest lintDebug :app:assembleDebug :app:bundleRelease --stacktrace
+```
+
+On Windows, use `gradlew.bat` with the same tasks.
 
 ## Release checklist
 
-- [ ] Register Play Integrity in Firebase App Check for `com.episodera.app`
-- [ ] Upload signing key / Play App Signing
+- [ ] Register Play Integrity in Firebase App Check for `com.episodera.app` before release smoke
+- [ ] Upload signing key / Play App Signing and record the Play App Signing SHA-256
 - [ ] Privacy policy URL (`https://episodera.web.app/privacy`)
 - [ ] TMDb attribution visible in Settings
-- [ ] Verify App Links (`assetlinks.json` on Hosting) for `episodera.web.app`
-- [ ] Production smoke: sign-in, watchlist add, mark episode, puzzle guess
+- [ ] Replace the placeholder SHA-256 in `web/public/.well-known/assetlinks.json`, deploy it to Hosting, and verify signed App Links for `episodera.web.app`
+- [ ] Validate `:app:bundleRelease` in CI without publishing credentials
+- [ ] Production App Check smoke with the release configuration
+- [ ] Production smoke for the current source SHA: sign-in, watchlist add, mark episode, puzzle guess, and cleanup
 
 ## Related docs
 
